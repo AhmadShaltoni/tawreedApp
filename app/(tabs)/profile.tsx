@@ -1,26 +1,27 @@
 import Button from "@/src/components/ui/Button";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { changeLanguage, getCurrentLanguage } from "@/src/localization/i18n";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { logout } from "@/src/store/slices/auth.slice";
+import { notificationService } from "@/src/services/notification.service";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    View,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
 } from "react-native";
 
 export default function ProfileScreen() {
@@ -48,7 +49,16 @@ export default function ProfileScreen() {
       {
         text: t("profile.signOut"),
         style: "destructive",
-        onPress: () => dispatch(logout()),
+        onPress: async () => {
+          // Unregister device token before logout
+          try {
+            await notificationService.unregisterToken();
+          } catch (error) {
+            console.error("[ProfileScreen] Failed to unregister token:", error);
+            // Continue with logout even if token unregistration fails
+          }
+          dispatch(logout());
+        },
       },
     ]);
   };

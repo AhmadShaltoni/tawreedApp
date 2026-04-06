@@ -4,10 +4,11 @@ import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-    clearError,
-    continueAsGuest,
-    login,
+  clearError,
+  continueAsGuest,
+  login,
 } from "@/src/store/slices/auth.slice";
+import { notificationService } from "@/src/services/notification.service";
 import { Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -57,10 +58,19 @@ export default function LoginScreen() {
     dispatch(clearError());
     const result = await dispatch(login({ phone: phone.trim(), password }));
 
-    if (login.rejected.match(result)) {
+    if (login.fulfilled.match(result)) {
+      // Register device token after successful login
+      try {
+        await notificationService.registerTokenAfterLogin();
+      } catch (error) {
+        console.error("[LoginScreen] Failed to register device token:", error);
+        // Don't block login if token registration fails
+      }
+      router.replace("/(tabs)");
+    } else if (login.rejected.match(result)) {
       Alert.alert(t("auth.login"), result.payload as string);
     }
-  }, [dispatch, phone, password, validate, t]);
+  }, [dispatch, phone, password, validate, t, router]);
 
   const handleGuestMode = useCallback(() => {
     dispatch(continueAsGuest());

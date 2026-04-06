@@ -4,7 +4,8 @@ import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { clearError, register } from "@/src/store/slices/auth.slice";
-import { Link } from "expo-router";
+import { notificationService } from "@/src/services/notification.service";
+import { Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, StyleSheet, Text, View } from "react-native";
@@ -21,6 +22,7 @@ interface FormErrors {
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const [username, setUsername] = useState("");
@@ -73,7 +75,16 @@ export default function RegisterScreen() {
       }),
     );
 
-    if (register.rejected.match(result)) {
+    if (register.fulfilled.match(result)) {
+      // Register device token after successful registration
+      try {
+        await notificationService.registerTokenAfterLogin();
+      } catch (error) {
+        console.error("[RegisterScreen] Failed to register device token:", error);
+        // Don't block registration if token registration fails
+      }
+      router.replace("/(tabs)");
+    } else if (register.rejected.match(result)) {
       Alert.alert(t("auth.register"), result.payload as string);
     }
   }, [
@@ -85,6 +96,7 @@ export default function RegisterScreen() {
     confirmPassword,
     validate,
     t,
+    router,
   ]);
 
   const clearFieldError = (field: keyof FormErrors) => {

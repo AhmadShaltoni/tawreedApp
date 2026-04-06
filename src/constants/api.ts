@@ -42,6 +42,8 @@ export const API_ENDPOINTS = {
     MARK_READ: (id: string) => `/api/v1/notifications/${id}/read`,
     MARK_ALL_READ: "/api/v1/notifications/read-all",
   },
+  REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
+  UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
 } as const;
 
 export const STORAGE_KEYS = {
