@@ -144,7 +144,17 @@
     "orderUpdate": "Order Update",
     "newProduct": "New Product",
     "promotion": "Promotion",
-    "system": "System"
+    "system": "System",
+    "permissionModal": {
+      "title": "Enable Notifications",
+      "description": "Enable notifications to get exclusive deals, offers, and updates first. Don't miss any opportunity",
+      "benefit1": "Exclusive offers and discounts",
+      "benefit2": "Latest product updates",
+      "benefit3": "Order notifications in real-time",
+      "enableNow": "Enable Now",
+      "skip": "Skip",
+      "footer": "You can change this anytime in your device settings"
+    }
   },
   "profile": {
     "title": "Profile",

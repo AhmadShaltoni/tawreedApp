@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "@/src/constants/api";
 import type { Notification } from "@/src/types";
 import apiClient from "./api";
 import { secureStore } from "./tokenStorage";
+import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -41,10 +42,24 @@ interface NotificationPayload {
   data?: Record<string, any>;
 }
 
+interface PermissionCheckResult {
+  shouldShowModal: boolean;
+  attemptCount: number;
+  isPermanentlyDenied: boolean;
+}
+
 class NotificationServiceClass {
   private initialized = false;
   private responseSubscription: any = null;
   private notificationSubscription: any = null;
+  private modalVisibleCallback: ((show: boolean) => void) | null = null;
+
+  /**
+   * Set callback to show/hide the permission modal
+   */
+  setModalVisibleCallback(callback: (show: boolean) => void): void {
+    this.modalVisibleCallback = callback;
+  }
 
   /**
    * Initialize notification service on app launch
@@ -69,74 +84,90 @@ class NotificationServiceClass {
   /**
    * Check if notification permission is needed and request it
    */
-  private async checkAndRequestPermission(): Promise<void> {
+  private async checkAndRequestPermission(): Promise<PermissionCheckResult> {
     try {
+      // Increment the attempt counter
+      await notificationPermissionTracker.incrementAttemptCount();
+      
+      // Get current status
+      const status = await notificationPermissionTracker.getStatus();
+      
+      console.log("[PushNotifications] Permission status:", status);
+
       // Check if already configured
       const isReady = await AsyncStorage.getItem(
         STORAGE_KEYS.NOTIFICATION_READY,
       );
       if (isReady === "true") {
         console.log("[PushNotifications] Already configured, skipping");
-        return;
+        return {
+          shouldShowModal: false,
+          attemptCount: status.attemptCount,
+          isPermanentlyDenied: status.isPermanentlyDenied,
+        };
       }
 
-      // Check if this is very first app launch
-      const isFirstLaunch = await AsyncStorage.getItem(
-        STORAGE_KEYS.NOTIFICATION_FIRST_LAUNCH_DONE,
-      );
-
-      if (!isFirstLaunch) {
-        // Request immediately on first launch
+      // If attempt count < 4, show native permission dialog
+      if (status.attemptCount < 4) {
         console.log(
-          "[PushNotifications] First launch detected, requesting permission",
+          `[PushNotifications] Attempt ${status.attemptCount}, showing native permission dialog`,
         );
         await this.requestNotificationPermission();
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.NOTIFICATION_FIRST_LAUNCH_DONE,
-          "true",
+      } else if (status.shouldShowCustomModal) {
+        // On 4th+ attempts, show custom modal
+        console.log(
+          `[PushNotifications] Attempt ${status.attemptCount}, showing custom modal`,
         );
-      } else {
-        // Not first launch, check counter
-        const counter = parseInt(
-          (await AsyncStorage.getItem(
-            STORAGE_KEYS.NOTIFICATION_DENIED_COUNTER,
-          )) || "0",
-        );
-
-        // Every 3 launches after denial, try again (on 4th, 7th, 10th... launch)
-        if (counter >= 3) {
-          console.log(
-            "[PushNotifications] Counter reached 3, requesting permission again",
-          );
-          await this.requestNotificationPermission();
-          await AsyncStorage.setItem(
-            STORAGE_KEYS.NOTIFICATION_DENIED_COUNTER,
-            "0",
-          );
-        } else {
-          // Increment counter
-          const newCounter = counter + 1;
-          console.log(
-            `[PushNotifications] Incrementing counter to ${newCounter}`,
-          );
-          await AsyncStorage.setItem(
-            STORAGE_KEYS.NOTIFICATION_DENIED_COUNTER,
-            String(newCounter),
-          );
+        if (this.modalVisibleCallback) {
+          this.modalVisibleCallback(true);
         }
+        // Mark modal as shown today
+        await notificationPermissionTracker.markModalShownToday();
       }
+
+      return {
+        shouldShowModal: status.shouldShowCustomModal,
+        attemptCount: status.attemptCount,
+        isPermanentlyDenied: status.isPermanentlyDenied,
+      };
     } catch (error) {
       console.error(
         "[PushNotifications] Error in checkAndRequestPermission:",
         error,
       );
+      return {
+        shouldShowModal: false,
+        attemptCount: 0,
+        isPermanentlyDenied: false,
+      };
     }
   }
 
   /**
-   * Request notification permission from user
+   * Handle modal enable button press - user chose to open settings
    */
-  private async requestNotificationPermission(): Promise<void> {
+  async handlePermissionModalEnable(): Promise<void> {
+    try {
+      console.log("[PushNotifications] User tapped Enable in modal");
+      await notificationPermissionTracker.markModalShownToday();
+      // The modal will open settings via Linking.openSettings()
+    } catch (error) {
+      console.error("[PushNotifications] Error handling modal enable:", error);
+    }
+  }
+
+  /**
+   * Handle modal close/skip button press
+   */
+  async handlePermissionModalClose(): Promise<void> {
+    try {
+      console.log("[PushNotifications] User closed permission modal");
+      // Mark as permanently dismissed for today
+      await notificationPermissionTracker.markModalShownToday();
+    } catch (error) {
+      console.error("[PushNotifications] Error handling modal close:", error);
+    }
+  }
     try {
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
@@ -370,6 +401,37 @@ class NotificationServiceClass {
    */
   async getDeviceToken(): Promise<string | null> {
     return AsyncStorage.getItem(STORAGE_KEYS.DEVICE_TOKEN);
+  }
+
+  /**
+   * Get current permission tracking status
+   */
+  async getPermissionStatus(): Promise<PermissionCheckResult> {
+    const status = await notificationPermissionTracker.getStatus();
+    return {
+      shouldShowModal: status.shouldShowCustomModal,
+      attemptCount: status.attemptCount,
+      isPermanentlyDenied: status.isPermanentlyDenied,
+    };
+  }
+
+  /**
+   * Get notification attempt count
+   */
+  async getPermissionAttemptCount(): Promise<number> {
+    return notificationPermissionTracker.getAttemptCount();
+  }
+
+  /**
+   * Reset permission tracking (for testing or logout)
+   */
+  async resetPermissionTracking(): Promise<void> {
+    try {
+      await notificationPermissionTracker.reset();
+      console.log("[PushNotifications] Permission tracking reset");
+    } catch (error) {
+      console.error("[PushNotifications] Error resetting permission tracking:", error);
+    }
   }
 
   /**
