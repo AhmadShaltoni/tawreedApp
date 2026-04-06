@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 import { API_ENDPOINTS } from "@/src/constants/api";
 import type { Notification } from "@/src/types";
 import apiClient from "./api";
-import { secureStore } from "./tokenStorage";
+import { getToken } from "./tokenStorage";
 import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 
 // Storage keys
@@ -31,12 +31,14 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 interface NotificationPayload {
-  title?: string;
-  body?: string;
+  title?: string | null;
+  body?: string | null;
   linkUrl?: string;
   link_url?: string;
   data?: Record<string, any>;
@@ -57,7 +59,7 @@ class NotificationServiceClass {
   /**
    * Set callback to show/hide the permission modal
    */
-  setModalVisibleCallback(callback: (show: boolean) => void): void {
+  setModalVisibleCallback(callback: ((show: boolean) => void) | null): void {
     this.modalVisibleCallback = callback;
   }
 
@@ -168,6 +170,11 @@ class NotificationServiceClass {
       console.error("[PushNotifications] Error handling modal close:", error);
     }
   }
+
+  /**
+   * Request notification permission from user
+   */
+  private async requestNotificationPermission(): Promise<void> {
     try {
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
@@ -204,7 +211,7 @@ class NotificationServiceClass {
       console.log("[PushNotifications] Device token obtained:", deviceToken);
 
       // Check if user is authenticated
-      const jwtToken = await secureStore.getToken();
+      const jwtToken = await getToken();
       if (!jwtToken) {
         console.log(
           "[PushNotifications] No JWT token, storing token for later registration",
@@ -439,11 +446,11 @@ class NotificationServiceClass {
    */
   cleanup(): void {
     if (this.responseSubscription) {
-      Notifications.removeNotificationSubscription(this.responseSubscription);
+      this.responseSubscription.remove();
       this.responseSubscription = null;
     }
     if (this.notificationSubscription) {
-      Notifications.removeNotificationSubscription(this.notificationSubscription);
+      this.notificationSubscription.remove();
       this.notificationSubscription = null;
     }
   }
