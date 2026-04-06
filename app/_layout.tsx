@@ -1,6 +1,6 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useFocusEffect, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import "react-native-reanimated";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -32,39 +32,46 @@ function AuthGate() {
     dispatch(restoreSession());
   }, [dispatch]);
 
-  // Initialize push notifications
-  useEffect(() => {
-    const initNotifications = async () => {
-      try {
-        await notificationService.initializePushNotifications();
-      } catch (error) {
-        console.error("[AuthGate] Failed to initialize push notifications:", error);
-      }
-    };
+  // Initialize push notifications (on every app focus)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("[AuthGate] App focused, checking notifications");
 
-    initNotifications();
+      const initNotifications = async () => {
+        try {
+          await notificationService.initializePushNotifications();
+        } catch (error) {
+          console.error(
+            "[AuthGate] Failed to initialize push notifications:",
+            error,
+          );
+        }
+      };
 
-    // Setup deep linking for notifications
-    global.notificationNavigation = (linkUrl: string, data?: any) => {
-      if (linkUrl.startsWith("/orders/")) {
-        const id = linkUrl.replace("/orders/", "");
-        router.push(`/order/${id}`);
-      } else if (linkUrl.startsWith("/products/")) {
-        const id = linkUrl.replace("/products/", "");
-        router.push(`/product/${id}`);
-      } else if (linkUrl.includes("/cart")) {
-        router.push("/(tabs)/cart");
-      } else if (linkUrl.includes("/notifications")) {
-        router.push("/notifications");
-      } else {
-        router.push("/(tabs)");
-      }
-    };
+      initNotifications();
 
-    return () => {
-      notificationService.cleanup();
-    };
-  }, [router]);
+      // Setup deep linking for notifications
+      global.notificationNavigation = (linkUrl: string, data?: any) => {
+        if (linkUrl.startsWith("/orders/")) {
+          const id = linkUrl.replace("/orders/", "");
+          router.push(`/order/${id}`);
+        } else if (linkUrl.startsWith("/products/")) {
+          const id = linkUrl.replace("/products/", "");
+          router.push(`/product/${id}`);
+        } else if (linkUrl.includes("/cart")) {
+          router.push("/(tabs)/cart");
+        } else if (linkUrl.includes("/notifications")) {
+          router.push("/notifications");
+        } else {
+          router.push("/(tabs)");
+        }
+      };
+
+      return () => {
+        notificationService.cleanup();
+      };
+    }, [router]),
+  );
 
   // Handle navigation based on auth state
   useEffect(() => {
