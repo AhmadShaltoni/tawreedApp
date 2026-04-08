@@ -9,6 +9,7 @@ Added animated notice banner feature to Tawreed mobile app. Notices are admin-ma
 ## What Was Implemented
 
 ### 1. Type Definitions
+
 **File**: `src/types/index.ts`
 
 ```typescript
@@ -45,9 +46,11 @@ export interface ApiNoticesResponse {
 ---
 
 ### 2. API Endpoints
+
 **File**: `src/constants/api.ts`
 
 Added to `API_ENDPOINTS`:
+
 ```typescript
 NOTICES: {
   LIST: "/api/v1/notices",
@@ -57,9 +60,11 @@ NOTICES: {
 ---
 
 ### 3. Service Layer
+
 **File**: `src/services/notice.service.ts`
 
 Handles API calls and data transformation:
+
 - `getNotices()` - Fetches active notices
 - Maps API response to app types
 - Applies default colors (#FFA500 bg, #FFFFFF text)
@@ -68,19 +73,22 @@ Handles API calls and data transformation:
 ---
 
 ### 4. Redux State Management
+
 **File**: `src/store/slices/notices.slice.ts`
 
 State shape:
+
 ```typescript
 interface NoticesState {
-  items: Notice[];        // All active notices
-  currentIndex: number;   // Current notice being displayed (0-based)
+  items: Notice[]; // All active notices
+  currentIndex: number; // Current notice being displayed (0-based)
   loading: boolean;
   error: string | null;
 }
 ```
 
 **Actions**:
+
 - `fetchNotices()` - Async thunk to fetch from API
 - `nextNotice()` - Reducer to increment currentIndex with wrap-around
 
@@ -91,9 +99,11 @@ interface NoticesState {
 ### 5. UI Components
 
 #### NoticeCard (`src/components/NoticeCard.tsx`)
+
 Displays a single notice with fade animation.
 
 **Props**:
+
 ```typescript
 interface NoticeCardProps {
   notice: Notice;
@@ -102,24 +112,28 @@ interface NoticeCardProps {
 ```
 
 **Features**:
+
 - Full width banner with padding
 - Uses notice backgroundColor and textColor
 - Text is centered and medium weight (14px)
 - Animated opacity for smooth transitions
 
 #### NoticeCarousel (`src/components/NoticeCarousel.tsx`)
+
 Manages rotation and animation logic.
 
 **Props**:
+
 ```typescript
 interface NoticeCarouselProps {
-  notices: Notice[];    // Array of all notices
+  notices: Notice[]; // Array of all notices
   currentIndex: number; // Current index from Redux
   onNextNotice: () => void; // Callback to dispatch nextNotice action
 }
 ```
 
 **Features**:
+
 - Auto-rotates every 10 seconds
 - Fade out (300ms) → rotate index → fade in (300ms)
 - Cleans up timer on unmount
@@ -129,9 +143,11 @@ interface NoticeCarouselProps {
 ---
 
 ### 6. Home Screen Integration
+
 **File**: `src/screens/home/HomeScreen.tsx`
 
 **Changes**:
+
 1. Import `NoticeCarousel`, `fetchNotices`, `nextNotice`
 2. Extract `notices` and `currentIndex` from Redux state
 3. Dispatch `fetchNotices` on screen focus (via `useFocusEffect`)
@@ -147,7 +163,7 @@ interface NoticeCarouselProps {
 ```
 1. User navigates to/focuses on Home screen
                 ↓
-2. HomeScreen dispatches fetchNotices() 
+2. HomeScreen dispatches fetchNotices()
                 ↓
 3. notice.service.getNotices() calls GET /api/v1/notices
                 ↓
@@ -165,17 +181,20 @@ interface NoticeCarouselProps {
 ## Styling & Design
 
 **Colors**:
+
 - Default background: #FFA500 (warning/info orange)
 - Default text: #FFFFFF (white)
 - Customizable per notice
 
 **Layout**:
+
 - Full width of screen
 - Padding: 12px horizontal, 8px vertical
 - Text: 14px, medium weight, centered
 - Line height: 20px
 
 **Animation**:
+
 - Duration: 300ms fade in/out
 - Uses native driver for performance
 - Smooth transitions between notices
@@ -185,6 +204,7 @@ interface NoticeCarouselProps {
 ## File Structure
 
 Additions/changes:
+
 ```
 src/
 ├── components/
@@ -235,7 +255,9 @@ src/
 ## Debugging
 
 ### Check Redux State
+
 In React Native Debugger or Redux DevTools:
+
 ```
 store.notices = {
   items: [Notice[], ...],
@@ -246,11 +268,13 @@ store.notices = {
 ```
 
 ### Manual API Testing
+
 ```bash
 curl http://localhost:3000/api/v1/notices
 ```
 
 Should return:
+
 ```json
 {
   "notices": [...],
@@ -259,6 +283,7 @@ Should return:
 ```
 
 ### Check Logs
+
 - `Notice carousel mounted` - Component rendered
 - `Timer set: rotating every 10000ms` - Timer active
 - `nextNotice: index X → X+1` - Rotation happening
@@ -277,13 +302,13 @@ Should return:
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Banner not appearing | Check Redux state: `notices.items` should have data |
-| Not rotating | Verify timer is set; check browser console for errors |
-| Animation janky | Ensure `useNativeDriver: true` (already configured) |
-| Colors not showing | Check hex format in backend response (should be #HHHHH) |
-| Notices always same one | Check `currentIndex` incrementing in Redux state |
+| Issue                   | Solution                                                |
+| ----------------------- | ------------------------------------------------------- |
+| Banner not appearing    | Check Redux state: `notices.items` should have data     |
+| Not rotating            | Verify timer is set; check browser console for errors   |
+| Animation janky         | Ensure `useNativeDriver: true` (already configured)     |
+| Colors not showing      | Check hex format in backend response (should be #HHHHH) |
+| Notices always same one | Check `currentIndex` incrementing in Redux state        |
 
 ---
 

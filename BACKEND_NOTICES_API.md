@@ -9,6 +9,7 @@ Add RESTful endpoints for managing rotating banners displayed on the Home screen
 ## API Endpoints
 
 ### 1. GET /api/v1/notices (Public)
+
 Fetch all active notices for the mobile app to display in rotation.
 
 **Authentication**: None required (public endpoint)
@@ -16,6 +17,7 @@ Fetch all active notices for the mobile app to display in rotation.
 **Query Parameters**: None
 
 **Response**:
+
 ```json
 {
   "notices": [
@@ -46,18 +48,21 @@ Fetch all active notices for the mobile app to display in rotation.
 }
 ```
 
-**HTTP Status**: 
+**HTTP Status**:
+
 - 200 OK - Success
 - 500 Internal Server Error
 
 ---
 
 ### 2. POST /api/v1/notices (Admin Only - Dashboard)
+
 Create a new notice/announcement.
 
 **Authentication**: Required (Admin token in Bearer header)
 
 **Request Body**:
+
 ```json
 {
   "text": "Notice text (required, max 255 chars)",
@@ -67,6 +72,7 @@ Create a new notice/announcement.
 ```
 
 **Response** (201 Created):
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -80,6 +86,7 @@ Create a new notice/announcement.
 ```
 
 **Validation**:
+
 - `text` is required and must be 1-255 characters
 - `backgroundColor` and `textColor` must be valid hex colors if provided
 - Admin authorization required
@@ -87,14 +94,17 @@ Create a new notice/announcement.
 ---
 
 ### 3. PATCH /api/v1/notices/:id (Admin Only - Dashboard)
+
 Update an existing notice.
 
 **Authentication**: Required (Admin token in Bearer header)
 
-**URL Parameter**: 
+**URL Parameter**:
+
 - `id` - UUID of the notice
 
 **Request Body** (all optional):
+
 ```json
 {
   "text": "Updated notice text",
@@ -105,6 +115,7 @@ Update an existing notice.
 ```
 
 **Response** (200 OK):
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -118,6 +129,7 @@ Update an existing notice.
 ```
 
 **Validation**:
+
 - If provided, `text` must be 1-255 characters
 - If provided, colors must be valid hex format
 - Admin authorization required
@@ -126,14 +138,17 @@ Update an existing notice.
 ---
 
 ### 4. DELETE /api/v1/notices/:id (Admin Only - Dashboard)
+
 Soft delete a notice (set `isActive` to false).
 
 **Authentication**: Required (Admin token in Bearer header)
 
 **URL Parameter**:
+
 - `id` - UUID of the notice
 
 **Response** (200 OK):
+
 ```json
 {
   "message": "Notice deleted successfully"
@@ -144,6 +159,7 @@ Soft delete a notice (set `isActive` to false).
 Just return empty response
 
 **Validation**:
+
 - Admin authorization required
 - Return 404 if notice not found
 - This is a soft delete: set `isActive = false` instead of removing from DB
@@ -164,7 +180,7 @@ CREATE TABLE notices (
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   deletedAt TIMESTAMP NULL,
-  
+
   -- Indexes
   INDEX idx_active (isActive),
   INDEX idx_created (createdAt DESC)
@@ -225,6 +241,7 @@ CREATE TABLE notices (
 ## Frontend Integration Status
 
 ✅ Frontend is ready to consume this API:
+
 - Notices fetched on Home screen load
 - Refreshed with pull-to-refresh
 - Rotates every 10 seconds with fade animation

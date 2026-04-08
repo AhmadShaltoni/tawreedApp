@@ -12,8 +12,8 @@ import {
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
-import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
+import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
 import type { Category, Order, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";

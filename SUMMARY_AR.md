@@ -7,7 +7,9 @@
 ## الملفات الجديدة المُنشأة (4 ملفات)
 
 ### 1️⃣ `src/services/notice.service.ts`
+
 **الوصف**: طبقة الـ API - جلب البيانات من البيكند
+
 ```typescript
 - getNotices() → GET /api/v1/notices
 - تطبيق الألوان الافتراضية (#FFA500 خلفية، #FFFFFF نص)
@@ -15,7 +17,9 @@
 ```
 
 ### 2️⃣ `src/store/slices/notices.slice.ts`
+
 **الوصف**: إدارة الحالة في Redux
+
 ```typescript
 State:
 - items: الإعلانات المتاحة
@@ -28,7 +32,9 @@ Actions:
 ```
 
 ### 3️⃣ `src/components/NoticeCard.tsx`
+
 **الوصف**: عرض إعلان واحد
+
 ```
 - جودة كاملة للشاشة مع padding
 - تطبيق الألوان المخصصة
@@ -36,7 +42,9 @@ Actions:
 ```
 
 ### 4️⃣ `src/components/NoticeCarousel.tsx`
+
 **الوصف**: محرك الدوران والرسوم المتحركة
+
 ```
 - دوران تلقائي كل 10 ثواني
 - رسم متحرك: fade out (300ms) → تغيير → fade in (300ms)
@@ -109,6 +117,7 @@ Render: NoticeCard (items[1])  [عودة للـ items[0] إذا انتهت]
 ## ما المطلوب من البيكند
 
 ### البيانات (Database)
+
 ```sql
 CREATE TABLE notices (
   id UUID PRIMARY KEY,
@@ -122,6 +131,7 @@ CREATE TABLE notices (
 ```
 
 ### API Endpoints (4 endpoints)
+
 1. **GET** `/api/v1/notices` (عام، بدون تأمين)
    - يستجيب: `{ notices: [...], pagination: {...} }`
 
@@ -135,6 +145,7 @@ CREATE TABLE notices (
    - soft delete: set `isActive=false`
 
 ### لوحة التحكم (Dashboard)
+
 - واجهة CRUD للإعلانات
 - منتقيات ألوان (اختياري)
 - معاينة حية لكيف سيظهر في التطبيق
@@ -146,7 +157,7 @@ CREATE TABLE notices (
 
 📌 **للبيكند**: `BACKEND_NOTICES_API.md`  
 📌 **للفرونتند**: `FRONTEND_NOTICES_IMPLEMENTATION.md`  
-📌 **ملخص**: `NOTIFICATIONS_IMPLEMENTATION_COMPLETE.md`  
+📌 **ملخص**: `NOTIFICATIONS_IMPLEMENTATION_COMPLETE.md`
 
 ---
 
@@ -186,7 +197,7 @@ npx expo start
 ✅ **React Native Developer**: تمام - الكود جاهز  
 ⏳ **Backend Developer**: ينتظر - يحتاج 4 endpoints  
 ⏳ **Admin Dashboard Developer**: ينتظر - يحتاج CRUD interface  
-⏳ **QA**: سيختبر بعد جاهزية الـ backend  
+⏳ **QA**: سيختبر بعد جاهزية الـ backend
 
 ---
 

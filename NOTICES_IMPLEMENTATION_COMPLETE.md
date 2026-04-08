@@ -9,12 +9,14 @@ All React Native frontend code is implemented and type-checked.
 ## Files Created/Modified
 
 ### New Files (4)
+
 - `src/services/notice.service.ts` — API service layer
 - `src/store/slices/notices.slice.ts` — Redux state management
 - `src/components/NoticeCard.tsx` — UI component (single notice)
 - `src/components/NoticeCarousel.tsx` — Rotation logic & animations
 
 ### Modified Files (5)
+
 - `src/constants/api.ts` — Added NOTICES endpoint
 - `src/types/index.ts` — Added Notice interfaces
 - `src/store/index.ts` — Registered notices reducer
@@ -22,6 +24,7 @@ All React Native frontend code is implemented and type-checked.
 - `CLAUDE.md` — Updated documentation
 
 ### Documentation (2)
+
 - `BACKEND_NOTICES_API.md` — Complete backend spec for developer
 - `FRONTEND_NOTICES_IMPLEMENTATION.md` — Frontend implementation guide
 
@@ -30,6 +33,7 @@ All React Native frontend code is implemented and type-checked.
 ## Next Steps
 
 ### For Backend Developer
+
 1. Read: `BACKEND_NOTICES_API.md`
 2. Implement endpoints:
    - `GET /api/v1/notices` (public)
@@ -40,12 +44,14 @@ All React Native frontend code is implemented and type-checked.
 4. Add admin dashboard CRUD interface
 
 ### For Admin Dashboard Developer
+
 1. Create CRUD pages in admin panel
 2. Add color pickers for bg/text colors
 3. Show notice preview (how it looks in app)
 4. Implement soft delete (set isActive=false)
 
 ### For QA/Testing
+
 1. Once backend is ready, test endpoints:
    ```bash
    curl http://localhost:3000/api/v1/notices
@@ -69,7 +75,7 @@ All React Native frontend code is implemented and type-checked.
 ✅ **Auto-hide** — Hidden when empty  
 ✅ **Forced Refresh** — Pull-to-refresh updates list  
 ✅ **Full RTL Support** — Arabic text ready  
-✅ **Type-safe** — No TypeScript errors  
+✅ **Type-safe** — No TypeScript errors
 
 ---
 
@@ -84,6 +90,7 @@ All React Native frontend code is implemented and type-checked.
 **Data Source**: `GET /api/v1/notices` (public endpoint)
 
 **Redux State Shape**:
+
 ```typescript
 notices: {
   items: Notice[],        // All active notices
@@ -94,6 +101,7 @@ notices: {
 ```
 
 **API Response Format**:
+
 ```json
 {
   "notices": [
@@ -144,6 +152,7 @@ notices: {
 Once backend is ready:
 
 1. Start app:
+
    ```bash
    npx expo start
    ```
@@ -158,6 +167,7 @@ Once backend is ready:
 ## Questions?
 
 See:
+
 - `FRONTEND_NOTICES_IMPLEMENTATION.md` — How it works on frontend
 - `BACKEND_NOTICES_API.md` — What backend needs to implement
 - `CLAUDE.md` — Updated project documentation
