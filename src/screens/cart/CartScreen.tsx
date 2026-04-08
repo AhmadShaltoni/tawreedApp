@@ -20,12 +20,13 @@ import type { CartItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -39,12 +40,19 @@ export default function CartScreen() {
   const { items, loading, updating, error } = useAppSelector(
     (state) => state.cart,
   );
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchCart());
     }
   }, [dispatch, isAuthenticated]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await dispatch(fetchCart());
+    setRefreshing(false);
+  }, [dispatch]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -253,6 +261,13 @@ export default function CartScreen() {
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       />
 
       {/* Bottom summary */}

@@ -1,11 +1,11 @@
+import { API_ENDPOINTS } from "@/src/constants/api";
+import type { Notification } from "@/src/types";
+import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { API_ENDPOINTS } from "@/src/constants/api";
-import type { Notification } from "@/src/types";
 import apiClient from "./api";
 import { getToken } from "./tokenStorage";
-import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -22,7 +22,10 @@ Notifications.setNotificationChannelAsync("default", {
   vibrationPattern: [0, 250, 250, 250],
   lightColor: "#FF231F7C",
 }).catch((error) => {
-  console.error("[PushNotifications] Error setting notification channel:", error);
+  console.error(
+    "[PushNotifications] Error setting notification channel:",
+    error,
+  );
 });
 
 // Set notification handler for foreground notifications
@@ -90,10 +93,10 @@ class NotificationServiceClass {
     try {
       // Increment the attempt counter
       await notificationPermissionTracker.incrementAttemptCount();
-      
+
       // Get current status
       const status = await notificationPermissionTracker.getStatus();
-      
+
       console.log("[PushNotifications] Permission status:", status);
 
       // Check if already configured
@@ -243,7 +246,10 @@ class NotificationServiceClass {
         return null;
       }
     } catch (error) {
-      console.error("[PushNotifications] Device token registration error:", error);
+      console.error(
+        "[PushNotifications] Device token registration error:",
+        error,
+      );
       return null;
     }
   }
@@ -254,29 +260,33 @@ class NotificationServiceClass {
   private async setupNotificationHandlers(): Promise<void> {
     try {
       // Handle background/killed app notification tap
-      this.responseSubscription = Notifications.addNotificationResponseReceivedListener(
-        (response) => {
+      this.responseSubscription =
+        Notifications.addNotificationResponseReceivedListener((response) => {
           console.log("[PushNotifications] Notification response:", response);
           this.handleNotificationTap(response.notification.request.content);
-        },
-      );
+        });
 
       // Handle foreground notifications
-      this.notificationSubscription = Notifications.addNotificationReceivedListener(
-        (notification) => {
-          console.log("[PushNotifications] Foreground notification:", notification);
+      this.notificationSubscription =
+        Notifications.addNotificationReceivedListener((notification) => {
+          console.log(
+            "[PushNotifications] Foreground notification:",
+            notification,
+          );
           // Foreground notifications are shown by the handler configured above
-        },
-      );
+        });
 
       // Check for initial notification (app was killed when notification arrived)
-      const initialNotification = await Notifications.getLastNotificationResponseAsync();
+      const initialNotification =
+        await Notifications.getLastNotificationResponseAsync();
       if (initialNotification) {
         console.log(
           "[PushNotifications] Initial notification detected:",
           initialNotification,
         );
-        this.handleNotificationTap(initialNotification.notification.request.content);
+        this.handleNotificationTap(
+          initialNotification.notification.request.content,
+        );
       }
     } catch (error) {
       console.error("[PushNotifications] Error setting up handlers:", error);
@@ -300,17 +310,17 @@ class NotificationServiceClass {
         this.navigateToScreen(linkUrl, notificationData);
       }
     } catch (error) {
-      console.error("[PushNotifications] Error handling notification tap:", error);
+      console.error(
+        "[PushNotifications] Error handling notification tap:",
+        error,
+      );
     }
   }
 
   /**
    * Navigate to screen based on link URL
    */
-  private navigateToScreen(
-    linkUrl: string,
-    data?: Record<string, any>,
-  ): void {
+  private navigateToScreen(linkUrl: string, data?: Record<string, any>): void {
     console.log("[PushNotifications] Navigating to:", linkUrl);
     // This will be handled by deep linking in app layout
     // We'll emit an event that the navigation layer can listen to
@@ -437,7 +447,10 @@ class NotificationServiceClass {
       await notificationPermissionTracker.reset();
       console.log("[PushNotifications] Permission tracking reset");
     } catch (error) {
-      console.error("[PushNotifications] Error resetting permission tracking:", error);
+      console.error(
+        "[PushNotifications] Error resetting permission tracking:",
+        error,
+      );
     }
   }
 

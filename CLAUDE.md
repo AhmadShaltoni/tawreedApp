@@ -139,6 +139,16 @@ tawreedApp/
 - Unread badge on notification bell in HomeScreen
 - Deep linking to orders/products from notifications
 
+### Animated Notices Banner
+
+- Admin-managed announcements displayed on Home screen
+- Rotates automatically every 10 seconds with fade animation
+- Single notice visible at a time above Welcome Header
+- Customizable background & text colors per notice
+- Auto-hides when no notices available
+- Inherits admin control via backend dashboard
+- Fetched on screen focus and pull-to-refresh
+
 ### Profile & Settings
 
 - Personal info display (name, email, phone, business)
@@ -183,6 +193,7 @@ All endpoints are prefixed with `API_BASE_URL` (default: `http://localhost:3000`
 | Cart          | GET/POST `/api/v1/cart`, PATCH/DELETE `/api/v1/cart/:id`                 |
 | Orders        | GET/POST `/api/v1/orders`, GET `/api/v1/orders/:id`                      |
 | Notifications | GET `/api/v1/notifications`, PATCH `.../read`, PATCH `.../read-all`      |
+| Notices       | GET `/api/v1/notices` (public), POST/PATCH/DELETE (admin-only)           |
 
 ---
 
@@ -234,6 +245,9 @@ npx expo start --android
   }
   orders: {
     (items, selectedOrder, loading, loadingDetail, creating, error);
+  }
+  notices: {
+    (items, currentIndex, loading, error);
   }
   notifications: {
     (items, loading, error, unreadCount);

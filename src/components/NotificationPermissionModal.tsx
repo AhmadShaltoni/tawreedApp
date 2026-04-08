@@ -1,16 +1,15 @@
-import { Linking, Modal, StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
 import Button from "@/src/components/ui/Button";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
-import Animated, { FadeIn, SlideInUp } from "react-native-reanimated";
-import { Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { Linking, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { SlideInUp } from "react-native-reanimated";
 
 interface NotificationPermissionModalProps {
   visible: boolean;
@@ -52,21 +51,13 @@ export default function NotificationPermissionModal({
         >
           {/* Close Button */}
           <Pressable style={styles.closeButton} onPress={onClose}>
-            <Ionicons
-              name="close"
-              size={24}
-              color={Colors.textSecondary}
-            />
+            <Ionicons name="close" size={24} color={Colors.textSecondary} />
           </Pressable>
 
           {/* Illustration */}
           <View style={styles.iconContainer}>
             <View style={styles.iconBackground}>
-              <Ionicons
-                name="notifications"
-                size={48}
-                color={Colors.primary}
-              />
+              <Ionicons name="notifications" size={48} color={Colors.primary} />
             </View>
           </View>
 
@@ -106,10 +97,7 @@ export default function NotificationPermissionModal({
               style={styles.enableButton}
             />
 
-            <Pressable
-              style={styles.skipButton}
-              onPress={onClose}
-            >
+            <Pressable style={styles.skipButton} onPress={onClose}>
               <Text style={styles.skipButtonText}>
                 {t("notifications.permissionModal.skip")}
               </Text>

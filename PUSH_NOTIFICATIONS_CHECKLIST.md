@@ -3,6 +3,7 @@
 ## ✅ Frontend Implementation (COMPLETED)
 
 ### Mobile App Setup
+
 - [x] Installed `expo-notifications` package
 - [x] Created comprehensive notification service (`src/services/notification.service.ts`)
 - [x] Added Redux notification slice integration
@@ -14,6 +15,7 @@
 - [x] Added global notification navigation handler
 
 ### Files Modified
+
 ```
 ✓ src/services/notification.service.ts          (Enhanced)
 ✓ src/constants/api.ts                          (Added endpoints)
@@ -25,6 +27,7 @@
 ```
 
 ### New Documentation Files Created
+
 ```
 ✓ PUSH_NOTIFICATIONS_SETUP.md                   (Main implementation guide)
 ✓ PUSH_NOTIFICATIONS_BACKEND.md                 (Backend setup & API)
@@ -36,12 +39,14 @@
 ## ⏳ Backend Implementation (TODO)
 
 ### Database
+
 - [ ] Create `DeviceToken` table
 - [ ] Add indexes on `userId` and `token`
 - [ ] Add auto-cascade delete with User
 - [ ] Run migration: `npx prisma migrate dev`
 
 ### API Endpoints
+
 - [ ] Implement `POST /api/v1/notifications/device-token`
 - [ ] Implement `DELETE /api/v1/notifications/device-token`
 - [ ] Implement `GET /api/v1/notifications/device-token`
@@ -50,6 +55,7 @@
 - [ ] Add error handling
 
 ### Notification Sending Service
+
 - [ ] Install Expo Server SDK: `npm install expo-server-sdk`
 - [ ] Create notification service class
 - [ ] Implement `sendNotificationToUser()` method
@@ -57,6 +63,7 @@
 - [ ] Add error handling for inactive tokens
 
 ### Notification Events
+
 - [ ] Hook new order creation → Send notification
 - [ ] Hook order status update → Send notification
 - [ ] Hook product arrival → Send notification
@@ -67,7 +74,9 @@
 ## 🧪 Testing Checklist
 
 ### Test 1: Permission Flow - First Launch
+
 **Expected**: Show permission prompt immediately
+
 ```
 1. Clear app data completely
 2. Launch app fresh
@@ -77,7 +86,9 @@
 ```
 
 ### Test 2: Permission Denied - Counter Increment
+
 **Expected**: Counter increments, permission skipped future launches
+
 ```
 1. Tap "Don't Allow" on permission prompt
 2. Restart app (kill & relaunch)
@@ -88,7 +99,9 @@
 ```
 
 ### Test 3: Permission Retry - After 3 Denials
+
 **Expected**: Request permission again on 4th app launch
+
 ```
 1. Continue from Test 2 state (counter = 2)
 2. Restart app → no prompt, counter = "3"
@@ -98,7 +111,9 @@
 ```
 
 ### Test 4: Device Token Registration
+
 **Expected**: Token registered with backend after permission grant
+
 ```
 1. From Test 3, grant permission
 2. Check AsyncStorage: DEVICE_TOKEN is set with token value
@@ -108,7 +123,9 @@
 ```
 
 ### Test 5: Login Flow
+
 **Expected**: Token registered after successful login
+
 ```
 1. Logout if authenticated
 2. App shows login screen (guest mode)
@@ -119,7 +136,9 @@
 ```
 
 ### Test 6: Register Flow
+
 **Expected**: New user registration with token
+
 ```
 1. Go to register screen
 2. Fill form and submit
@@ -129,7 +148,9 @@
 ```
 
 ### Test 7: Logout Flow
+
 **Expected**: Device token unregistered
+
 ```
 1. Navigate to Profile screen
 2. Tap Sign Out button
@@ -141,7 +162,9 @@
 ```
 
 ### Test 8: Foreground Notification
+
 **Expected**: Alert shown with option to open
+
 ```
 1. Send notification from backend for logged-in user
 2. Keep app in foreground
@@ -151,7 +174,9 @@
 ```
 
 ### Test 9: Background Notification
+
 **Expected**: System displays, navigate on tap
+
 ```
 1. Send notification while app is in background
 2. Notification appears in system tray
@@ -161,7 +186,9 @@
 ```
 
 ### Test 10: Deep Linking
+
 **Expected**: Navigate to correct screen based on URL
+
 ```
 // Test Order Navigation
 - Link: /orders/order_123
@@ -181,7 +208,9 @@
 ```
 
 ### Test 11: Killed App + Notification
+
 **Expected**: Navigate when app bootstrap from killed state
+
 ```
 1. Kill app completely (remove from recent)
 2. Send notification to registered device
@@ -192,7 +221,9 @@
 ```
 
 ### Test 12: Token Refresh
+
 **Expected**: Handle token changes on app resume
+
 ```
 1. App in foreground, keep running
 2. Wait 1 hour (or simulate token refresh)
@@ -253,7 +284,7 @@ Monitor Redux state changes related to notifications:
 // In Redux store, if using Redux DevTools
 // Watch notifications.slice actions:
 // - fetchNotifications
-// - markNotificationRead  
+// - markNotificationRead
 // - markAllNotificationsRead
 ```
 
@@ -264,6 +295,7 @@ Monitor Redux state changes related to notifications:
 ### Test Notification Payloads
 
 **Order Notification**
+
 ```json
 {
   "title": "طلب جديد",
@@ -277,6 +309,7 @@ Monitor Redux state changes related to notifications:
 ```
 
 **Product Notification**
+
 ```json
 {
   "title": "منتج جديد وصل",
@@ -290,6 +323,7 @@ Monitor Redux state changes related to notifications:
 ```
 
 **Promotion Notification**
+
 ```json
 {
   "title": "عرض خاص",
@@ -307,21 +341,27 @@ Monitor Redux state changes related to notifications:
 ## 🐛 Troubleshooting Guide
 
 ### Problem: Permission prompt not showing
+
 **Solutions**:
+
 - [ ] Check AsyncStorage: `notification_first_launch_done` might be set
 - [ ] Clear app data completely
 - [ ] Verify `notification_ready !== "true"`
 - [ ] Check for errors in `checkAndRequestPermission()`
 
 ### Problem: Device token always null
+
 **Solutions**:
+
 - [ ] Permission not granted
 - [ ] `getExpoPushTokenAsync()` returning null
 - [ ] Check network connectivity
 - [ ] Verify Expo project is configured
 
 ### Problem: Token registration fails silently
+
 **Solutions**:
+
 - [ ] Check JWT token is valid
 - [ ] Verify backend endpoint exists
 - [ ] Check Network tab in DevTools
@@ -329,7 +369,9 @@ Monitor Redux state changes related to notifications:
 - [ ] Verify backend API is accessible
 
 ### Problem: Deep link not working
+
 **Solutions**:
+
 - [ ] Check URL format matches pattern
 - [ ] Verify `global.notificationNavigation` is set
 - [ ] Check router is initialized
@@ -337,7 +379,9 @@ Monitor Redux state changes related to notifications:
 - [ ] Check data.linkUrl is passed correctly
 
 ### Problem: Notifications not persisting after logout/login
+
 **Solutions**:
+
 - [ ] Token not being stored between sessions
 - [ ] JWT token expired
 - [ ] Backend user association lost
@@ -363,12 +407,14 @@ Monitor Redux state changes related to notifications:
 ## 📈 Performance Optimization
 
 ### Current Implementation
+
 - Token stored in AsyncStorage (fast local reads)
 - One-time initialization on app launch
 - Efficient counter-based retry logic
 - Non-blocking error handling
 
 ### Potential Improvements
+
 - [ ] Implement token refresh on app resume
 - [ ] Batch notification sending
 - [ ] Implement retry-with-exponential-backoff
@@ -391,6 +437,7 @@ Monitor Redux state changes related to notifications:
 ## 🎯 Implementation Timeline
 
 **Week 1 (Frontend - COMPLETED)**
+
 - [x] Install dependencies
 - [x] Create notification service
 - [x] Integrate with app layout
@@ -398,18 +445,21 @@ Monitor Redux state changes related to notifications:
 - [x] Implement deep linking
 
 **Week 2 (Backend)**
+
 - [ ] Create database schema
 - [ ] Implement API endpoints
 - [ ] Build notification service
 - [ ] Add notification events
 
 **Week 3 (Testing & Polish)**
+
 - [ ] Run test suite
 - [ ] Fix edge cases
 - [ ] Performance optimization
 - [ ] Production setup
 
 **Week 4+ (Monitoring & Analytics)**
+
 - [ ] Track metrics
 - [ ] Implement analytics
 - [ ] User preference system
@@ -468,4 +518,3 @@ Testing: **Ready for manual testing**
 Documentation: **100% ✅**
 
 **Next Step**: Start backend implementation following `PUSH_NOTIFICATIONS_BACKEND.md`
-

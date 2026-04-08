@@ -10,7 +10,7 @@ npm install expo-notifications ✓
 
 // 2. Notification service created with:
 - Smart permission requesting ✓
-- Device token management ✓  
+- Device token management ✓
 - Deep link routing ✓
 - Error handling ✓
 
@@ -63,14 +63,17 @@ npm start
 ## 📝 Documentation Quick Links
 
 ### For Developers
+
 - **Setup**: [PUSH_NOTIFICATIONS_SETUP.md](PUSH_NOTIFICATIONS_SETUP.md)
 - **Testing**: [PUSH_NOTIFICATIONS_CHECKLIST.md](PUSH_NOTIFICATIONS_CHECKLIST.md)
 
-### For Backend Team  
+### For Backend Team
+
 - **API Specs**: [PUSH_NOTIFICATIONS_BACKEND.md](PUSH_NOTIFICATIONS_BACKEND.md)
 - **Configuration**: [PUSH_NOTIFICATIONS_CONFIG.md](PUSH_NOTIFICATIONS_CONFIG.md)
 
 ### Overview
+
 - **Summary**: [PUSH_NOTIFICATIONS_README.md](PUSH_NOTIFICATIONS_README.md) (this file's parent)
 
 ---
@@ -78,6 +81,7 @@ npm start
 ## 🔧 Next Step: Backend Setup (Backend Team)
 
 ### 1. Database
+
 ```sql
 CREATE TABLE DeviceToken (
   id TEXT PRIMARY KEY,
@@ -91,6 +95,7 @@ CREATE TABLE DeviceToken (
 ```
 
 ### 2. API Endpoints (3 total)
+
 ```
 POST /api/v1/notifications/device-token      → Register token
 DELETE /api/v1/notifications/device-token    → Unregister
@@ -98,13 +103,14 @@ GET /api/v1/notifications/device-token       → List tokens
 ```
 
 ### 3. Notification Service
+
 ```typescript
 await sendNotificationToUser(userId, {
-  title: 'طلب جديد',
-  body: 'تم تلقي طلبك',
+  title: "طلب جديد",
+  body: "تم تلقي طلبك",
   data: {
-    linkUrl: '/orders/ORD-123'
-  }
+    linkUrl: "/orders/ORD-123",
+  },
 });
 ```
 
@@ -115,6 +121,7 @@ await sendNotificationToUser(userId, {
 ## 🎯 User Experience Flow
 
 ### First User (New App)
+
 ```
 1. App launches
 2. "Allow" button for notifications
@@ -126,6 +133,7 @@ await sendNotificationToUser(userId, {
 ```
 
 ### User Denies Permission
+
 ```
 1. App launches
 2. "Don't Allow" button
@@ -140,15 +148,17 @@ await sendNotificationToUser(userId, {
 ## 💻 Code Locations
 
 ### Frontend
+
 ```
 src/services/notification.service.ts     ← Main service
 app/_layout.tsx                          ← App initialization
 src/screens/auth/LoginScreen.tsx         ← Token registration
-src/screens/auth/RegisterScreen.tsx      ← Token registration  
+src/screens/auth/RegisterScreen.tsx      ← Token registration
 app/(tabs)/profile.tsx                   ← Token unregistration
 ```
 
 ### Configuration
+
 ```
 src/constants/api.ts                     ← API endpoints
 app.json                                 ← Notification settings
@@ -159,15 +169,19 @@ app.json                                 ← Notification settings
 ## 🧪 Testing Scenarios
 
 ### Test 1: Permission First Launch
+
 Expected: Permission prompt appears immediately
+
 ```bash
 1. Clear app data
 2. npm start
 3. ✓ Prompt appears
 ```
 
-### Test 2: Permission Retry  
+### Test 2: Permission Retry
+
 Expected: Asked again on 4th launch after 3 denials
+
 ```bash
 1. Deny permission
 2. Launch 3 more times
@@ -175,7 +189,9 @@ Expected: Asked again on 4th launch after 3 denials
 ```
 
 ### Test 3: Device Token
+
 Expected: Token generated and stored
+
 ```bash
 1. Grant permission
 2. Check AsyncStorage: DEVICE_TOKEN set
@@ -183,7 +199,9 @@ Expected: Token generated and stored
 ```
 
 ### Test 4: Login/Register
+
 Expected: Token registered after auth
+
 ```bash
 1. Deny initial permission
 2. Grant permission after login
@@ -191,7 +209,9 @@ Expected: Token registered after auth
 ```
 
 ### Test 5: Logout
+
 Expected: Token unregistered
+
 ```bash
 1. Login and grant permission
 2. Go to profile, tap logout
@@ -223,20 +243,21 @@ A: No, only authenticated users get push notifications.
 
 ## 🚀 Current Status
 
-| Component | Status |
-|-----------|--------|
+| Component        | Status      |
+| ---------------- | ----------- |
 | Frontend Service | ✅ Complete |
-| App Integration | ✅ Complete |
+| App Integration  | ✅ Complete |
 | Auth Integration | ✅ Complete |
-| Documentation | ✅ Complete |
-| Backend API | ⏳ To Do |
-| Testing | ⏳ Ready |
+| Documentation    | ✅ Complete |
+| Backend API      | ⏳ To Do    |
+| Testing          | ⏳ Ready    |
 
 ---
 
 ## 📊 What's Included
 
 ### Service Features
+
 - ✅ Smart permission requesting
 - ✅ Device token management
 - ✅ Deep link routing
@@ -246,6 +267,7 @@ A: No, only authenticated users get push notifications.
 - ✅ Security (JWT required)
 
 ### Documentation
+
 - ✅ Setup guide (47 pages)
 - ✅ Backend API specs (30 pages)
 - ✅ Testing checklist (20+ tests)
@@ -253,6 +275,7 @@ A: No, only authenticated users get push notifications.
 - ✅ Quick start (this file)
 
 ### Testing
+
 - ✅ 12 manual test scenarios
 - ✅ Expected outcomes defined
 - ✅ Troubleshooting guide
@@ -262,25 +285,27 @@ A: No, only authenticated users get push notifications.
 
 ## 🎯 Quick Decisions Made
 
-| Question | Answer |
-|----------|--------|
-| Use Firebase now? | No, Expo Notifications only |
-| Require JWT for tokens? | Yes, security best practice |
-| Block app on permission error? | No, non-blocking |
-| Guest notifications? | No, auth required |
-| Retry forever? | No, follow 3-launch rule |
+| Question                       | Answer                      |
+| ------------------------------ | --------------------------- |
+| Use Firebase now?              | No, Expo Notifications only |
+| Require JWT for tokens?        | Yes, security best practice |
+| Block app on permission error? | No, non-blocking            |
+| Guest notifications?           | No, auth required           |
+| Retry forever?                 | No, follow 3-launch rule    |
 
 ---
 
 ## 📞 Getting Help
 
 ### Check These First
+
 1. Console logs: Look for `[PushNotifications]` prefix
 2. AsyncStorage values: Check device token storage
 3. Network: Verify backend API is accessible
 4. Permissions: Check app settings for notification access
 
 ### Resources
+
 - [PUSH_NOTIFICATIONS_CHECKLIST.md](PUSH_NOTIFICATIONS_CHECKLIST.md) - Troubleshooting
 - [PUSH_NOTIFICATIONS_SETUP.md](PUSH_NOTIFICATIONS_SETUP.md) - Full guide
 - [Expo Notifications Docs](https://docs.expo.dev/versions/latest/sdk/notifications/)
@@ -290,21 +315,25 @@ A: No, only authenticated users get push notifications.
 ## ✨ What's Next for Your Team
 
 ### Week 1 ✅
+
 - [x] Frontend implementation complete
 - [x] Service configured
 - [x] Documentation ready
 
-### Week 2 ⏳  
+### Week 2 ⏳
+
 - [ ] Backend endpoints implemented
 - [ ] Database created
 - [ ] Send test notification from backend
 
 ### Week 3 ⏳
+
 - [ ] Production testing
 - [ ] iOS/Android builds
 - [ ] App Store submission
 
 ### Week 4+ ⏳
+
 - [ ] Monitor metrics
 - [ ] User preferences UI
 - [ ] Analytics dashboard
@@ -338,7 +367,7 @@ The frontend is 100% complete. Your app will:
 ## 🏁 Final Checklist
 
 - [x] Expo notifications installed
-- [x] Service created and configured  
+- [x] Service created and configured
 - [x] App layout updated
 - [x] Auth flows integrated
 - [x] Deep linking configured
@@ -355,4 +384,3 @@ The frontend is 100% complete. Your app will:
 **Need help?** Check [PUSH_NOTIFICATIONS_README.md](PUSH_NOTIFICATIONS_README.md) for the complete overview.
 
 Good luck! 🚀
-

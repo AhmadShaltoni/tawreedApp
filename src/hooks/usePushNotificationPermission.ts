@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { useFocusEffect } from "expo-router";
 import { pushNotificationService } from "@/src/services/notification.service";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Hook to manage push notification permission requests with modal fallback
@@ -14,7 +14,10 @@ export const usePushNotificationPermission = () => {
   // Register modal callback when component mounts
   useEffect(() => {
     pushNotificationService.setModalVisibleCallback((show: boolean) => {
-      console.log("[PushNotificationPermission] Modal callback triggered:", show);
+      console.log(
+        "[PushNotificationPermission] Modal callback triggered:",
+        show,
+      );
       setDisplayModal(show);
     });
 
@@ -34,7 +37,7 @@ export const usePushNotificationPermission = () => {
     try {
       setIsLoading(true);
       const status = await pushNotificationService.getPermissionStatus();
-      
+
       console.log("[PushNotificationPermission] Permission status:", {
         shouldShowModal: status.shouldShowModal,
         attemptCount: status.attemptCount,
@@ -42,11 +45,14 @@ export const usePushNotificationPermission = () => {
       });
 
       setPermissionAttempt(status.attemptCount);
-      
+
       // Note: The service will call setModalVisibleCallback during checkAndRequestPermission
       // We just need to track the attempt count here
     } catch (error) {
-      console.error("[PushNotificationPermission] Error checking status:", error);
+      console.error(
+        "[PushNotificationPermission] Error checking status:",
+        error,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +63,10 @@ export const usePushNotificationPermission = () => {
       await pushNotificationService.handlePermissionModalEnable();
       setDisplayModal(false);
     } catch (error) {
-      console.error("[PushNotificationPermission] Error handling modal enable:", error);
+      console.error(
+        "[PushNotificationPermission] Error handling modal enable:",
+        error,
+      );
     }
   }, []);
 
@@ -66,7 +75,10 @@ export const usePushNotificationPermission = () => {
       await pushNotificationService.handlePermissionModalClose();
       setDisplayModal(false);
     } catch (error) {
-      console.error("[PushNotificationPermission] Error handling modal close:", error);
+      console.error(
+        "[PushNotificationPermission] Error handling modal close:",
+        error,
+      );
     }
   }, []);
 

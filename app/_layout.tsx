@@ -6,12 +6,14 @@ import "react-native-reanimated";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Provider } from "react-redux";
 
+import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
 import { Colors } from "@/src/constants/theme";
+import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import "@/src/localization/i18n";
 import { loadSavedLanguage } from "@/src/localization/i18n";
+import { notificationService } from "@/src/services/notification.service";
 import { store, useAppDispatch, useAppSelector } from "@/src/store";
 import { continueAsGuest, restoreSession } from "@/src/store/slices/auth.slice";
-import { notificationService } from "@/src/services/notification.service";
 
 // Setup global notification navigation handler
 declare global {
@@ -25,6 +27,10 @@ function AuthGate() {
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
+
+  // Permission modal hook
+  const { displayModal, handleModalEnable, handleModalClose } =
+    usePushNotificationPermission();
 
   // Initialize localization
   useEffect(() => {
@@ -167,6 +173,11 @@ function AuthGate() {
         />
       </Stack>
       <StatusBar style="dark" />
+      <NotificationPermissionModal
+        visible={displayModal}
+        onOpenSettings={handleModalEnable}
+        onClose={handleModalClose}
+      />
     </>
   );
 }

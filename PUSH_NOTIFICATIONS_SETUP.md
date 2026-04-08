@@ -9,18 +9,21 @@ This document outlines the complete push notification system implementation for 
 ## Features Implemented
 
 ### 1. Intelligent Permission Requesting
+
 - **First Launch**: Ask for notification permission immediately
 - **Permission Denied**: Remember the denial
 - **Smart Retry**: Re-request after every 3 app launches (4th, 7th, 10th, etc.)
 - **No Spam**: Respects user's choices while ensuring engagement
 
 ### 2. Device Token Management
+
 - Automatic token generation on permission grant
 - Token registration with backend API
 - Token refresh handling
 - Token unregistration on logout
 
 ### 3. Deep Linking
+
 - Tap notifications to navigate to correct screens
 - Handles 4 cases:
   - `/orders/:id` → Order detail screen
@@ -29,6 +32,7 @@ This document outlines the complete push notification system implementation for 
   - `/notifications` → Notifications screen
 
 ### 4. Notification Handling
+
 - **Foreground**: Displays in-app alert with option to open
 - **Background**: System handles display, app navigates on tap
 - **Killed App**: App bootstraps and navigates to notification data
@@ -48,6 +52,7 @@ npm install expo-notifications
 The app connects to these backend endpoints:
 
 #### Register Device Token
+
 ```
 POST /api/v1/notifications/device-token
 Headers: Authorization: Bearer {jwt_token}
@@ -55,6 +60,7 @@ Body: { token: string, platform: "IOS" | "ANDROID" }
 ```
 
 #### Unregister Device Token
+
 ```
 DELETE /api/v1/notifications/device-token
 Headers: Authorization: Bearer {jwt_token}
@@ -62,6 +68,7 @@ Body: { token: string }
 ```
 
 #### Get Device Tokens
+
 ```
 GET /api/v1/notifications/device-token
 Headers: Authorization: Bearer {jwt_token}
@@ -96,11 +103,12 @@ src/screens/auth/
 ### 1. Storage Keys
 
 Used in AsyncStorage for persistent state:
+
 ```typescript
-NOTIFICATION_READY: "notification_ready"
-NOTIFICATION_FIRST_LAUNCH_DONE: "notification_first_launch_done"
-NOTIFICATION_DENIED_COUNTER: "notification_denied_counter"
-DEVICE_TOKEN: "deviceToken"
+NOTIFICATION_READY: "notification_ready";
+NOTIFICATION_FIRST_LAUNCH_DONE: "notification_first_launch_done";
+NOTIFICATION_DENIED_COUNTER: "notification_denied_counter";
+DEVICE_TOKEN: "deviceToken";
 ```
 
 ### 2. Permission Request Flow
@@ -182,14 +190,14 @@ export const API_ENDPOINTS = {
   // ... existing endpoints ...
   REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
   UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
-}
+};
 ```
 
 ---
 
 ## Deep Linking Handler
 
-Implemented in [app/_layout.tsx](app/_layout.tsx):
+Implemented in [app/\_layout.tsx](app/_layout.tsx):
 
 ```typescript
 global.notificationNavigation = (linkUrl: string, data?: any) => {
@@ -217,17 +225,17 @@ global.notificationNavigation = (linkUrl: string, data?: any) => {
 
 #### Key Methods
 
-| Method | Purpose |
-|--------|---------|
-| `initialize()` | Initialize service on app launch |
-| `checkAndRequestPermission()` | Check if permission is needed |
-| `requestNotificationPermission()` | Show permission dialog |
-| `registerDeviceToken()` | Get token and register with backend |
-| `setupNotificationHandlers()` | Setup event listeners |
-| `handleNotificationTap()` | Handle user tapping notification |
-| `registerTokenAfterLogin()` | Register token after authentication |
-| `unregisterToken()` | Unregister token on logout |
-| `cleanup()` | Clean up event listeners |
+| Method                            | Purpose                             |
+| --------------------------------- | ----------------------------------- |
+| `initialize()`                    | Initialize service on app launch    |
+| `checkAndRequestPermission()`     | Check if permission is needed       |
+| `requestNotificationPermission()` | Show permission dialog              |
+| `registerDeviceToken()`           | Get token and register with backend |
+| `setupNotificationHandlers()`     | Setup event listeners               |
+| `handleNotificationTap()`         | Handle user tapping notification    |
+| `registerTokenAfterLogin()`       | Register token after authentication |
+| `unregisterToken()`               | Unregister token on logout          |
+| `cleanup()`                       | Clean up event listeners            |
 
 ---
 
@@ -262,7 +270,7 @@ import { notificationService } from "@/src/services/notification.service";
 
 const handleLogin = useCallback(async () => {
   const result = await dispatch(login(credentials));
-  
+
   if (login.fulfilled.match(result)) {
     // Register device token after successful login
     try {
@@ -309,6 +317,7 @@ When backend sends notifications, include this structure:
 ```
 
 Supported URL formats:
+
 - `/orders/{id}` - Opens order detail
 - `/products/{id}` - Opens product detail
 - `/cart` - Opens cart screen
@@ -357,6 +366,7 @@ console.error("[PushNotifications] Initialization error:", error);
 ```
 
 Monitor these logs to debug notification flow:
+
 - Initialization status
 - Permission requests
 - Token generation and registration
@@ -368,10 +378,10 @@ Monitor these logs to debug notification flow:
 ## Storage Cleanup
 
 On logout, the following are cleared:
+
 ```typescript
 {
-  NOTIFICATION_READY,
-  DEVICE_TOKEN
+  (NOTIFICATION_READY, DEVICE_TOKEN);
 }
 ```
 
@@ -393,16 +403,19 @@ Note: `NOTIFICATION_FIRST_LAUNCH_DONE` and `NOTIFICATION_DENIED_COUNTER` are NOT
 ## Troubleshooting
 
 ### Tokens not registering
+
 - Check if user is authenticated when registering
 - Verify backend API is accessible
 - Check AsyncStorage is accessible
 
 ### Notifications not showing
+
 - Ensure permission was granted
 - Check device notification settings
 - Verify backend is sending notifications
 
 ### Deep linking not working
+
 - Check if `global.notificationNavigation` is set
 - Verify URL format matches one of the supported patterns
 - Check router is available and not in loading state
@@ -436,4 +449,3 @@ Make sure your backend:
 - [Expo Notifications Docs](https://docs.expo.dev/versions/latest/sdk/notifications/)
 - [React Native Async Storage](https://react-native-async-storage.github.io/async-storage/)
 - [Expo Secure Store](https://docs.expo.dev/versions/latest/sdk/securestore/)
-

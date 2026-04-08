@@ -124,28 +124,28 @@ export default function RootLayout() {
 ## Key Changes
 
 ### 1. Import Statements (Add at top)
+
 ```typescript
 import { NotificationPermissionModal } from "@/src/components/NotificationPermissionModal";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 ```
 
 ### 2. Hook in Component
+
 ```typescript
-const {
-  displayModal,
-  permissionAttempt,
-  handleModalEnable,
-  handleModalClose,
-} = usePushNotificationPermission();
+const { displayModal, permissionAttempt, handleModalEnable, handleModalClose } =
+  usePushNotificationPermission();
 ```
 
 **What each property does**:
+
 - `displayModal` (boolean): Controls when the modal is shown
 - `permissionAttempt` (number): Current attempt count (for debugging)
 - `handleModalEnable()` (function): Called when user clicks "Enable Now"
 - `handleModalClose()` (function): Called when user clicks "Skip" or close button
 
 ### 3. Modal Component (Add inside layout, before closing tags)
+
 ```typescript
 <NotificationPermissionModal
   visible={displayModal}
@@ -155,6 +155,7 @@ const {
 ```
 
 **Props**:
+
 - `visible`: When `true`, modal is displayed
 - `onOpenSettings`: Callback when "Enable Now" tapped
 - `onClose`: Callback when "Skip" or X button tapped
@@ -174,28 +175,28 @@ GestureHandlerRootView
 
 ## Complete File Example
 
-See [app/_layout.tsx.example](#) for the complete file with comments.
+See [app/\_layout.tsx.example](#) for the complete file with comments.
 
 ## Gradual Integration
 
 If you want to integrate gradually:
 
 ### Step 1: Add imports only
+
 ```typescript
 import { NotificationPermissionModal } from "@/src/components/NotificationPermissionModal";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 ```
 
 ### Step 2: Add hook
+
 ```typescript
-const {
-  displayModal,
-  handleModalEnable,
-  handleModalClose,
-} = usePushNotificationPermission();
+const { displayModal, handleModalEnable, handleModalClose } =
+  usePushNotificationPermission();
 ```
 
 ### Step 3: Add modal component
+
 ```typescript
 <NotificationPermissionModal
   visible={displayModal}
@@ -205,6 +206,7 @@ const {
 ```
 
 ### Test at each step
+
 ```bash
 expo start --clear
 ```
@@ -212,24 +214,27 @@ expo start --clear
 ## Troubleshooting
 
 ### Modal not showing?
+
 1. Check `usePushNotificationPermission` is called
 2. Verify `displayModal` prop is correctly passed
 3. Check console for `[PushNotificationPermission]` logs
 4. Verify app layout is properly structured
 
 ### Permission dialog not showing?
+
 1. Check permission tracker: `await notificationPermissionTracker.getAttemptCount()`
 2. If attempt > 3, modal will show instead of dialog
 3. Try reset: `await notificationPermissionTracker.reset()`
 
 ### Buttons not responding?
+
 1. Check callback functions are passed: `onOpenSettings`, `onClose`
 2. Verify Linking module can open settings
 3. Check for any TypeScript errors
 
 ## Next Steps
 
-1. **Integrate** the modal into app/_layout.tsx
+1. **Integrate** the modal into app/\_layout.tsx
 2. **Test** on iOS and Android using NOTIFICATION_PERMISSION_MODAL_TESTING.md
 3. **Verify** i18n strings are displaying correctly
 4. **Monitor** permission acceptance rates in production
@@ -276,6 +281,7 @@ const {
 ---
 
 For more details, see:
+
 - Integration Guide: NOTIFICATION_PERMISSION_MODAL_INTEGRATION.md
 - Testing Guide: NOTIFICATION_PERMISSION_MODAL_TESTING.md
 - Troubleshooting: See issues section in integration guide

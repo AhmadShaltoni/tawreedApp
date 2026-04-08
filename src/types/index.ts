@@ -174,3 +174,14 @@ export interface Notification {
   data?: Record<string, string>;
   createdAt: string;
 }
+
+// Notices (Admin-managed announcements)
+export interface Notice {
+  id: string;
+  text: string;
+  backgroundColor: string; // Hex color, default: #FFA500
+  textColor: string; // Hex color, default: #FFFFFF
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

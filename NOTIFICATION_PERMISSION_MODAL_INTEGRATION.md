@@ -23,7 +23,7 @@ NotificationService
 
 ## Integration Steps
 
-### 1. Update App Layout (app/_layout.tsx)
+### 1. Update App Layout (app/\_layout.tsx)
 
 Add the permission hook and modal component to your root layout:
 
@@ -33,7 +33,7 @@ import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPe
 
 export default function RootLayout() {
   // ... other code ...
-  
+
   // Add permission hook
   const {
     displayModal,
@@ -67,11 +67,13 @@ export default function RootLayout() {
 ### 2. Permission Flow Details
 
 #### Attempt 1-3: Native Permission Dialog
+
 - App shows iOS/Android native permission prompt
 - System handles the dialog
 - If denied, attempt counter increments
 
 #### Attempt 4+: Custom Modal
+
 - NotificationPermissionModal is displayed
 - Shows benefits of notifications
 - Provides "Enable Now" (opens settings) and "Skip" buttons
@@ -82,9 +84,9 @@ export default function RootLayout() {
 
 ```typescript
 {
-  attemptCount: number;              // Current attempt #
-  shouldShowModal: boolean;           // Use custom modal?
-  isPermanentlyDenied: boolean;      // User permanently declined?
+  attemptCount: number; // Current attempt #
+  shouldShowModal: boolean; // Use custom modal?
+  isPermanentlyDenied: boolean; // User permanently declined?
 }
 ```
 
@@ -122,7 +124,8 @@ const status = await notificationPermissionTracker.getStatus();
 // Returns: { attemptCount, hasShownToday, isPermanentlyDenied, shouldShowCustomModal }
 
 // Check if should show native permission prompt
-const shouldShow = await notificationPermissionTracker.shouldShowNativePermission();
+const shouldShow =
+  await notificationPermissionTracker.shouldShowNativePermission();
 
 // Mark permanently denied (user clicked "Don't Allow" permanently)
 await notificationPermissionTracker.markPermanentlyDenied();
@@ -137,17 +140,18 @@ Hook provides everything needed:
 
 ```typescript
 const {
-  displayModal,           // Boolean - show/hide modal
-  permissionAttempt,      // Number - current attempt
-  isLoading,             // Boolean - loading state
-  handleModalEnable,     // Function - user clicked Enable
-  handleModalClose,      // Function - user clicked Skip/Close
+  displayModal, // Boolean - show/hide modal
+  permissionAttempt, // Number - current attempt
+  isLoading, // Boolean - loading state
+  handleModalEnable, // Function - user clicked Enable
+  handleModalClose, // Function - user clicked Skip/Close
 } = usePushNotificationPermission();
 ```
 
 ## Testing
 
 ### Test Scenario 1: First Launch
+
 1. Fresh app install
 2. App shows native permission dialog
 3. Deny permission
@@ -155,12 +159,14 @@ const {
 5. No permission prompt (attempt 2)
 
 ### Test Scenario 2: Fourth Attempt
+
 1. Repeat deny process 3 times
 2. On 4th app launch: Custom modal appears
 3. Tap "Enable Now": Opens device settings
 4. Tap "Skip": Modal closes, don't ask again today
 
 ### Test Scenario 3: Reset for Testing
+
 ```typescript
 // In your test code
 import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
@@ -172,6 +178,7 @@ await notificationPermissionTracker.reset();
 ## Error Handling
 
 All methods are wrapped in try-catch:
+
 - Permission failures don't crash the app
 - Errors logged with `[PushNotifications]` prefix
 - Modal gracefully handles missing i18n strings
@@ -194,31 +201,34 @@ All methods are wrapped in try-catch:
 ## Troubleshooting
 
 ### Modal Not Showing
+
 - Check if `usePushNotificationPermission` hook is in root layout
 - Verify `displayModal` prop passed to `NotificationPermissionModal`
 - Check i18n strings are loaded: `t("notifications.permissionModal.title")`
 - Check AsyncStorage isn't corrupted: Run `notificationPermissionTracker.reset()`
 
 ### Permission Dialog Not Showing
+
 - iOS: Check Info.plist has NSUserNotificationsUsageDescription
 - Android: Check AndroidManifest.xml has notification permissions
 - Check attempt count < 4: `await notificationPermissionTracker.getAttemptCount()`
 
 ### App Crashes on Modal Appear
+
 - Check `Linking` module is imported: `import { Linking } from "react-native"`
 - Verify `Linking.openSettings()` works on device
 - Check memory for leaks in animation state
 
 ## Files Reference
 
-| File | Purpose |
-|------|---------|
-| `src/utils/notificationPermissionTracker.ts` | Permission state tracking |
-| `src/hooks/usePushNotificationPermission.ts` | React hook for integration |
-| `src/components/NotificationPermissionModal.tsx` | Modal UI component |
-| `src/services/notification.service.ts` | Service with permission logic |
-| `src/localization/ar.json` | Arabic translations |
-| `src/localization/en.json` | English translations |
+| File                                             | Purpose                       |
+| ------------------------------------------------ | ----------------------------- |
+| `src/utils/notificationPermissionTracker.ts`     | Permission state tracking     |
+| `src/hooks/usePushNotificationPermission.ts`     | React hook for integration    |
+| `src/components/NotificationPermissionModal.tsx` | Modal UI component            |
+| `src/services/notification.service.ts`           | Service with permission logic |
+| `src/localization/ar.json`                       | Arabic translations           |
+| `src/localization/en.json`                       | English translations          |
 
 ## Next Phase: Backend Integration
 

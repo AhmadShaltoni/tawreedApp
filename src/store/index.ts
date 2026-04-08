@@ -7,6 +7,7 @@ import {
 import authReducer from "./slices/auth.slice";
 import cartReducer from "./slices/cart.slice";
 import categoriesReducer from "./slices/categories.slice";
+import noticesReducer from "./slices/notices.slice";
 import notificationsReducer from "./slices/notifications.slice";
 import ordersReducer from "./slices/orders.slice";
 import productsReducer from "./slices/products.slice";
@@ -18,6 +19,7 @@ export const store = configureStore({
     categories: categoriesReducer,
     cart: cartReducer,
     orders: ordersReducer,
+    notices: noticesReducer,
     notifications: notificationsReducer,
   },
 });

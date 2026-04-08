@@ -60,8 +60,7 @@ class NotificationPermissionTracker {
       const today = new Date();
 
       // Check if same day
-      const isSameDay =
-        lastShownDate.toDateString() === today.toDateString();
+      const isSameDay = lastShownDate.toDateString() === today.toDateString();
 
       return isSameDay;
     } catch (error) {
@@ -115,7 +114,9 @@ class NotificationPermissionTracker {
         STORAGE_KEYS.PERMISSION_DENIED_PERMANENTLY,
         "true",
       );
-      console.log("[PermissionTracker] Permission marked as permanently denied");
+      console.log(
+        "[PermissionTracker] Permission marked as permanently denied",
+      );
     } catch (error) {
       console.error(
         "[PermissionTracker] Failed to mark as permanently denied:",

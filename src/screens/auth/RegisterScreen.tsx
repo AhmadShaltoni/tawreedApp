@@ -2,9 +2,9 @@ import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
+import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { clearError, register } from "@/src/store/slices/auth.slice";
-import { notificationService } from "@/src/services/notification.service";
 import { Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -80,7 +80,10 @@ export default function RegisterScreen() {
       try {
         await notificationService.registerTokenAfterLogin();
       } catch (error) {
-        console.error("[RegisterScreen] Failed to register device token:", error);
+        console.error(
+          "[RegisterScreen] Failed to register device token:",
+          error,
+        );
         // Don't block registration if token registration fails
       }
       router.replace("/(tabs)");

@@ -24,11 +24,11 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
     "version": "1.0.0",
     "scheme": "tawreed",
     "platforms": ["ios", "android", "web"],
-    
+
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    
+
     "ios": {
       "supportsTabletMode": true,
       "bundleIdentifier": "com.tawreed.app",
@@ -37,7 +37,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
         "aps-environment": "development"
       }
     },
-    
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -45,30 +45,26 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
       },
       "package": "com.tawreed.app"
     },
-    
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    
+
     "plugins": [
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
           "color": "#3B82F6",
-          "sounds": [
-            "./assets/sounds/notification.wav"
-          ]
+          "sounds": ["./assets/sounds/notification.wav"]
         }
       ]
     ],
-    
+
     "notification": {
       "icon": "assets/notification-icon.png",
       "color": "#3B82F7",
-      "sounds": [
-        "assets/sounds/notification.wav"
-      ]
+      "sounds": ["assets/sounds/notification.wav"]
     }
   }
 }
@@ -91,12 +87,14 @@ assets/
 ```
 
 ### iOS Notification Icon
+
 - Transparent PNG
 - Minimum 192x192px
 - White/light color
 - No alpha gradients
 
 ### Android Notification Icon
+
 - Transparent PNG
 - Minimum 192x192px
 - White/light color
@@ -118,11 +116,7 @@ assets/
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "types": [
-      "react",
-      "react-native",
-      "expo-notifications"
-    ]
+    "types": ["react", "react-native", "expo-notifications"]
   }
 }
 ```
@@ -135,12 +129,12 @@ assets/
 
 ```typescript
 // src/services/notification.service.ts
-const PROJECT_ID = process.env.EXPO_PUBLIC_PROJECT_ID || 'tawreed';
+const PROJECT_ID = process.env.EXPO_PUBLIC_PROJECT_ID || "tawreed";
 
 const notificationConfig = {
   projectId: PROJECT_ID,
-  environment: 'development',
-  debugging: true
+  environment: "development",
+  debugging: true,
 };
 ```
 
@@ -150,12 +144,12 @@ const notificationConfig = {
 // Build for production
 const notificationConfig = {
   projectId: PROJECT_ID,
-  environment: 'production',
+  environment: "production",
   debugging: false,
   retryPolicy: {
     maxRetries: 3,
-    backoffMs: 1000
-  }
+    backoffMs: 1000,
+  },
 };
 ```
 
@@ -175,25 +169,25 @@ npm install @react-native-firebase/app @react-native-firebase/messaging
 
 ```typescript
 // src/services/firebaseNotification.service.ts
-import messaging from '@react-native-firebase/messaging';
+import messaging from "@react-native-firebase/messaging";
 
 class FirebaseNotificationService {
   async initialize() {
     try {
       const token = await messaging().getToken();
-      console.log('FCM Token:', token);
+      console.log("FCM Token:", token);
       return token;
     } catch (error) {
-      console.error('Failed to get FCM token:', error);
+      console.error("Failed to get FCM token:", error);
     }
   }
-  
+
   async requestPermission() {
     try {
       const authStatus = await messaging().requestPermission();
       return authStatus;
     } catch (error) {
-      console.error('Failed to request FCM permission:', error);
+      console.error("Failed to request FCM permission:", error);
     }
   }
 }
@@ -205,7 +199,7 @@ export default new FirebaseNotificationService();
 
 ```typescript
 // src/services/notificationProvider.ts
-const USE_FIREBASE = process.env.EXPO_PUBLIC_USE_FIREBASE === 'true';
+const USE_FIREBASE = process.env.EXPO_PUBLIC_USE_FIREBASE === "true";
 
 export const getNotificationProvider = () => {
   if (USE_FIREBASE) {
@@ -228,7 +222,7 @@ Notifications.setNotificationChannelAsync("default", {
   importance: Notifications.AndroidImportance.MAX,
   vibrationPattern: [0, 250, 250, 250],
   lightColor: "#FF231F7C",
-  bypassDnd: false,  // Don't bypass Do Not Disturb
+  bypassDnd: false, // Don't bypass Do Not Disturb
 });
 
 // Optional: Additional channels for different notification types
@@ -297,16 +291,16 @@ eas build --profile preview
 
 ```typescript
 // In notification.service.ts, at module level
-const DEBUG = process.env.NODE_ENV === 'development';
+const DEBUG = process.env.NODE_ENV === "development";
 
 const log = (message: string, data?: any) => {
   if (DEBUG) {
-    console.log(`[PushNotifications] ${message}`, data || '');
+    console.log(`[PushNotifications] ${message}`, data || "");
   }
 };
 
 const error = (message: string, err?: any) => {
-  console.error(`[PushNotifications] ${message}`, err || '');
+  console.error(`[PushNotifications] ${message}`, err || "");
 };
 ```
 
@@ -324,7 +318,7 @@ if (DEBUG) {
     },
     clearStorage: async () => {
       // Clear all notification storage
-    }
+    },
   };
 }
 
@@ -342,13 +336,13 @@ if (DEBUG) {
 ```typescript
 // Configure for local development
 const API_BASE_URL = __DEV__
-  ? 'http://localhost:3000'  // Use your backend IP for device testing
-  : 'https://api.tawreed.jo';
+  ? "http://localhost:3000" // Use your backend IP for device testing
+  : "https://api.tawreed.jo";
 
 // For device testing on same network:
 const getLocalIP = () => {
   // Get device IP from environment
-  return process.env.EXPO_PUBLIC_API_URL || '192.168.1.100:3000';
+  return process.env.EXPO_PUBLIC_API_URL || "192.168.1.100:3000";
 };
 ```
 
@@ -368,6 +362,7 @@ npm start
 ```
 
 ### Limitations in Expo Go
+
 - Real FCM/APNs tokens won't work
 - Expo Notifications work perfectly
 - Good for development/testing
@@ -380,34 +375,34 @@ npm start
 ```typescript
 // Define error severity levels
 enum ErrorSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
+  INFO = "info",
+  WARNING = "warning",
+  ERROR = "error",
+  CRITICAL = "critical",
 }
 
 const errorConfig = {
   [ErrorSeverity.INFO]: {
     log: true,
     alert: false,
-    retry: false
+    retry: false,
   },
   [ErrorSeverity.WARNING]: {
     log: true,
     alert: false,
-    retry: true
+    retry: true,
   },
   [ErrorSeverity.ERROR]: {
     log: true,
     alert: true,
-    retry: true
+    retry: true,
   },
   [ErrorSeverity.CRITICAL]: {
     log: true,
     alert: true,
     retry: false,
-    crash: true
-  }
+    crash: true,
+  },
 };
 ```
 
@@ -418,16 +413,16 @@ const errorConfig = {
 ### Optional Sentry Integration
 
 ```typescript
-import * as Sentry from 'sentry-expo';
+import * as Sentry from "sentry-expo";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  environment: __DEV__ ? 'development' : 'production'
+  environment: __DEV__ ? "development" : "production",
 });
 
 // Wrap service in Sentry
 export const notificationService = Sentry.withProfiler(
-  new NotificationServiceClass()
+  new NotificationServiceClass(),
 );
 ```
 
@@ -441,35 +436,35 @@ export const notificationService = Sentry.withProfiler(
 export interface NotificationConfig {
   // Expo specific
   expoPushProjectId: string;
-  
+
   // Firebase specific (optional)
   firebaseProjectId?: string;
   firebaseApiKey?: string;
-  
+
   // Rate limiting
   maxTokensPerUser: number;
   maxNotificationsPerHour: number;
-  
+
   // Retry policy
   maxRetries: number;
   retryBackoffMs: number;
-  
+
   // Cleanup
   inactiveTokenCleanupDays: number;
 }
 
 export const notificationConfig: NotificationConfig = {
-  expoPushProjectId: process.env.EXPO_PROJECT_ID || 'tawreed',
+  expoPushProjectId: process.env.EXPO_PROJECT_ID || "tawreed",
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
   firebaseApiKey: process.env.FIREBASE_API_KEY,
-  
+
   maxTokensPerUser: 5,
   maxNotificationsPerHour: 10,
-  
+
   maxRetries: 3,
   retryBackoffMs: 1000,
-  
-  inactiveTokenCleanupDays: 30
+
+  inactiveTokenCleanupDays: 30,
 };
 ```
 
@@ -495,7 +490,7 @@ interface NotificationMetrics {
 
 ```sql
 -- Active tokens per platform
-SELECT platform, COUNT(*) as count FROM DeviceToken 
+SELECT platform, COUNT(*) as count FROM DeviceToken
 WHERE isActive = true GROUP BY platform;
 
 -- Tokens by user
@@ -512,12 +507,14 @@ WHERE isActive = false AND updatedAt < DATE_SUB(NOW(), INTERVAL 30 DAY);
 ## Compliance & Legal
 
 ### GDPR & Privacy
+
 - [ ] Users can opt-out of notifications
 - [ ] Users can delete notification history
 - [ ] Tokens deleted on account deletion
 - [ ] Privacy policy mentions notifications
 
 ### Data Retention
+
 - Keep active tokens indefinitely
 - Delete inactive tokens after 30 days
 - Retention policy: 90 days for notification logs

@@ -1,4 +1,5 @@
 import CategoryCard from "@/src/components/CategoryCard";
+import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
 import Loader from "@/src/components/ui/Loader";
@@ -12,6 +13,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
 import { fetchNotifications } from "@/src/store/slices/notifications.slice";
+import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
 import type { Category, Order, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +49,9 @@ export default function HomeScreen() {
     (state) => state.products,
   );
   const { items: categories } = useAppSelector((state) => state.categories);
+  const { items: notices, currentIndex } = useAppSelector(
+    (state) => state.notices,
+  );
   const unreadCount = useAppSelector(
     (state) => state.notifications.unreadCount,
   );
@@ -87,6 +92,7 @@ export default function HomeScreen() {
 
   const loadData = useCallback(
     (force = false) => {
+      dispatch(fetchNotices());
       dispatch(fetchFeaturedProducts({ force }));
       dispatch(fetchCategories());
       if (isAuthenticated) {
@@ -105,6 +111,7 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
+      dispatch(fetchNotices()),
       dispatch(fetchFeaturedProducts({ force: true })),
       dispatch(fetchCategories()),
     ]);
@@ -141,6 +148,15 @@ export default function HomeScreen() {
         />
       }
     >
+      {/* Notice Banner */}
+      {notices.length > 0 && (
+        <NoticeCarousel
+          notices={notices}
+          currentIndex={currentIndex}
+          onNextNotice={() => dispatch(nextNotice())}
+        />
+      )}
+
       {/* Welcome Header */}
       <Animated.View
         entering={FadeInDown.duration(400).delay(50)}
