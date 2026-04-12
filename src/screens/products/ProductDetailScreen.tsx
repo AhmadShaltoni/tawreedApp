@@ -1,34 +1,41 @@
+import LoginRequiredModal from "@/src/components/LoginRequiredModal";
 import Button from "@/src/components/ui/Button";
 import Loader from "@/src/components/ui/Loader";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { addToCart } from "@/src/store/slices/cart.slice";
+import { addToCartAsync } from "@/src/store/slices/cart.slice";
 import {
-    clearSelectedProduct,
-    fetchProductDetail,
+  clearSelectedProduct,
+  fetchProductDetail,
 } from "@/src/store/slices/products.slice";
+import type { ProductUnit } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    Dimensions,
-    FlatList,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -36,17 +43,38 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_HEIGHT = SCREEN_WIDTH * 0.85;
 
 export default function ProductDetailScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { requireAuth } = useAuthGuard();
+  const { requireAuth, showLoginModal, setShowLoginModal } = useAuthGuard();
   const { selectedProduct: product, loadingDetail } = useAppSelector(
     (state) => state.products,
   );
   const galleryRef = useRef<FlatList>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  const units = useMemo(
+    () =>
+      product?.units && product.units.length > 0
+        ? [...product.units].sort((a, b) => a.sortOrder - b.sortOrder)
+        : null,
+    [product?.units],
+  );
+
+  const defaultUnit = useMemo(
+    () => units?.find((u) => u.isDefault) ?? units?.[0] ?? null,
+    [units],
+  );
+
+  const [selectedUnit, setSelectedUnit] = useState<ProductUnit | null>(null);
+
+  useEffect(() => {
+    if (defaultUnit && !selectedUnit) {
+      setSelectedUnit(defaultUnit);
+    }
+  }, [defaultUnit, selectedUnit]);
 
   useEffect(() => {
     if (id) dispatch(fetchProductDetail(id));
@@ -58,20 +86,15 @@ export default function ProductDetailScreen() {
   const handleAddToCart = useCallback(() => {
     if (!product) return;
     requireAuth(() => {
-      dispatch(addToCart({ product, quantity }));
-      Alert.alert(
-        t("products.addedToCart"),
-        t("products.addedMessage", { name: product.name, qty: quantity }),
-        [
-          { text: t("products.continueShopping") },
-          {
-            text: t("products.goToCart"),
-            onPress: () => router.push("/(tabs)/cart"),
-          },
-        ],
+      dispatch(
+        addToCartAsync({
+          product,
+          quantity,
+          selectedUnit: selectedUnit ?? undefined,
+        }),
       );
     });
-  }, [dispatch, product, quantity, router, requireAuth, t]);
+  }, [dispatch, product, quantity, selectedUnit, requireAuth]);
 
   const incrementQty = useCallback(() => {
     if (!product) return;
@@ -93,212 +116,309 @@ export default function ProductDetailScreen() {
     return <Loader />;
   }
 
-  const hasDiscount =
-    product.discountPrice != null && product.discountPrice < product.price;
+  const hasDiscount = selectedUnit
+    ? selectedUnit.compareAtPrice != null &&
+      selectedUnit.compareAtPrice > selectedUnit.price
+    : product.discountPrice != null && product.discountPrice < product.price;
   const discountPercent = hasDiscount
-    ? Math.round(
-        ((product.price - product.discountPrice!) / product.price) * 100,
-      )
+    ? selectedUnit
+      ? Math.round(
+          ((selectedUnit.compareAtPrice! - selectedUnit.price) /
+            selectedUnit.compareAtPrice!) *
+            100,
+        )
+      : Math.round(
+          ((product.price - product.discountPrice!) / product.price) * 100,
+        )
     : 0;
   const images = product.images?.length ? product.images : [null];
-  const unitPrice = hasDiscount ? product.discountPrice! : product.price;
-  const savingsPerUnit = hasDiscount
-    ? product.price - product.discountPrice!
-    : 0;
+  const unitPrice = selectedUnit
+    ? selectedUnit.price
+    : hasDiscount
+      ? product.discountPrice!
+      : product.price;
+  const originalPrice = selectedUnit
+    ? selectedUnit.compareAtPrice
+    : hasDiscount
+      ? product.price
+      : null;
+  const savingsPerUnit =
+    hasDiscount && originalPrice ? originalPrice - unitPrice : 0;
+  const isArabic = i18n.language === "ar";
+  const getUnitLabel = (unit: ProductUnit) =>
+    isArabic ? unit.label : unit.labelEn;
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image Gallery */}
-        <View>
-          <FlatList
-            ref={galleryRef}
-            data={images}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, i) => i.toString()}
-            onMomentumScrollEnd={(e) => {
-              const index = Math.round(
-                e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
-              );
-              setActiveImageIndex(index);
-            }}
-            renderItem={({ item }) => (
-              <Image
-                source={
-                  item ? { uri: item } : require("@/assets/images/icon.png")
-                }
-                style={styles.galleryImage}
-                contentFit="cover"
-                transition={300}
-              />
-            )}
-          />
-          {/* Pagination dots */}
-          {images.length > 1 ? (
-            <View style={styles.dots}>
-              {images.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    i === activeImageIndex && styles.dotActive,
-                  ]}
+    <>
+      <View style={styles.container}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Image Gallery */}
+          <View>
+            <FlatList
+              ref={galleryRef}
+              data={images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => i.toString()}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(
+                  e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+                );
+                setActiveImageIndex(index);
+              }}
+              renderItem={({ item }) => (
+                <Image
+                  source={
+                    item ? { uri: item } : require("@/assets/images/icon.png")
+                  }
+                  style={styles.galleryImage}
+                  contentFit="cover"
+                  transition={300}
                 />
-              ))}
-            </View>
-          ) : null}
-
-          {/* Discount badge overlay */}
-          {hasDiscount ? (
-            <View style={styles.discountOverlay}>
-              <Text style={styles.discountOverlayText}>
-                -{discountPercent}%
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Back button overlay */}
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={8}
-          >
-            <Ionicons name="arrow-back" size={22} color={Colors.text} />
-          </Pressable>
-        </View>
-
-        {/* Product Info */}
-        <Animated.View
-          entering={FadeInDown.duration(400)}
-          style={styles.infoContainer}
-        >
-          <Text style={styles.name}>{product.name}</Text>
-
-          {product.categoryName ? (
-            <View style={styles.categoryChip}>
-              <Ionicons name="pricetag" size={12} color={Colors.primary} />
-              <Text style={styles.categoryText}>{product.categoryName}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.priceSection}>
-            <Text style={styles.price}>
-              {unitPrice.toFixed(2)} {t("common.currency")}
-            </Text>
-            {hasDiscount ? (
-              <Text style={styles.originalPrice}>
-                {product.price.toFixed(2)} {t("common.currency")}
-              </Text>
+              )}
+            />
+            {/* Pagination dots */}
+            {images.length > 1 ? (
+              <View style={styles.dots}>
+                {images.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      i === activeImageIndex && styles.dotActive,
+                    ]}
+                  />
+                ))}
+              </View>
             ) : null}
-            <Text style={styles.perUnit}>/ {product.unit}</Text>
+
+            {/* Discount badge overlay */}
+            {hasDiscount ? (
+              <View style={styles.discountOverlay}>
+                <Text style={styles.discountOverlayText}>
+                  -{discountPercent}%
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Back button overlay */}
+            <Pressable
+              style={styles.backButton}
+              onPress={() => router.back()}
+              hitSlop={8}
+            >
+              <Ionicons name="arrow-back" size={22} color={Colors.text} />
+            </Pressable>
           </View>
 
-          {/* Savings highlight */}
-          {hasDiscount ? (
-            <View style={styles.savingsRow}>
-              <Ionicons name="trending-down" size={14} color={Colors.success} />
-              <Text style={styles.savingsText}>
-                {t("products.save")} {savingsPerUnit.toFixed(2)}{" "}
-                {t("common.currency")} / {product.unit}
+          {/* Product Info */}
+          <Animated.View
+            entering={FadeInDown.duration(400)}
+            style={styles.infoContainer}
+          >
+            <Text style={styles.name}>{product.name}</Text>
+
+            {product.categoryName ? (
+              <View style={styles.categoryChip}>
+                <Ionicons name="pricetag" size={12} color={Colors.primary} />
+                <Text style={styles.categoryText}>{product.categoryName}</Text>
+              </View>
+            ) : null}
+
+            {/* Unit selector */}
+            {units ? (
+              <View style={styles.unitSelectorSection}>
+                <Text style={styles.unitSelectorLabel}>
+                  {t("products.selectUnit")}
+                </Text>
+                <View style={styles.unitChipsRow}>
+                  {units.map((unit) => {
+                    const isSelected = selectedUnit?.id === unit.id;
+                    const isDisabled = units.length === 1;
+                    return (
+                      <Pressable
+                        key={unit.id}
+                        style={[
+                          styles.detailUnitChip,
+                          isSelected && styles.detailUnitChipSelected,
+                          isDisabled && styles.detailUnitChipDisabled,
+                        ]}
+                        onPress={() => {
+                          if (!isDisabled) {
+                            setSelectedUnit(unit);
+                            Haptics.selectionAsync();
+                          }
+                        }}
+                        disabled={isDisabled}
+                      >
+                        <Text
+                          style={[
+                            styles.detailUnitChipLabel,
+                            isSelected && styles.detailUnitChipLabelSelected,
+                            isDisabled && styles.detailUnitChipLabelDisabled,
+                          ]}
+                        >
+                          {getUnitLabel(unit)}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.detailUnitChipPrice,
+                            isSelected && styles.detailUnitChipPriceSelected,
+                            isDisabled && styles.detailUnitChipPriceDisabled,
+                          ]}
+                        >
+                          {unit.price.toFixed(2)} {t("common.currency")}
+                        </Text>
+                        {unit.piecesPerUnit > 1 ? (
+                          <Text
+                            style={[
+                              styles.detailUnitChipPieces,
+                              isDisabled && styles.detailUnitChipPiecesDisabled,
+                            ]}
+                          >
+                            {t("products.piecesCount", {
+                              count: unit.piecesPerUnit,
+                            })}
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.priceSection}>
+              <Text style={styles.price}>
+                {unitPrice.toFixed(2)} {t("common.currency")}
+              </Text>
+              {hasDiscount && originalPrice ? (
+                <Text style={styles.originalPrice}>
+                  {originalPrice.toFixed(2)} {t("common.currency")}
+                </Text>
+              ) : null}
+              <Text style={styles.perUnit}>
+                / {selectedUnit ? getUnitLabel(selectedUnit) : product.unit}
               </Text>
             </View>
-          ) : null}
 
-          {/* Stock indicator */}
-          {product.stock <= 10 && product.stock > 0 ? (
-            <View style={styles.stockWarning}>
+            {/* Savings highlight */}
+            {hasDiscount ? (
+              <View style={styles.savingsRow}>
+                <Ionicons
+                  name="trending-down"
+                  size={14}
+                  color={Colors.success}
+                />
+                <Text style={styles.savingsText}>
+                  {t("products.save")} {savingsPerUnit.toFixed(2)}{" "}
+                  {t("common.currency")} /{" "}
+                  {selectedUnit ? getUnitLabel(selectedUnit) : product.unit}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Stock indicator */}
+            {product.stock <= 10 && product.stock > 0 ? (
+              <View style={styles.stockWarning}>
+                <Ionicons
+                  name="alert-circle"
+                  size={14}
+                  color={Colors.secondary}
+                />
+                <Text style={styles.stockWarningText}>
+                  {product.stock} {product.unit} {t("products.inStock")}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>{t("products.sku")}</Text>
+                <Text style={styles.metaValue}>{product.sku}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>{t("products.minOrder")}</Text>
+                <Text style={styles.metaValue}>
+                  {product.minOrder} {product.unit}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>{t("products.inStock")}</Text>
+                <Text
+                  style={[
+                    styles.metaValue,
+                    product.stock <= 10 && styles.lowStock,
+                  ]}
+                >
+                  {product.stock} {product.unit}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <Text style={styles.sectionTitle}>{t("products.description")}</Text>
+            <Text style={styles.description}>{product.description}</Text>
+          </Animated.View>
+        </ScrollView>
+
+        {/* Bottom Bar */}
+        <View style={styles.bottomBar}>
+          {/* Quantity Selector */}
+          <View style={styles.quantitySelector}>
+            <Pressable
+              onPress={() => {
+                decrementQty();
+                Haptics.selectionAsync();
+              }}
+              style={styles.qtyButton}
+              disabled={quantity <= product.minOrder}
+            >
               <Ionicons
-                name="alert-circle"
-                size={14}
-                color={Colors.secondary}
+                name="remove"
+                size={20}
+                color={
+                  quantity <= product.minOrder
+                    ? Colors.textLight
+                    : Colors.primary
+                }
               />
-              <Text style={styles.stockWarningText}>
-                {product.stock} {product.unit} {t("products.inStock")}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>{t("products.sku")}</Text>
-              <Text style={styles.metaValue}>{product.sku}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>{t("products.minOrder")}</Text>
-              <Text style={styles.metaValue}>
-                {product.minOrder} {product.unit}
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>{t("products.inStock")}</Text>
-              <Text
-                style={[
-                  styles.metaValue,
-                  product.stock <= 10 && styles.lowStock,
-                ]}
-              >
-                {product.stock} {product.unit}
-              </Text>
-            </View>
+            </Pressable>
+            <Text style={styles.qtyText}>{quantity}</Text>
+            <Pressable
+              onPress={() => {
+                incrementQty();
+                Haptics.selectionAsync();
+              }}
+              style={styles.qtyButton}
+              disabled={quantity >= product.stock}
+            >
+              <Ionicons
+                name="add"
+                size={20}
+                color={
+                  quantity >= product.stock ? Colors.textLight : Colors.primary
+                }
+              />
+            </Pressable>
           </View>
 
-          <View style={styles.divider} />
-
-          <Text style={styles.sectionTitle}>{t("products.description")}</Text>
-          <Text style={styles.description}>{product.description}</Text>
-        </Animated.View>
-      </ScrollView>
-
-      {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
-        {/* Quantity Selector */}
-        <View style={styles.quantitySelector}>
-          <Pressable
-            onPress={() => {
-              decrementQty();
-              Haptics.selectionAsync();
-            }}
-            style={styles.qtyButton}
-            disabled={quantity <= product.minOrder}
-          >
-            <Ionicons
-              name="remove"
-              size={20}
-              color={
-                quantity <= product.minOrder ? Colors.textLight : Colors.primary
-              }
-            />
-          </Pressable>
-          <Text style={styles.qtyText}>{quantity}</Text>
-          <Pressable
-            onPress={() => {
-              incrementQty();
-              Haptics.selectionAsync();
-            }}
-            style={styles.qtyButton}
-            disabled={quantity >= product.stock}
-          >
-            <Ionicons
-              name="add"
-              size={20}
-              color={
-                quantity >= product.stock ? Colors.textLight : Colors.primary
-              }
-            />
-          </Pressable>
+          <Button
+            title={`${t("products.addToCart")} · ${(unitPrice * quantity).toFixed(2)} ${t("common.currency")}`}
+            onPress={handleAddToCart}
+            variant="accent"
+            style={styles.addButton}
+            disabled={product.stock === 0}
+          />
         </View>
-
-        <Button
-          title={`${t("products.addToCart")} · ${(unitPrice * quantity).toFixed(2)} ${t("common.currency")}`}
-          onPress={handleAddToCart}
-          variant="accent"
-          style={styles.addButton}
-          disabled={product.stock === 0}
-        />
       </View>
-    </View>
+      <LoginRequiredModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+    </>
   );
 }
 
@@ -385,6 +505,70 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.primary,
     fontWeight: "600",
+  },
+  unitSelectorSection: {
+    marginTop: Spacing.lg,
+  },
+  unitSelectorLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  unitChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  detailUnitChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    minWidth: 80,
+  },
+  detailUnitChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + "10",
+  },
+  detailUnitChipLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  detailUnitChipLabelSelected: {
+    color: Colors.primary,
+    fontWeight: "700",
+  },
+  detailUnitChipPrice: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  detailUnitChipPriceSelected: {
+    color: Colors.primary,
+  },
+  detailUnitChipPieces: {
+    fontSize: 10,
+    color: Colors.textLight,
+    marginTop: 1,
+  },
+  detailUnitChipDisabled: {
+    opacity: 0.6,
+  },
+  detailUnitChipLabelDisabled: {
+    color: Colors.textLight,
+  },
+  detailUnitChipPriceDisabled: {
+    color: Colors.textLight,
+  },
+  detailUnitChipPiecesDisabled: {
+    color: Colors.textLight,
+    opacity: 0.5,
   },
   priceSection: {
     flexDirection: "row",

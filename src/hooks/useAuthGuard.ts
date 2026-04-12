@@ -1,17 +1,13 @@
 import { useAppSelector } from "@/src/store";
-import { useRouter } from "expo-router";
-import { useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { Alert } from "react-native";
+import { useCallback, useState } from "react";
 
 /**
  * Hook that provides auth guard functionality for guest mode.
- * Returns a function that checks auth and either runs the callback or redirects to login.
+ * Returns a function that checks auth and either runs the callback or shows login modal.
  */
 export function useAuthGuard() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const router = useRouter();
-  const { t } = useTranslation();
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const requireAuth = useCallback(
     (callback?: () => void) => {
@@ -20,17 +16,16 @@ export function useAuthGuard() {
         return true;
       }
 
-      Alert.alert(t("auth.guestPromptTitle"), t("auth.guestPromptMessage"), [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("auth.goToLogin"),
-          onPress: () => router.push("/(auth)/login"),
-        },
-      ]);
+      setShowLoginModal(true);
       return false;
     },
-    [isAuthenticated, router, t],
+    [isAuthenticated],
   );
 
-  return { isAuthenticated, requireAuth };
+  return {
+    isAuthenticated,
+    requireAuth,
+    showLoginModal,
+    setShowLoginModal,
+  };
 }

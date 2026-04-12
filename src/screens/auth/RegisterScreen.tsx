@@ -1,4 +1,5 @@
 import Button from "@/src/components/ui/Button";
+import ErrorAlert from "@/src/components/ui/ErrorAlert";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
@@ -86,7 +87,13 @@ export default function RegisterScreen() {
         );
         // Don't block registration if token registration fails
       }
-      router.replace("/(tabs)");
+      // New user — check if location needs to be set
+      const user = result.payload.user;
+      if (!user.cityId && user.latitude == null) {
+        router.replace("/location");
+      } else {
+        router.replace("/(tabs)");
+      }
     } else if (register.rejected.match(result)) {
       Alert.alert(t("auth.register"), result.payload as string);
     }
@@ -189,7 +196,12 @@ export default function RegisterScreen() {
             textContentType="newPassword"
           />
 
-          {error ? <Text style={styles.apiError}>{error}</Text> : null}
+          {error && (
+            <ErrorAlert
+              message={error}
+              onClose={() => dispatch(clearError())}
+            />
+          )}
 
           <Button
             title={t("auth.createAccount")}

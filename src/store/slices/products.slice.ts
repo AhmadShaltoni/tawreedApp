@@ -1,6 +1,7 @@
 import { productService } from "@/src/services/product.service";
 import type { Product, ProductFilters } from "@/src/types";
 import { getCached, setCache } from "@/src/utils/cache";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface ProductsState {
@@ -35,9 +36,7 @@ export const fetchProducts = createAsyncThunk(
     try {
       return await productService.getProducts(filters);
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load products",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -48,9 +47,7 @@ export const fetchMoreProducts = createAsyncThunk(
     try {
       return await productService.getProducts(filters);
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load more products",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -73,9 +70,7 @@ export const fetchFeaturedProducts = createAsyncThunk(
       const cached = await getCached<Product[]>("featured_products");
       if (cached) return cached;
 
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load featured products",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -86,9 +81,7 @@ export const fetchProductDetail = createAsyncThunk(
     try {
       return await productService.getProduct(id);
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load product",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );

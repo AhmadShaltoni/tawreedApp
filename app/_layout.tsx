@@ -2,18 +2,17 @@ import { Stack, useFocusEffect, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import "react-native-reanimated";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
-import "@/src/localization/i18n";
 import { loadSavedLanguage } from "@/src/localization/i18n";
 import { notificationService } from "@/src/services/notification.service";
 import { store, useAppDispatch, useAppSelector } from "@/src/store";
-import { continueAsGuest, restoreSession } from "@/src/store/slices/auth.slice";
+import { restoreSession } from "@/src/store/slices/auth.slice";
+import { fetchCart } from "@/src/store/slices/cart.slice";
 
 // Setup global notification navigation handler
 declare global {
@@ -79,6 +78,13 @@ function AuthGate() {
     }, [router]),
   );
 
+  // Fetch cart when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [isAuthenticated, dispatch]);
+
   // Handle navigation based on auth state
   useEffect(() => {
     if (!isInitialized) return;
@@ -86,9 +92,8 @@ function AuthGate() {
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!isAuthenticated && !isGuest && !inAuthGroup) {
-      // New users start as guests and go to main app
-      dispatch(continueAsGuest());
-      router.replace("/(tabs)");
+      // After logout or first launch: redirect to login
+      router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
       router.replace("/(tabs)");
     }
@@ -169,6 +174,13 @@ function AuthGate() {
             headerStyle: { backgroundColor: Colors.white },
             headerTitleStyle: { fontWeight: "700", color: Colors.text },
             headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="location"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
           }}
         />
       </Stack>

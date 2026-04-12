@@ -1,5 +1,6 @@
 import { noticeService } from "@/src/services/notice.service";
 import type { Notice } from "@/src/types";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface NoticesState {
@@ -22,9 +23,7 @@ export const fetchNotices = createAsyncThunk(
     try {
       return await noticeService.getNotices();
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load notices",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );

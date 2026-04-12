@@ -1,20 +1,21 @@
+import LoginRequiredModal from "@/src/components/LoginRequiredModal";
 import Button from "@/src/components/ui/Button";
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  clearCart,
-  fetchCart,
-  removeFromCartAsync,
-  updateCartItemAsync,
+    clearCart,
+    fetchCart,
+    removeFromCartAsync,
+    updateCartItemAsync,
 } from "@/src/store/slices/cart.slice";
 import type { CartItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,20 +24,21 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 export default function CartScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { isAuthenticated, requireAuth } = useAuthGuard();
+  const { isAuthenticated, requireAuth, showLoginModal, setShowLoginModal } =
+    useAuthGuard();
   const { items, loading, updating, error } = useAppSelector(
     (state) => state.cart,
   );
@@ -56,7 +58,9 @@ export default function CartScreen() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
-      const price = item.product.discountPrice ?? item.product.price;
+      const price = item.selectedUnit
+        ? item.selectedUnit.price
+        : (item.product.discountPrice ?? item.product.price);
       return sum + price * item.quantity;
     }, 0);
     return { subtotal, itemCount: items.length };
@@ -68,7 +72,7 @@ export default function CartScreen() {
         if (item.quantity < item.product.stock) {
           dispatch(
             updateCartItemAsync({
-              productId: item.product.id,
+              cartItemId: item.cartItemId,
               quantity: item.quantity + 1,
             }),
           );
@@ -84,7 +88,7 @@ export default function CartScreen() {
         if (item.quantity > item.product.minOrder) {
           dispatch(
             updateCartItemAsync({
-              productId: item.product.id,
+              cartItemId: item.cartItemId,
               quantity: item.quantity - 1,
             }),
           );
@@ -105,7 +109,7 @@ export default function CartScreen() {
             {
               text: t("common.remove"),
               style: "destructive",
-              onPress: () => dispatch(removeFromCartAsync(item.product.id)),
+              onPress: () => dispatch(removeFromCartAsync(item.cartItemId)),
             },
           ],
         );
@@ -129,9 +133,17 @@ export default function CartScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: CartItem }) => {
-      const unitPrice = item.product.discountPrice ?? item.product.price;
+      const unitPrice = item.selectedUnit
+        ? item.selectedUnit.price
+        : (item.product.discountPrice ?? item.product.price);
       const lineTotal = unitPrice * item.quantity;
-      const isUpdating = updating[item.product.id];
+      const isUpdating = updating[item.cartItemId];
+      const isArabic = i18n.language === "ar";
+      const unitLabel = item.selectedUnit
+        ? isArabic
+          ? item.selectedUnit.label
+          : item.selectedUnit.labelEn
+        : item.product.unit;
 
       return (
         <View style={[styles.cartItem, isUpdating && styles.itemUpdating]}>
@@ -150,8 +162,7 @@ export default function CartScreen() {
               {item.product.name}
             </Text>
             <Text style={styles.itemPrice}>
-              {unitPrice.toFixed(2)} {t("common.currency")} /{" "}
-              {item.product.unit}
+              {unitPrice.toFixed(2)} {t("common.currency")} / {unitLabel}
             </Text>
             <View style={styles.itemActions}>
               <View style={styles.qtySelector}>
@@ -237,55 +248,61 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header bar */}
-      <View style={styles.headerBar}>
-        <Text style={styles.headerText}>
-          {totals.itemCount} item{totals.itemCount !== 1 ? "s" : ""}
-        </Text>
-        <Pressable onPress={handleClearCart} hitSlop={8}>
-          <Text style={styles.clearText}>{t("cart.clearAll")}</Text>
-        </Pressable>
-      </View>
-
-      {error ? (
-        <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.product.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-      />
-
-      {/* Bottom summary */}
-      <View style={styles.bottomBar}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{t("cart.subtotal")}</Text>
-          <Text style={styles.totalValue}>
-            {totals.subtotal.toFixed(2)} {t("common.currency")}
+    <>
+      <View style={styles.container}>
+        {/* Header bar */}
+        <View style={styles.headerBar}>
+          <Text style={styles.headerText}>
+            {totals.itemCount} item{totals.itemCount !== 1 ? "s" : ""}
           </Text>
+          <Pressable onPress={handleClearCart} hitSlop={8}>
+            <Text style={styles.clearText}>{t("cart.clearAll")}</Text>
+          </Pressable>
         </View>
-        <Button
-          title={t("cart.proceedToCheckout")}
-          onPress={() => requireAuth(() => router.push("/checkout"))}
-          variant="accent"
-          style={styles.checkoutBtn}
+
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={16} color={Colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.cartItemId}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+            />
+          }
         />
+
+        {/* Bottom summary */}
+        <View style={styles.bottomBar}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>{t("cart.subtotal")}</Text>
+            <Text style={styles.totalValue}>
+              {totals.subtotal.toFixed(2)} {t("common.currency")}
+            </Text>
+          </View>
+          <Button
+            title={t("cart.proceedToCheckout")}
+            onPress={() => requireAuth(() => router.push("/checkout"))}
+            variant="accent"
+            style={styles.checkoutBtn}
+          />
+        </View>
       </View>
-    </View>
+      <LoginRequiredModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+    </>
   );
 }
 

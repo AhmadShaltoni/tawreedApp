@@ -1,5 +1,6 @@
 import { orderService } from "@/src/services/order.service";
 import type { CreateOrderPayload, Order, OrderDetail } from "@/src/types";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface OrdersState {
@@ -26,9 +27,7 @@ export const fetchOrders = createAsyncThunk(
     try {
       return await orderService.getOrders();
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load orders",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -39,9 +38,7 @@ export const fetchOrderDetail = createAsyncThunk(
     try {
       return await orderService.getOrderDetail(id);
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load order details",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -52,9 +49,7 @@ export const createOrder = createAsyncThunk(
     try {
       return await orderService.createOrder(payload);
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to create order",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );

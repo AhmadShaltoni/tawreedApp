@@ -25,6 +25,12 @@ export interface User {
   phone: string;
   storeName: string;
   role: string;
+  cityId?: string | null;
+  areaId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: { id: string; name: string; nameEn: string } | null;
+  area?: { id: string; name: string; nameEn: string } | null;
 }
 
 export const authService = {
@@ -57,6 +63,14 @@ export const authService = {
 
   getMe: async (): Promise<User> => {
     const { data } = await apiClient.get<User>(API_ENDPOINTS.AUTH.ME);
+    return data;
+  },
+
+  updateLocation: async (cityId: string, areaId?: string): Promise<User> => {
+    const { data } = await apiClient.patch<User>(
+      API_ENDPOINTS.USER.UPDATE_LOCATION,
+      { cityId, areaId },
+    );
     return data;
   },
 };

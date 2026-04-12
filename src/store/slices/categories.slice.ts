@@ -1,6 +1,7 @@
 import { categoryService } from "@/src/services/category.service";
 import type { Category } from "@/src/types";
 import { getCached, setCache } from "@/src/utils/cache";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface CategoriesState {
@@ -29,9 +30,7 @@ export const fetchCategories = createAsyncThunk(
       const cached = await getCached<Category[]>("categories");
       if (cached) return cached;
 
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load categories",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );

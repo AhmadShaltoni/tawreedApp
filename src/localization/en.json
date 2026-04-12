@@ -66,6 +66,9 @@
     "noProducts": "No products",
     "noProductsMessage": "No products available at the moment",
     "minOrder": "Min Order",
+    "min": "Min",
+    "left": "left",
+    "save": "Save",
     "inStock": "In Stock",
     "outOfStock": "Out of Stock",
     "sku": "SKU",
@@ -77,7 +80,18 @@
     "goToCart": "Go to Cart",
     "filters": "Filters",
     "sort": "Sort",
-    "category": "Category"
+    "category": "Category",
+    "selectUnit": "Select Unit",
+    "piece": "Piece",
+    "dozen": "Dozen",
+    "carton": "Carton",
+    "box": "Box",
+    "pack": "Pack",
+    "kg": "Kg",
+    "gram": "Gram",
+    "liter": "Liter",
+    "pallet": "Pallet",
+    "piecesCount": "{{count}} pieces"
   },
   "categories": {
     "title": "Categories",
@@ -180,5 +194,23 @@
     "products": "Products",
     "orders": "Orders",
     "cart": "Cart"
+  },
+  "location": {
+    "title": "Set Your Location",
+    "autoDetect": "Detect Location Automatically 📍",
+    "or": "or",
+    "selectCity": "Select City",
+    "selectArea": "Select Area",
+    "confirm": "Confirm Location",
+    "permissionDenied": "Location permission denied. Please select your location manually.",
+    "fetchError": "Could not get location. Please select your location manually.",
+    "saving": "Saving location...",
+    "saved": "Location saved successfully",
+    "saveError": "Could not save location. Please try again.",
+    "detecting": "Detecting location...",
+    "detected": "Location detected successfully ✓",
+    "loadingCities": "Loading cities...",
+    "infoTitle": "Info",
+    "nearbyLocationInfo": "No matching city found. The current location will be used."
   }
 }

@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from "@/src/constants/api";
 import type { Notification } from "@/src/types";
 import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import apiClient from "./api";
 import { getToken } from "./tokenStorage";
@@ -15,29 +15,7 @@ const STORAGE_KEYS = {
   DEVICE_TOKEN: "deviceToken",
 };
 
-// Configure notification channel for Android
-Notifications.setNotificationChannelAsync("default", {
-  name: "default",
-  importance: Notifications.AndroidImportance.MAX,
-  vibrationPattern: [0, 250, 250, 250],
-  lightColor: "#FF231F7C",
-}).catch((error) => {
-  console.error(
-    "[PushNotifications] Error setting notification channel:",
-    error,
-  );
-});
-
-// Set notification handler for foreground notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+type ExpoNotificationsModule = typeof import("expo-notifications");
 
 interface NotificationPayload {
   title?: string | null;
@@ -58,6 +36,18 @@ class NotificationServiceClass {
   private responseSubscription: any = null;
   private notificationSubscription: any = null;
   private modalVisibleCallback: ((show: boolean) => void) | null = null;
+  private notificationsModule: ExpoNotificationsModule | null = null;
+
+  private isExpoGoAndroid(): boolean {
+    return Constants.appOwnership === "expo" && Platform.OS === "android";
+  }
+
+  private async getNotificationsModule(): Promise<ExpoNotificationsModule> {
+    if (!this.notificationsModule) {
+      this.notificationsModule = await import("expo-notifications");
+    }
+    return this.notificationsModule;
+  }
 
   /**
    * Set callback to show/hide the permission modal
@@ -72,7 +62,36 @@ class NotificationServiceClass {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
+    if (this.isExpoGoAndroid()) {
+      this.initialized = true;
+      console.log(
+        "[PushNotifications] Skipping initialization in Expo Go (Android)",
+      );
+      return;
+    }
+
     try {
+      const Notifications = await this.getNotificationsModule();
+
+      // Configure notification channel for Android
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+
+      // Set notification handler for foreground notifications
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+
       // Request permissions and check if we should prompt
       await this.checkAndRequestPermission();
 
@@ -179,6 +198,7 @@ class NotificationServiceClass {
    */
   private async requestNotificationPermission(): Promise<void> {
     try {
+      const Notifications = await this.getNotificationsModule();
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
           allowAlert: true,
@@ -205,6 +225,15 @@ class NotificationServiceClass {
    */
   async registerDeviceToken(): Promise<string | null> {
     try {
+      if (this.isExpoGoAndroid()) {
+        console.log(
+          "[PushNotifications] Skipping token registration in Expo Go (Android)",
+        );
+        return null;
+      }
+
+      const Notifications = await this.getNotificationsModule();
+
       // Get current token
       const token = await Notifications.getExpoPushTokenAsync({
         projectId: process.env.EXPO_PUBLIC_PROJECT_ID || "tawreed",
@@ -259,6 +288,7 @@ class NotificationServiceClass {
    */
   private async setupNotificationHandlers(): Promise<void> {
     try {
+      const Notifications = await this.getNotificationsModule();
       // Handle background/killed app notification tap
       this.responseSubscription =
         Notifications.addNotificationResponseReceivedListener((response) => {
@@ -334,6 +364,13 @@ class NotificationServiceClass {
    */
   async registerTokenAfterLogin(): Promise<void> {
     try {
+      if (this.isExpoGoAndroid()) {
+        console.log(
+          "[PushNotifications] Skipping token registration after login in Expo Go (Android)",
+        );
+        return;
+      }
+
       // Try to register token from storage
       const deviceToken = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_TOKEN);
       if (!deviceToken) {
@@ -451,6 +488,17 @@ class NotificationServiceClass {
         "[PushNotifications] Error resetting permission tracking:",
         error,
       );
+    }
+  }
+
+  /**
+   * Manually show the permission modal (for testing)
+   */
+  showPermissionModal(): void {
+    if (this.modalVisibleCallback) {
+      this.modalVisibleCallback(true);
+    } else {
+      console.warn("[PushNotifications] Modal callback not set");
     }
   }
 

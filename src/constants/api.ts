@@ -45,6 +45,12 @@ export const API_ENDPOINTS = {
   NOTICES: {
     LIST: "/api/v1/notices",
   },
+  LOCATIONS: {
+    CITIES: "/api/v1/locations/cities",
+  },
+  USER: {
+    UPDATE_LOCATION: "/api/v1/user/location",
+  },
   REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
   UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
 } as const;

@@ -49,15 +49,12 @@ export default function ProfileScreen() {
       {
         text: t("profile.signOut"),
         style: "destructive",
-        onPress: async () => {
-          // Unregister device token before logout
-          try {
-            await notificationService.unregisterToken();
-          } catch (error) {
-            console.error("[ProfileScreen] Failed to unregister token:", error);
-            // Continue with logout even if token unregistration fails
-          }
-          dispatch(logout());
+        onPress: () => {
+          // Fire and forget — don't block logout on network call
+          notificationService.unregisterToken().catch(() => {});
+          dispatch(logout()).then(() => {
+            router.replace("/(auth)/login");
+          });
         },
       },
     ]);

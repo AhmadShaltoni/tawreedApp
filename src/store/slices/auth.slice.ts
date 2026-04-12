@@ -5,6 +5,7 @@ import {
   type User,
 } from "@/src/services/auth.service";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface AuthState {
@@ -35,8 +36,7 @@ export const login = createAsyncThunk(
       await setToken(response.token);
       return response;
     } catch (error: any) {
-      const message =
-        error.response?.data?.message ?? error.message ?? "Login failed";
+      const message = getErrorMessage(error);
       return rejectWithValue(message);
     }
   },
@@ -50,8 +50,7 @@ export const register = createAsyncThunk(
       await setToken(response.token);
       return response;
     } catch (error: any) {
-      const message =
-        error.response?.data?.message ?? error.message ?? "Registration failed";
+      const message = getErrorMessage(error);
       return rejectWithValue(message);
     }
   },
@@ -78,6 +77,22 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   await removeToken();
 });
 
+export const updateUserLocation = createAsyncThunk(
+  "auth/updateLocation",
+  async (payload: { cityId: string; areaId?: string }, { rejectWithValue }) => {
+    try {
+      const user = await authService.updateLocation(
+        payload.cityId,
+        payload.areaId,
+      );
+      return user;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      return rejectWithValue(message);
+    }
+  },
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -88,6 +103,11 @@ const authSlice = createSlice({
     continueAsGuest(state) {
       state.isGuest = true;
       state.isInitialized = true;
+    },
+    updateUser(state, action) {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
     },
   },
   extraReducers: (builder) => {
@@ -137,16 +157,13 @@ const authSlice = createSlice({
           state.user = action.payload.user;
           state.token = action.payload.token;
           state.isAuthenticated = true;
-        } else {
-          // New users automatically start as guests
-          state.isGuest = true;
         }
+        // If no token, isGuest stays false — AuthGate will redirect to login
       })
       .addCase(restoreSession.rejected, (state) => {
         state.loading = false;
         state.isInitialized = true;
-        // Failed authentication - set as guest
-        state.isGuest = true;
+        // Failed authentication — AuthGate will redirect to login
       });
 
     // Logout
@@ -157,8 +174,19 @@ const authSlice = createSlice({
       state.isGuest = false;
       state.error = null;
     });
+
+    // Update Location
+    builder
+      .addCase(updateUserLocation.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user = action.payload;
+        }
+      })
+      .addCase(updateUserLocation.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
   },
 });
 
-export const { clearError, continueAsGuest } = authSlice.actions;
+export const { clearError, continueAsGuest, updateUser } = authSlice.actions;
 export default authSlice.reducer;

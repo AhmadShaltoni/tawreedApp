@@ -1,25 +1,34 @@
 import { API_ENDPOINTS } from "@/src/constants/api";
 import type {
     AddToCartPayload,
+    AddToCartResponse,
+    CartAPIResponse,
     CartItemAPI,
-    UpdateCartPayload,
+    UpdateCartPayload
 } from "@/src/types";
 import apiClient from "./api";
+import { mapProduct } from "./product.service";
 
 export const cartService = {
   getCart: async (): Promise<CartItemAPI[]> => {
-    const { data } = await apiClient.get<CartItemAPI[]>(
+    const { data } = await apiClient.get<CartAPIResponse>(
       API_ENDPOINTS.CART.LIST,
     );
-    return data;
+    return data.items.map((item) => ({
+      ...item,
+      product: mapProduct(item.product),
+    }));
   },
 
   addToCart: async (payload: AddToCartPayload): Promise<CartItemAPI> => {
-    const { data } = await apiClient.post<CartItemAPI>(
+    const { data } = await apiClient.post<AddToCartResponse>(
       API_ENDPOINTS.CART.ADD,
       payload,
     );
-    return data;
+    return {
+      ...data.item,
+      product: mapProduct(data.item.product),
+    };
   },
 
   updateCartItem: async (

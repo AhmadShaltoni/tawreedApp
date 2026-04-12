@@ -1,15 +1,16 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import type {
-    ApiProduct,
-    ApiProductsResponse,
-    Product,
-    ProductFilters,
-    ProductsResponse,
+  ApiProduct,
+  ApiProductsResponse,
+  Product,
+  ProductFilters,
+  ProductsResponse,
+  ProductUnit,
 } from "@/src/types";
 import apiClient from "./api";
 
 /** Map a raw API product to the app's Product type */
-function mapProduct(raw: ApiProduct): Product {
+export function mapProduct(raw: ApiProduct): Product {
   const hasComparePrice =
     raw.compareAtPrice != null && raw.compareAtPrice > raw.price;
 
@@ -44,6 +45,19 @@ function mapProduct(raw: ApiProduct): Product {
     stock: raw.stock,
     featured: false,
     createdAt: raw.createdAt,
+    units: raw.units?.map(
+      (u): ProductUnit => ({
+        id: u.id,
+        unit: u.unit,
+        label: u.label,
+        labelEn: u.labelEn,
+        piecesPerUnit: u.piecesPerUnit,
+        price: u.price,
+        compareAtPrice: u.compareAtPrice ?? null,
+        isDefault: u.isDefault,
+        sortOrder: u.sortOrder,
+      }),
+    ),
   };
 }
 

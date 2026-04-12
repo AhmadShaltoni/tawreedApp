@@ -1,5 +1,6 @@
 import { notificationService } from "@/src/services/notification.service";
 import type { Notification } from "@/src/types";
+import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface NotificationsState {
@@ -22,9 +23,7 @@ export const fetchNotifications = createAsyncThunk(
     try {
       return await notificationService.getNotifications();
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to load notifications",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -36,9 +35,7 @@ export const markNotificationRead = createAsyncThunk(
       await notificationService.markAsRead(id);
       return id;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to mark as read",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -49,9 +46,7 @@ export const markAllNotificationsRead = createAsyncThunk(
     try {
       await notificationService.markAllAsRead();
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ?? "Failed to mark all as read",
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );

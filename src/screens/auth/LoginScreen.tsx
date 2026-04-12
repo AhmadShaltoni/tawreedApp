@@ -1,4 +1,5 @@
 import Button from "@/src/components/ui/Button";
+import ErrorAlert from "@/src/components/ui/ErrorAlert";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
@@ -122,7 +123,12 @@ export default function LoginScreen() {
             textContentType="password"
           />
 
-          {error ? <Text style={styles.apiError}>{error}</Text> : null}
+          {error && (
+            <ErrorAlert
+              message={error}
+              onClose={() => dispatch(clearError())}
+            />
+          )}
 
           <Button
             title={t("auth.signIn")}

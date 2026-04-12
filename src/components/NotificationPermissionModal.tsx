@@ -8,8 +8,15 @@ import {
 } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { SlideInUp } from "react-native-reanimated";
+import {
+    Linking,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import Animated, { ZoomIn } from "react-native-reanimated";
 
 interface NotificationPermissionModalProps {
   visible: boolean;
@@ -45,10 +52,7 @@ export default function NotificationPermissionModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <Animated.View
-          entering={SlideInUp.springify().damping(12)}
-          style={styles.container}
-        >
+        <Animated.View entering={ZoomIn.duration(300)} style={styles.container}>
           {/* Close Button */}
           <Pressable style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color={Colors.textSecondary} />
@@ -96,12 +100,6 @@ export default function NotificationPermissionModal({
               variant="accent"
               style={styles.enableButton}
             />
-
-            <Pressable style={styles.skipButton} onPress={onClose}>
-              <Text style={styles.skipButtonText}>
-                {t("notifications.permissionModal.skip")}
-              </Text>
-            </Pressable>
           </View>
 
           {/* Footer Note */}
@@ -137,15 +135,18 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
   },
   container: {
     backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xxl,
-    borderTopRightRadius: BorderRadius.xxl,
+    borderRadius: BorderRadius.xxl,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
+    width: "100%",
+    maxWidth: 340,
     ...Shadows.medium,
   },
   closeButton: {
@@ -209,19 +210,6 @@ const styles = StyleSheet.create({
   },
   enableButton: {
     marginTop: Spacing.sm,
-  },
-  skipButton: {
-    paddingVertical: Spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  skipButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.textSecondary,
   },
   footerNote: {
     fontSize: FontSize.xs,

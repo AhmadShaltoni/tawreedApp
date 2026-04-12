@@ -1,3 +1,15 @@
+export interface ProductUnit {
+  id: string;
+  unit: string;
+  label: string;
+  labelEn: string;
+  piecesPerUnit: number;
+  price: number;
+  compareAtPrice: number | null;
+  isDefault: boolean;
+  sortOrder: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -15,6 +27,7 @@ export interface Product {
   stock: number;
   featured: boolean;
   createdAt: string;
+  units?: ProductUnit[];
 }
 
 /** Raw product shape from the API */
@@ -44,6 +57,7 @@ export interface ApiProduct {
     nameEn?: string;
     slug: string;
   };
+  units?: ProductUnit[];
 }
 
 /** Raw API response for products list */
@@ -114,6 +128,9 @@ export interface OrderItem {
   quantity: number;
   unit: string;
   subtotal: number;
+  unitLabel?: string;
+  unitLabelEn?: string;
+  piecesPerUnit?: number;
 }
 
 export interface OrderDetail extends Order {
@@ -140,17 +157,41 @@ export interface CreateOrderPayload {
 export interface CartItemAPI {
   id: string;
   productId: string;
+  productUnitId?: string | null;
   product: Product;
+  productUnit?: ProductUnit | null;
   quantity: number;
 }
 
+export interface RawCartItemAPI {
+  id: string;
+  productId: string;
+  productUnitId?: string | null;
+  product: ApiProduct;
+  productUnit?: ProductUnit | null;
+  quantity: number;
+}
+
+export interface CartAPIResponse {
+  items: RawCartItemAPI[];
+  total: number;
+  itemCount: number;
+}
+
+export interface AddToCartResponse {
+  item: RawCartItemAPI;
+}
+
 export interface CartItem {
+  cartItemId: string;
   product: Product;
   quantity: number;
+  selectedUnit?: ProductUnit;
 }
 
 export interface AddToCartPayload {
   productId: string;
+  productUnitId?: string;
   quantity: number;
 }
 
@@ -173,6 +214,39 @@ export interface Notification {
   read: boolean;
   data?: Record<string, string>;
   createdAt: string;
+}
+
+// Location
+export interface Area {
+  id: string;
+  name: string;
+  nameEn: string;
+}
+
+export interface City {
+  id: string;
+  name: string;
+  nameEn: string;
+  areas: Area[];
+}
+
+export interface UpdateLocationPayload {
+  cityId?: string;
+  areaId?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface UpdateLocationResponse {
+  user: {
+    id: string;
+    cityId: string | null;
+    areaId: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    city: { id: string; name: string; nameEn: string } | null;
+    area: { id: string; name: string; nameEn: string } | null;
+  };
 }
 
 // Notices (Admin-managed announcements)

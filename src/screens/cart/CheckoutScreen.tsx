@@ -2,35 +2,23 @@ import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
+import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
+import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart } from "@/src/store/slices/cart.slice";
 import { createOrder } from "@/src/store/slices/orders.slice";
+import type { City } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, StyleSheet, Text, View } from "react-native";
-
-const CITIES = [
-  "Amman",
-  "Irbid",
-  "Zarqa",
-  "Aqaba",
-  "Salt",
-  "Madaba",
-  "Karak",
-  "Jerash",
-  "Mafraq",
-  "Ajloun",
-  "Tafilah",
-  "Ma'an",
-];
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface FormErrors {
   address?: string;
@@ -38,17 +26,69 @@ interface FormErrors {
 }
 
 export default function CheckoutScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { items } = useAppSelector((state) => state.cart);
   const { creating, error } = useAppSelector((state) => state.orders);
+  const { user } = useAppSelector((state) => state.auth);
+  const isArabic = i18n.language === "ar";
 
+  const [cities, setCities] = useState<City[]>([]);
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
   const [notes, setNotes] = useState("");
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const [showAreaPicker, setShowAreaPicker] = useState(false);
+
+  const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
+  const areas = selectedCity?.areas ?? [];
+  const selectedArea = areas.find((a) => a.id === selectedAreaId) ?? null;
+
+  const getCityName = (city: City) => (isArabic ? city.name : city.nameEn);
+  const getAreaName = (area: { name: string; nameEn: string }) =>
+    isArabic ? area.name : area.nameEn;
+
+  // Build display string for city field (city + area)
+  const cityDisplayText = useMemo(() => {
+    if (!selectedCity) return "";
+    const name = getCityName(selectedCity);
+    if (selectedArea) return `${name} - ${getAreaName(selectedArea)}`;
+    return name;
+  }, [selectedCity, selectedArea, isArabic]);
+
+  // Fetch cities
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await locationService.getCities();
+        if (!mounted) return;
+        setCities(data);
+      } catch {
+        // silent — user can still type city manually
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Pre-fill from user's saved location after cities are loaded
+  useEffect(() => {
+    if (cities.length > 0 && user?.cityId) {
+      // Check if the city exists in the loaded cities
+      const cityExists = cities.some((c) => c.id === user.cityId);
+      if (cityExists) {
+        setSelectedCityId(user.cityId);
+        if (user.areaId) {
+          setSelectedAreaId(user.areaId);
+        }
+      }
+    }
+  }, [cities, user?.cityId, user?.areaId]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -64,10 +104,10 @@ export default function CheckoutScreen() {
   const validate = useCallback((): boolean => {
     const errors: FormErrors = {};
     if (!address.trim()) errors.address = t("checkout.addressRequired");
-    if (!city) errors.city = t("checkout.cityRequired");
+    if (!selectedCityId) errors.city = t("checkout.cityRequired");
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [address, city, t]);
+  }, [address, selectedCityId, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!validate()) return;
@@ -75,12 +115,22 @@ export default function CheckoutScreen() {
     const result = await dispatch(
       createOrder({
         shippingAddress: address.trim(),
-        city,
+        city: cityDisplayText,
         notes: notes.trim() || undefined,
       }),
     );
 
     if (createOrder.fulfilled.match(result)) {
+      // Save location to user profile
+      if (selectedCityId) {
+        dispatch(
+          updateUserLocation({
+            cityId: selectedCityId,
+            areaId: selectedAreaId ?? undefined,
+          }),
+        );
+      }
+
       dispatch(clearCart());
       Alert.alert(
         "Order Placed!",
@@ -99,7 +149,17 @@ export default function CheckoutScreen() {
     } else if (createOrder.rejected.match(result)) {
       Alert.alert(t("common.error"), result.payload as string);
     }
-  }, [dispatch, router, address, city, notes, validate, t]);
+  }, [
+    dispatch,
+    router,
+    address,
+    cityDisplayText,
+    notes,
+    validate,
+    t,
+    selectedCityId,
+    selectedAreaId,
+  ]);
 
   return (
     <ScreenWrapper>
@@ -110,7 +170,7 @@ export default function CheckoutScreen() {
           {items.map((item) => {
             const price = item.product.discountPrice ?? item.product.price;
             return (
-              <View key={item.product.id} style={styles.summaryItem}>
+              <View key={item.cartItemId} style={styles.summaryItem}>
                 <View style={styles.summaryItemDetails}>
                   <Text style={styles.summaryItemName} numberOfLines={1}>
                     {item.product.name}
@@ -140,6 +200,109 @@ export default function CheckoutScreen() {
         {/* Shipping Details */}
         <Text style={styles.sectionTitle}>{t("checkout.shippingAddress")}</Text>
 
+
+
+        {/* City Selector */}
+        <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
+        <Pressable
+          style={[
+            styles.citySelector,
+            formErrors.city ? styles.citySelectorError : undefined,
+          ]}
+          onPress={() => {
+            setShowCityPicker(!showCityPicker);
+            setShowAreaPicker(false);
+          }}
+        >
+          <Text
+            style={[styles.cityText, !selectedCity && styles.cityPlaceholder]}
+          >
+            {selectedCity
+              ? getCityName(selectedCity)
+              : t("location.selectCity")}
+          </Text>
+          <Ionicons
+            name={showCityPicker ? "chevron-up" : "chevron-down"}
+            size={18}
+            color={Colors.textSecondary}
+          />
+        </Pressable>
+        {formErrors.city ? (
+          <Text style={styles.errorText}>{formErrors.city}</Text>
+        ) : null}
+
+        {showCityPicker ? (
+          <View style={styles.cityList}>
+            {cities.map((c) => (
+              <Text
+                key={c.id}
+                style={[
+                  styles.cityOption,
+                  selectedCityId === c.id && styles.cityOptionActive,
+                ]}
+                onPress={() => {
+                  setSelectedCityId(c.id);
+                  setSelectedAreaId(null);
+                  setShowCityPicker(false);
+                  if (formErrors.city)
+                    setFormErrors((prev) => ({ ...prev, city: undefined }));
+                }}
+              >
+                {getCityName(c)}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Area Selector — only if city is selected and has areas */}
+        {selectedCity && areas.length > 0 ? (
+          <>
+            <Text style={styles.fieldLabel}>{t("location.selectArea")}</Text>
+            <Pressable
+              style={styles.citySelector}
+              onPress={() => {
+                setShowAreaPicker(!showAreaPicker);
+                setShowCityPicker(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.cityText,
+                  !selectedArea && styles.cityPlaceholder,
+                ]}
+              >
+                {selectedArea
+                  ? getAreaName(selectedArea)
+                  : t("location.selectArea")}
+              </Text>
+              <Ionicons
+                name={showAreaPicker ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={Colors.textSecondary}
+              />
+            </Pressable>
+
+            {showAreaPicker ? (
+              <View style={styles.cityList}>
+                {areas.map((a) => (
+                  <Text
+                    key={a.id}
+                    style={[
+                      styles.cityOption,
+                      selectedAreaId === a.id && styles.cityOptionActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedAreaId(a.id);
+                      setShowAreaPicker(false);
+                    }}
+                  >
+                    {getAreaName(a)}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : null}
         <Input
           label={t("checkout.shippingAddress")}
           placeholder={t("checkout.addressPlaceholder")}
@@ -155,53 +318,6 @@ export default function CheckoutScreen() {
           textAlignVertical="top"
           style={styles.addressInput}
         />
-
-        {/* City Selector */}
-        <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
-        <View
-          style={[
-            styles.citySelector,
-            formErrors.city ? styles.citySelectorError : undefined,
-          ]}
-        >
-          <Text
-            style={[styles.cityText, !city && styles.cityPlaceholder]}
-            onPress={() => setShowCityPicker(!showCityPicker)}
-          >
-            {city || t("checkout.selectCity")}
-          </Text>
-          <Ionicons
-            name={showCityPicker ? "chevron-up" : "chevron-down"}
-            size={18}
-            color={Colors.textSecondary}
-          />
-        </View>
-        {formErrors.city ? (
-          <Text style={styles.errorText}>{formErrors.city}</Text>
-        ) : null}
-
-        {showCityPicker ? (
-          <View style={styles.cityList}>
-            {CITIES.map((c) => (
-              <Text
-                key={c}
-                style={[
-                  styles.cityOption,
-                  city === c && styles.cityOptionActive,
-                ]}
-                onPress={() => {
-                  setCity(c);
-                  setShowCityPicker(false);
-                  if (formErrors.city)
-                    setFormErrors((prev) => ({ ...prev, city: undefined }));
-                }}
-              >
-                {c}
-              </Text>
-            ))}
-          </View>
-        ) : null}
-
         <Input
           label={t("checkout.notes")}
           placeholder={t("checkout.notesPlaceholder")}
