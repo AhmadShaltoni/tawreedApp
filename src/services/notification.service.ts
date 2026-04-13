@@ -57,6 +57,28 @@ class NotificationServiceClass {
   }
 
   /**
+   * Check actual permission status from OS
+   */
+  private async checkActualPermissionStatus(): Promise<boolean> {
+    try {
+      const Notifications = await this.getNotificationsModule();
+      const { status } = await Notifications.getPermissionsAsync();
+      const isGranted = status === "granted";
+      console.log(
+        "[PushNotifications] Actual permission status from OS:",
+        isGranted,
+      );
+      return isGranted;
+    } catch (error) {
+      console.error(
+        "[PushNotifications] Error checking actual permission:",
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Initialize notification service on app launch
    */
   async initialize(): Promise<void> {
@@ -110,7 +132,23 @@ class NotificationServiceClass {
    */
   private async checkAndRequestPermission(): Promise<PermissionCheckResult> {
     try {
-      // Increment the attempt counter
+      // Check actual permission status from OS first
+      const hasActualPermission = await this.checkActualPermissionStatus();
+
+      if (hasActualPermission) {
+        console.log(
+          "[PushNotifications] Permission already granted by OS, marking as ready",
+        );
+        await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_READY, "true");
+        const attemptCount = await notificationPermissionTracker.getAttemptCount();
+        return {
+          shouldShowModal: false,
+          attemptCount,
+          isPermanentlyDenied: false,
+        };
+      }
+
+      // Increment the attempt counter only if permission not granted
       await notificationPermissionTracker.incrementAttemptCount();
 
       // Get current status

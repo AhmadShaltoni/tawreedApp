@@ -4,11 +4,11 @@ import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
 import Loader from "@/src/components/ui/Loader";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
@@ -22,20 +22,20 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FlatList,
-  I18nManager,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    FlatList,
+    I18nManager,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    FadeInDown,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -306,15 +306,15 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  order.status === "delivered" && styles.statusDelivered,
-                  order.status === "cancelled" && styles.statusCancelled,
+                  order.status === "DELIVERED" && styles.statusDelivered,
+                  order.status === "CANCELLED" && styles.statusCancelled,
                 ]}
               >
                 <Text style={styles.statusText}>{order.status}</Text>
               </View>
             </View>
             <Text style={styles.orderInfo}>
-              {order.itemCount} items · {order.total.toFixed(2)}{" "}
+              {order.itemCount} items · {(order.total ?? 0).toFixed(2)}{" "}
               {t("common.currency")}
             </Text>
           </View>

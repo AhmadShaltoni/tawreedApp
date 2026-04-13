@@ -6,6 +6,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
+import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import { loadSavedLanguage } from "@/src/localization/i18n";
@@ -185,6 +186,7 @@ function AuthGate() {
         />
       </Stack>
       <StatusBar style="dark" />
+      <WhatsAppFAB />
       <NotificationPermissionModal
         visible={displayModal}
         onOpenSettings={handleModalEnable}

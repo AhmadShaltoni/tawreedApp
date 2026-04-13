@@ -128,7 +128,14 @@
     "itemsCount": "{{count}} عنصر",
     "total": "الإجمالي",
     "addressRequired": "عنوان الشحن مطلوب",
-    "cityRequired": "المدينة مطلوبة"
+    "cityRequired": "المدينة مطلوبة",
+    "discountCode": "كود الخصم",
+    "discountCodePlaceholder": "أدخل كود الخصم",
+    "apply": "تطبيق",
+    "couponApplied": "✓ تم تطبيق الكود",
+    "discount": "الخصم",
+    "subtotal": "المجموع الفرعي",
+    "totalAfterDiscount": "الإجمالي بعد الخصم"
   },
   "orders": {
     "title": "الطلبات",
@@ -143,12 +150,18 @@
     "shippingInfo": "معلومات الشحن",
     "address": "العنوان",
     "timeline": "سجل الحالة",
-    "statusPending": "قيد الانتظار",
+    "statusHistory": "سجل التحديثات",
+    "statusPending": "معلق",
     "statusConfirmed": "تم التأكيد",
-    "statusProcessing": "قيد المعالجة",
+    "statusProcessing": "قيد التجهيز",
     "statusShipped": "تم الشحن",
-    "statusDelivered": "تم التسليم",
-    "statusCancelled": "ملغي"
+    "statusDelivered": "تم التوصيل",
+    "statusCancelled": "ملغي",
+    "editOrder": "تعديل الطلب",
+    "cannotEdit": "لا يمكن تعديل الطلب",
+    "cannotEditMessage": "لا يمكنك تعديل الطلب لأن حالته حالياً ({{status}})، يمكن تعديل الطلبات المعلقة فقط.",
+    "buyerNotes": "ملاحظات المشتري",
+    "placedOn": "تاريخ الطلب"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -212,5 +225,10 @@
     "loadingCities": "جاري تحميل المدن...",
     "infoTitle": "معلومة",
     "nearbyLocationInfo": "لم يتم العثور على مدينة متطابقة. سيتم استخدام الموقع الحالي."
+  },
+  "contact": {
+    "title": "تواصل معنا",
+    "description": "تواصل معنا عبر واتس أب للإجابة على استفسارات أو دعم العملاء",
+    "openWhatsApp": "فتح واتس أب"
   }
 }

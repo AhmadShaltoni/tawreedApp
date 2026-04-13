@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/orders",
     DETAIL: (id: string) => `/api/v1/orders/${id}`,
     CREATE: "/api/v1/orders",
+    UPDATE: (id: string) => `/api/v1/orders/${id}`,
     RECENT: "/api/v1/orders?limit=5&sort=recent",
   },
   NOTIFICATIONS: {
@@ -44,6 +45,10 @@ export const API_ENDPOINTS = {
   },
   NOTICES: {
     LIST: "/api/v1/notices",
+  },
+  COUPONS: {
+    VALIDATE: "/api/v1/coupons/validate",
+    CONFIRM: "/api/v1/coupons/confirm",
   },
   LOCATIONS: {
     CITIES: "/api/v1/locations/cities",

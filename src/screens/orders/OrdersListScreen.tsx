@@ -1,47 +1,51 @@
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchOrders } from "@/src/store/slices/orders.slice";
 import type { Order, OrderStatus } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    FlatList,
-    Pressable,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const STATUS_CONFIG: Record<
   OrderStatus,
   { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
-  pending: { color: "#92400e", bg: "#fef3c7", icon: "time-outline" },
-  confirmed: {
-    color: "#1e40af",
-    bg: "#dbeafe",
-    icon: "checkmark-circle-outline",
-  },
-  processing: { color: "#6d28d9", bg: "#ede9fe", icon: "cog-outline" },
-  shipped: { color: "#0369a1", bg: "#e0f2fe", icon: "airplane-outline" },
-  delivered: {
+  PENDING: { color: "#92400e", bg: "#fef3c7", icon: "time-outline" },
+  PROCESSING: { color: "#1e40af", bg: "#dbeafe", icon: "cog-outline" },
+  SHIPPED: { color: "#6d28d9", bg: "#ede9fe", icon: "airplane-outline" },
+  DELIVERED: {
     color: "#166534",
     bg: "#dcfce7",
     icon: "checkmark-done-outline",
   },
-  cancelled: { color: "#991b1b", bg: "#fee2e2", icon: "close-circle-outline" },
+  CANCELLED: { color: "#991b1b", bg: "#fee2e2", icon: "close-circle-outline" },
+};
+
+const STATUS_TRANSLATION_KEY: Record<OrderStatus, string> = {
+  PENDING: "orders.statusPending",
+  PROCESSING: "orders.statusProcessing",
+  SHIPPED: "orders.statusShipped",
+  DELIVERED: "orders.statusDelivered",
+  CANCELLED: "orders.statusCancelled",
 };
 
 export default function OrdersListScreen() {
@@ -52,11 +56,13 @@ export default function OrdersListScreen() {
   const { items, loading, error } = useAppSelector((state) => state.orders);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchOrders());
-    }
-  }, [dispatch, isAuthenticated]);
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        dispatch(fetchOrders());
+      }
+    }, [dispatch, isAuthenticated]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -73,9 +79,26 @@ export default function OrdersListScreen() {
     });
   };
 
+  const getLatestNote = (order: Order): string | null => {
+    if (!order.statusHistory || order.statusHistory.length === 0) return null;
+    for (let i = order.statusHistory.length - 1; i >= 0; i--) {
+      if (order.statusHistory[i].note) return order.statusHistory[i].note!;
+    }
+    return null;
+  };
+
+  const getOrderTotal = (order: Order): number => {
+    if (order.total !== undefined && order.total !== null) return order.total;
+    if (order.items && order.items.length > 0) {
+      return order.items.reduce((sum, item) => sum + (item.subtotal ?? 0), 0);
+    }
+    return 0;
+  };
+
   const renderOrder = useCallback(
     ({ item }: { item: Order }) => {
-      const config = STATUS_CONFIG[item.status];
+      const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.PENDING;
+      const latestNote = getLatestNote(item);
 
       return (
         <Pressable
@@ -86,23 +109,38 @@ export default function OrdersListScreen() {
           onPress={() => router.push(`/order/${item.id}`)}
         >
           <View style={styles.orderHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.orderNumber}>#{item.orderNumber}</Text>
               <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
               <Ionicons name={config.icon} size={12} color={config.color} />
               <Text style={[styles.statusText, { color: config.color }]}>
-                {item.status}
+                {t(
+                  STATUS_TRANSLATION_KEY[item.status] ?? "orders.statusPending",
+                )}
               </Text>
             </View>
           </View>
+          {latestNote ? (
+            <View style={styles.noteRow}>
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={13}
+                color={Colors.textSecondary}
+              />
+              <Text style={styles.noteText} numberOfLines={1}>
+                {latestNote}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.orderFooter}>
             <Text style={styles.orderItems}>
-              {item.itemCount} item{item.itemCount !== 1 ? "s" : ""}
+              {item.itemCount}{" "}
+              {item.itemCount !== 1 ? t("common.items") : t("common.item")}
             </Text>
             <Text style={styles.orderTotal}>
-              {item.total.toFixed(2)} {t("common.currency")}
+              {getOrderTotal(item).toFixed(2)} {t("common.currency")}
             </Text>
           </View>
           <View style={styles.chevron}>
@@ -232,7 +270,19 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: FontSize.xs,
     fontWeight: "700",
-    textTransform: "capitalize",
+  },
+  noteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+  },
+  noteText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    flex: 1,
+    fontStyle: "italic",
   },
   orderFooter: {
     flexDirection: "row",

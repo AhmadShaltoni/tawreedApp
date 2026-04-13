@@ -128,7 +128,14 @@
     "itemsCount": "{{count}} items",
     "total": "Total",
     "addressRequired": "Shipping address is required",
-    "cityRequired": "City is required"
+    "cityRequired": "City is required",
+    "discountCode": "Discount Code",
+    "discountCodePlaceholder": "Enter discount code",
+    "apply": "Apply",
+    "couponApplied": "✓ Code applied",
+    "discount": "Discount",
+    "subtotal": "Subtotal",
+    "totalAfterDiscount": "Total after discount"
   },
   "orders": {
     "title": "Orders",
@@ -143,12 +150,18 @@
     "shippingInfo": "Shipping Info",
     "address": "Address",
     "timeline": "Status History",
+    "statusHistory": "Update Log",
     "statusPending": "Pending",
     "statusConfirmed": "Confirmed",
     "statusProcessing": "Processing",
     "statusShipped": "Shipped",
     "statusDelivered": "Delivered",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "editOrder": "Edit Order",
+    "cannotEdit": "Cannot Edit Order",
+    "cannotEditMessage": "You cannot edit this order because its status is ({{status}}). Only pending orders can be modified.",
+    "buyerNotes": "Buyer Notes",
+    "placedOn": "Placed on"
   },
   "notifications": {
     "title": "Notifications",
@@ -212,5 +225,10 @@
     "loadingCities": "Loading cities...",
     "infoTitle": "Info",
     "nearbyLocationInfo": "No matching city found. The current location will be used."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "description": "Contact us via WhatsApp for inquiries and customer support",
+    "openWhatsApp": "Open WhatsApp"
   }
 }

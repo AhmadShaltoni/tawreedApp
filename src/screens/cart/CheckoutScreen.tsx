@@ -8,17 +8,27 @@ import {
   Shadows,
   Spacing,
 } from "@/src/constants/theme";
+import { couponService } from "@/src/services/coupon.service";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart } from "@/src/store/slices/cart.slice";
 import { createOrder } from "@/src/store/slices/orders.slice";
-import type { City } from "@/src/types";
+import type { City, CouponValidateSuccess } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 interface FormErrors {
   address?: string;
@@ -42,6 +52,13 @@ export default function CheckoutScreen() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] =
+    useState<CouponValidateSuccess | null>(null);
 
   const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
   const areas = selectedCity?.areas ?? [];
@@ -101,6 +118,42 @@ export default function CheckoutScreen() {
     };
   }, [items]);
 
+  // The final total to display (with or without coupon)
+  const displayTotal = appliedCoupon
+    ? appliedCoupon.finalTotal
+    : totals.subtotal;
+
+  const handleApplyCoupon = useCallback(async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+    Keyboard.dismiss();
+    setCouponLoading(true);
+    setCouponError(null);
+    setAppliedCoupon(null);
+    try {
+      const response = await couponService.validateCoupon({
+        code,
+        orderTotal: totals.subtotal,
+      });
+      if (response.valid) {
+        setAppliedCoupon(response);
+        setCouponCode(response.code);
+      } else {
+        setCouponError(response.message);
+      }
+    } catch {
+      setCouponError(t("common.error"));
+    } finally {
+      setCouponLoading(false);
+    }
+  }, [couponCode, totals.subtotal, t]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  }, []);
+
   const validate = useCallback((): boolean => {
     const errors: FormErrors = {};
     if (!address.trim()) errors.address = t("checkout.addressRequired");
@@ -114,13 +167,24 @@ export default function CheckoutScreen() {
 
     const result = await dispatch(
       createOrder({
-        shippingAddress: address.trim(),
-        city: cityDisplayText,
-        notes: notes.trim() || undefined,
+        deliveryAddress: address.trim(),
+        deliveryCity: cityDisplayText,
+        buyerNotes: notes.trim() || undefined,
       }),
     );
 
     if (createOrder.fulfilled.match(result)) {
+      // Confirm coupon usage (fire-and-forget)
+      if (appliedCoupon) {
+        couponService
+          .confirmCoupon({
+            code: appliedCoupon.code,
+            orderId: result.payload.id,
+            orderTotal: totals.subtotal,
+          })
+          .catch(() => {});
+      }
+
       // Save location to user profile
       if (selectedCityId) {
         dispatch(
@@ -159,6 +223,8 @@ export default function CheckoutScreen() {
     t,
     selectedCityId,
     selectedAreaId,
+    appliedCoupon,
+    totals.subtotal,
   ]);
 
   return (
@@ -186,21 +252,51 @@ export default function CheckoutScreen() {
             );
           })}
           <View style={styles.divider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.totalLabel}>
-              {t("checkout.total")} (
-              {t("checkout.itemsCount", { count: totals.itemCount })})
-            </Text>
-            <Text style={styles.totalValue}>
-              {totals.subtotal.toFixed(2)} {t("common.currency")}
-            </Text>
-          </View>
+          {appliedCoupon ? (
+            <>
+              <View style={styles.summaryItem}>
+                <Text style={styles.totalLabel}>
+                  {t("checkout.subtotal")} (
+                  {t("checkout.itemsCount", { count: totals.itemCount })})
+                </Text>
+                <Text style={styles.summaryItemPrice}>
+                  {totals.subtotal.toFixed(2)} {t("common.currency")}
+                </Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.discountLabel}>
+                  {t("checkout.discount")} ({appliedCoupon.discountPercent}%)
+                </Text>
+                <Text style={styles.discountValue}>
+                  -{appliedCoupon.discountAmount.toFixed(2)}{" "}
+                  {t("common.currency")}
+                </Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.totalLabel}>
+                  {t("checkout.totalAfterDiscount")}
+                </Text>
+                <Text style={styles.totalValue}>
+                  {appliedCoupon.finalTotal.toFixed(2)} {t("common.currency")}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.summaryItem}>
+              <Text style={styles.totalLabel}>
+                {t("checkout.total")} (
+                {t("checkout.itemsCount", { count: totals.itemCount })})
+              </Text>
+              <Text style={styles.totalValue}>
+                {totals.subtotal.toFixed(2)} {t("common.currency")}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Shipping Details */}
         <Text style={styles.sectionTitle}>{t("checkout.shippingAddress")}</Text>
-
-
 
         {/* City Selector */}
         <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
@@ -312,7 +408,7 @@ export default function CheckoutScreen() {
             if (formErrors.address)
               setFormErrors((prev) => ({ ...prev, address: undefined }));
           }}
-          error={formErrors.address}
+          // error={formErrors.address}
           multiline
           numberOfLines={3}
           textAlignVertical="top"
@@ -329,10 +425,69 @@ export default function CheckoutScreen() {
           style={styles.notesInput}
         />
 
+        {/* Discount Code */}
+        <Text style={styles.sectionTitle}>{t("checkout.discountCode")}</Text>
+        {appliedCoupon ? (
+          <View style={styles.couponAppliedCard}>
+            <View style={styles.couponAppliedRow}>
+              <Text style={styles.couponAppliedText}>
+                {t("checkout.couponApplied")}
+              </Text>
+              <Pressable onPress={handleRemoveCoupon} hitSlop={8}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={Colors.textSecondary}
+                />
+              </Pressable>
+            </View>
+            <Text style={styles.couponCodeText}>{appliedCoupon.code}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.couponRow}>
+              <TextInput
+                style={styles.couponInput}
+                placeholder={t("checkout.discountCodePlaceholder")}
+                placeholderTextColor={Colors.textLight}
+                value={couponCode}
+                onChangeText={(text) => {
+                  setCouponCode(text);
+                  if (couponError) setCouponError(null);
+                }}
+                autoCapitalize="characters"
+                editable={!couponLoading}
+                returnKeyType="done"
+                onSubmitEditing={handleApplyCoupon}
+              />
+              <Pressable
+                style={[
+                  styles.couponButton,
+                  (!couponCode.trim() || couponLoading) &&
+                    styles.couponButtonDisabled,
+                ]}
+                onPress={handleApplyCoupon}
+                disabled={!couponCode.trim() || couponLoading}
+              >
+                {couponLoading ? (
+                  <ActivityIndicator size="small" color={Colors.surface} />
+                ) : (
+                  <Text style={styles.couponButtonText}>
+                    {t("checkout.apply")}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+            {couponError ? (
+              <Text style={styles.couponErrorText}>{couponError}</Text>
+            ) : null}
+          </>
+        )}
+
         {error ? <Text style={styles.apiError}>{error}</Text> : null}
 
         <Button
-          title={`${t("checkout.placeOrder")} · ${totals.subtotal.toFixed(2)} ${t("common.currency")}`}
+          title={`${t("checkout.placeOrder")} · ${displayTotal.toFixed(2)} ${t("common.currency")}`}
           onPress={handleConfirm}
           variant="accent"
           loading={creating}
@@ -469,5 +624,75 @@ const styles = StyleSheet.create({
   },
   confirmBtn: {
     marginTop: Spacing.lg,
+  },
+  couponRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  couponInput: {
+    flex: 1,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 2,
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  couponButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md + 2,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 80,
+  },
+  couponButtonDisabled: {
+    opacity: 0.5,
+  },
+  couponButtonText: {
+    color: Colors.surface,
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+  },
+  couponErrorText: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    marginTop: Spacing.xs,
+  },
+  couponAppliedCard: {
+    backgroundColor: "#ecfdf5",
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.success,
+    padding: Spacing.md,
+  },
+  couponAppliedRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  couponAppliedText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.success,
+  },
+  couponCodeText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  discountLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.success,
+  },
+  discountValue: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.success,
   },
 });

@@ -15,6 +15,7 @@ import {
 } from "@/src/store/slices/notifications.slice";
 import type { Notification, NotificationType } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,6 +54,15 @@ export default function NotificationsScreen() {
   useEffect(() => {
     dispatch(fetchNotifications());
   }, [dispatch]);
+
+  // Auto-mark all as read when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (items.length > 0) {
+        dispatch(markAllNotificationsRead());
+      }
+    }, [dispatch, items.length]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

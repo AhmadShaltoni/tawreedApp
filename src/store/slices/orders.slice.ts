@@ -1,5 +1,10 @@
 import { orderService } from "@/src/services/order.service";
-import type { CreateOrderPayload, Order, OrderDetail } from "@/src/types";
+import type {
+    CreateOrderPayload,
+    EditOrderPayload,
+    Order,
+    OrderDetail,
+} from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
@@ -9,6 +14,7 @@ interface OrdersState {
   loading: boolean;
   loadingDetail: boolean;
   creating: boolean;
+  updating: boolean;
   error: string | null;
 }
 
@@ -18,6 +24,7 @@ const initialState: OrdersState = {
   loading: false,
   loadingDetail: false,
   creating: false,
+  updating: false,
   error: null,
 };
 
@@ -48,6 +55,20 @@ export const createOrder = createAsyncThunk(
   async (payload: CreateOrderPayload, { rejectWithValue }) => {
     try {
       return await orderService.createOrder(payload);
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const updateOrder = createAsyncThunk(
+  "orders/update",
+  async (
+    { id, payload }: { id: string; payload: EditOrderPayload },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await orderService.updateOrder(id, payload);
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -110,7 +131,7 @@ const ordersSlice = createSlice({
             orderNumber: action.payload.orderNumber,
             status: action.payload.status,
             total: action.payload.total,
-            itemCount: action.payload.items.length,
+            itemCount: action.payload.items?.length ?? 0,
             createdAt: action.payload.createdAt,
           },
           ...state.items,
@@ -118,6 +139,29 @@ const ordersSlice = createSlice({
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.creating = false;
+        state.error = action.payload as string;
+      });
+
+    // Update order
+    builder
+      .addCase(updateOrder.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(updateOrder.fulfilled, (state, action) => {
+        state.updating = false;
+        state.selectedOrder = action.payload;
+        const idx = state.items.findIndex((o) => o.id === action.payload.id);
+        if (idx !== -1) {
+          state.items[idx] = {
+            ...state.items[idx],
+            status: action.payload.status,
+            total: action.payload.total,
+          };
+        }
+      })
+      .addCase(updateOrder.rejected, (state, action) => {
+        state.updating = false;
         state.error = action.payload as string;
       });
   },

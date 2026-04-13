@@ -103,20 +103,22 @@ export interface ProductFilters {
 }
 
 export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled";
+  | "PENDING"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED";
 
 export interface Order {
   id: string;
   orderNumber: string;
   status: OrderStatus;
-  total: number;
+  total?: number;
   itemCount: number;
   createdAt: string;
+  buyerNotes?: string;
+  statusHistory?: StatusHistoryEntry[];
+  items?: OrderItem[];
 }
 
 export interface OrderItem {
@@ -145,13 +147,19 @@ export interface OrderDetail extends Order {
 export interface StatusHistoryEntry {
   status: OrderStatus;
   timestamp: string;
-  note?: string;
+  note?: string | null;
 }
 
 export interface CreateOrderPayload {
-  shippingAddress: string;
-  city: string;
-  notes?: string;
+  deliveryAddress: string;
+  deliveryCity: string;
+  buyerNotes?: string;
+}
+
+export interface EditOrderPayload {
+  deliveryAddress?: string;
+  deliveryCity?: string;
+  buyerNotes?: string;
 }
 
 export interface CartItemAPI {
@@ -258,4 +266,40 @@ export interface Notice {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// Coupons / Discount Codes
+export interface CouponValidatePayload {
+  code: string;
+  orderTotal: number;
+}
+
+export interface CouponValidateSuccess {
+  valid: true;
+  discountPercent: number;
+  discountAmount: number;
+  finalTotal: number;
+  code: string;
+}
+
+export interface CouponValidateError {
+  valid: false;
+  error: string;
+  message: string;
+}
+
+export type CouponValidateResponse =
+  | CouponValidateSuccess
+  | CouponValidateError;
+
+export interface CouponConfirmPayload {
+  code: string;
+  orderId: string;
+  orderTotal: number;
+}
+
+export interface CouponConfirmResponse {
+  success: boolean;
+  discountAmount: number;
+  usageId: string;
 }
