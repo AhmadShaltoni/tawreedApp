@@ -140,7 +140,8 @@ class NotificationServiceClass {
           "[PushNotifications] Permission already granted by OS, marking as ready",
         );
         await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_READY, "true");
-        const attemptCount = await notificationPermissionTracker.getAttemptCount();
+        const attemptCount =
+          await notificationPermissionTracker.getAttemptCount();
         return {
           shouldShowModal: false,
           attemptCount,

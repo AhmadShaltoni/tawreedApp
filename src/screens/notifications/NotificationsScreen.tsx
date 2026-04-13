@@ -1,17 +1,17 @@
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-    fetchNotifications,
-    markAllNotificationsRead,
-    markNotificationRead,
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
 } from "@/src/store/slices/notifications.slice";
 import type { Notification, NotificationType } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,12 +20,12 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    FlatList,
-    Pressable,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const TYPE_CONFIG: Record<

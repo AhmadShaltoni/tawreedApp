@@ -1,9 +1,9 @@
 import { API_ENDPOINTS } from "@/src/constants/api";
 import type {
-  CouponConfirmPayload,
-  CouponConfirmResponse,
-  CouponValidatePayload,
-  CouponValidateResponse,
+    CouponConfirmPayload,
+    CouponConfirmResponse,
+    CouponValidatePayload,
+    CouponValidateResponse,
 } from "@/src/types";
 import apiClient from "./api";
 
