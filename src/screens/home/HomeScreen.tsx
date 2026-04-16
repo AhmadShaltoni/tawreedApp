@@ -292,7 +292,11 @@ export default function HomeScreen() {
               contentContainerStyle={styles.gridContent}
               scrollEnabled={false}
               renderItem={({ item }) => (
-                <ProductCard product={item} onPress={handleProductPress} grid={true} />
+                <ProductCard
+                  product={item}
+                  onPress={handleProductPress}
+                  grid={true}
+                />
               )}
             />
           </View>
@@ -301,7 +305,9 @@ export default function HomeScreen() {
               <Pressable
                 style={styles.viewMoreButton}
                 onPress={() =>
-                  setDisplayedFeaturedCount((prev) => Math.min(prev + 4, featured.length))
+                  setDisplayedFeaturedCount((prev) =>
+                    Math.min(prev + 4, featured.length),
+                  )
                 }
               >
                 <Text style={styles.viewMoreButtonText}>
@@ -316,24 +322,25 @@ export default function HomeScreen() {
               </Pressable>
             </View>
           )}
-          {displayedFeaturedCount === featured.length && featured.length > 4 && (
-            <View style={styles.gridButtonContainer}>
-              <Pressable
-                style={styles.viewAllButton}
-                onPress={() => router.push("/products")}
-              >
-                <Text style={styles.viewAllButtonText}>
-                  {t("common.viewAll")}
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={16}
-                  color={Colors.white}
-                  style={{ marginStart: 8 }}
-                />
-              </Pressable>
-            </View>
-          )}
+          {displayedFeaturedCount === featured.length &&
+            featured.length > 4 && (
+              <View style={styles.gridButtonContainer}>
+                <Pressable
+                  style={styles.viewAllButton}
+                  onPress={() => router.push("/products")}
+                >
+                  <Text style={styles.viewAllButtonText}>
+                    {t("common.viewAll")}
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={Colors.white}
+                    style={{ marginStart: 8 }}
+                  />
+                </Pressable>
+              </View>
+            )}
         </>
       ) : null}
 

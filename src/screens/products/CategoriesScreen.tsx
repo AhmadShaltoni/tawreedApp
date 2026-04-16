@@ -3,11 +3,10 @@ import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import SearchBar from "@/src/components/ui/SearchBar";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Spacing
 } from "@/src/constants/theme";
 import { categoryService } from "@/src/services/category.service";
 import type { BreadcrumbItem, Category } from "@/src/types";
@@ -16,14 +15,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FlatList,
-  I18nManager,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    FlatList,
+    I18nManager,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 const NUM_COLUMNS = 4;
@@ -31,7 +30,9 @@ const NUM_COLUMNS = 4;
 export default function CategoriesScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { parentId: initialParentId } = useLocalSearchParams<{ parentId?: string }>();
+  const { parentId: initialParentId } = useLocalSearchParams<{
+    parentId?: string;
+  }>();
   const isArabic = i18n.language === "ar";
 
   const [categories, setCategories] = useState<Category[]>([]);
