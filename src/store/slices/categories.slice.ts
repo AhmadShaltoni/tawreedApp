@@ -1,10 +1,14 @@
-import { categoryService } from "@/src/services/category.service";
+import {
+  categoryService,
+  type CategoriesResult,
+} from "@/src/services/category.service";
 import type { Category } from "@/src/types";
 import { getCached, setCache } from "@/src/utils/cache";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface CategoriesState {
+  /** Root-level categories only (used by HomeScreen & ProductsListScreen). */
   items: Category[];
   loading: boolean;
   error: string | null;
@@ -16,19 +20,24 @@ const initialState: CategoriesState = {
   error: null,
 };
 
+/**
+ * Fetch ROOT categories for filter chips & home screen.
+ * CategoriesScreen does NOT use this — it manages its own local state
+ * via categoryService directly to support hierarchical drill-down.
+ */
 export const fetchCategories = createAsyncThunk(
   "categories/fetch",
-  async (_, { rejectWithValue }) => {
+  async (_: undefined, { rejectWithValue }) => {
     try {
-      const cached = await getCached<Category[]>("categories");
-      if (cached) return cached;
+      const cached = await getCached<CategoriesResult>("categories_root");
+      if (cached) return cached.categories;
 
       const data = await categoryService.getCategories();
-      await setCache("categories", data);
-      return data;
+      await setCache("categories_root", data);
+      return data.categories;
     } catch (error: any) {
-      const cached = await getCached<Category[]>("categories");
-      if (cached) return cached;
+      const cached = await getCached<CategoriesResult>("categories_root");
+      if (cached) return cached.categories;
 
       return rejectWithValue(getErrorMessage(error));
     }

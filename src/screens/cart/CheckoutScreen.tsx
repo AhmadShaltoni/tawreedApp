@@ -31,7 +31,6 @@ import {
 } from "react-native";
 
 interface FormErrors {
-  address?: string;
   city?: string;
 }
 
@@ -43,6 +42,16 @@ export default function CheckoutScreen() {
   const { creating, error } = useAppSelector((state) => state.orders);
   const { user } = useAppSelector((state) => state.auth);
   const isArabic = i18n.language === "ar";
+
+  // Debug logging
+  useEffect(() => {
+    console.log("📱 CheckoutScreen mounted");
+    console.log("🛒 Cart items:", items);
+    console.log("👤 User:", user);
+    return () => {
+      console.log("📱 CheckoutScreen unmounted");
+    };
+  }, [items, user]);
 
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
@@ -64,9 +73,15 @@ export default function CheckoutScreen() {
   const areas = selectedCity?.areas ?? [];
   const selectedArea = areas.find((a) => a.id === selectedAreaId) ?? null;
 
-  const getCityName = (city: City) => (isArabic ? city.name : city.nameEn);
-  const getAreaName = (area: { name: string; nameEn: string }) =>
-    isArabic ? area.name : area.nameEn;
+  const getCityName = useCallback(
+    (city: City) => (isArabic ? city.name : city.nameEn),
+    [isArabic],
+  );
+  const getAreaName = useCallback(
+    (area: { name: string; nameEn: string }) =>
+      isArabic ? area.name : area.nameEn,
+    [isArabic],
+  );
 
   // Build display string for city field (city + area)
   const cityDisplayText = useMemo(() => {
@@ -74,7 +89,7 @@ export default function CheckoutScreen() {
     const name = getCityName(selectedCity);
     if (selectedArea) return `${name} - ${getAreaName(selectedArea)}`;
     return name;
-  }, [selectedCity, selectedArea, isArabic]);
+  }, [selectedCity, selectedArea, getCityName, getAreaName]);
 
   // Fetch cities
   useEffect(() => {
@@ -109,7 +124,10 @@ export default function CheckoutScreen() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
-      const price = item.product.discountPrice ?? item.product.price;
+      // Use selected unit price if available (for dozen/box/carton), otherwise use product price
+      const price = item.selectedUnit
+        ? item.selectedUnit.price
+        : (item.product.discountPrice ?? item.product.price);
       return sum + price * item.quantity;
     }, 0);
     return {
@@ -124,7 +142,7 @@ export default function CheckoutScreen() {
     : totals.subtotal;
 
   const handleApplyCoupon = useCallback(async () => {
-    const code = couponCode.trim().toUpperCase();
+    const code = couponCode.replace(/\s/g, "").toUpperCase();
     if (!code) return;
     Keyboard.dismiss();
     setCouponLoading(true);
@@ -139,10 +157,14 @@ export default function CheckoutScreen() {
         setAppliedCoupon(response);
         setCouponCode(response.code);
       } else {
-        setCouponError(response.message);
+        const errorKey = response.error || "UNKNOWN";
+        const translated = t(`checkout.couponError.${errorKey}`, {
+          defaultValue: "",
+        });
+        setCouponError(translated || response.message);
       }
     } catch {
-      setCouponError(t("common.error"));
+      setCouponError(t("checkout.couponError.UNKNOWN"));
     } finally {
       setCouponLoading(false);
     }
@@ -154,39 +176,62 @@ export default function CheckoutScreen() {
     setCouponError(null);
   }, []);
 
-  const validate = useCallback((): boolean => {
-    const errors: FormErrors = {};
-    if (!address.trim()) errors.address = t("checkout.addressRequired");
-    if (!selectedCityId) errors.city = t("checkout.cityRequired");
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [address, selectedCityId, t]);
-
   const handleConfirm = useCallback(async () => {
-    if (!validate()) return;
+    console.log("🔴 handleConfirm: Button pressed!");
+    console.log("📋 Current state:", {
+      address,
+      selectedCityId,
+      notes,
+      cityDisplayText,
+      itemsCount: items.length,
+    });
 
-    const result = await dispatch(
-      createOrder({
-        deliveryAddress: address.trim(),
-        deliveryCity: cityDisplayText,
-        buyerNotes: notes.trim() || undefined,
-      }),
-    );
+    // Validate form
+    const errors: FormErrors = {};
+    if (!selectedCityId) {
+      errors.city = t("checkout.cityRequired");
+      console.warn("❌ Validation error: City is not selected");
+    }
+
+    console.log("🔍 Validation errors object:", errors);
+    console.log("🔍 Errors count:", Object.keys(errors).length);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      console.log("⚠️ Form validation failed, showing errors to user");
+
+      // Show a user-friendly alert
+      const errorMessages = Object.values(errors).join("\n");
+      Alert.alert(t("common.error"), errorMessages);
+      return;
+    }
+
+    console.log("✅ Form validation passed");
+
+    const orderPayload = {
+      deliveryAddress: address.trim() || "No address provided",
+      deliveryCity: cityDisplayText,
+      buyerNotes: notes.trim() || undefined,
+      couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+    };
+
+    console.log("📤 Dispatching createOrder with payload:", orderPayload);
+    console.log("📤 Dispatch function exists:", !!dispatch);
+
+    const result = await dispatch(createOrder(orderPayload));
+
+    console.log("📥 handleConfirm: Order result received");
+    console.log("📥 Result type:", typeof result);
+    console.log("📥 Result keys:", Object.keys(result || {}));
+    console.log("📥 Result:", result);
 
     if (createOrder.fulfilled.match(result)) {
-      // Confirm coupon usage (fire-and-forget)
-      if (appliedCoupon) {
-        couponService
-          .confirmCoupon({
-            code: appliedCoupon.code,
-            orderId: result.payload.id,
-            orderTotal: totals.subtotal,
-          })
-          .catch(() => {});
-      }
+      console.log("✅ SUCCESS: Order created successfully!");
+      console.log("🎉 Order payload:", result.payload);
 
       // Save location to user profile
       if (selectedCityId) {
+        console.log("📍 Saving user location...");
         dispatch(
           updateUserLocation({
             cityId: selectedCityId,
@@ -195,23 +240,17 @@ export default function CheckoutScreen() {
         );
       }
 
+      console.log("🗑️ Clearing cart...");
       dispatch(clearCart());
-      Alert.alert(
-        "Order Placed!",
-        `Order #${result.payload.orderNumber} has been placed successfully.`,
-        [
-          {
-            text: "View Order",
-            onPress: () => router.replace(`/order/${result.payload.id}`),
-          },
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/orders"),
-          },
-        ],
-      );
+
+      console.log("🏠 Redirecting to Home");
+      router.replace("/(tabs)");
     } else if (createOrder.rejected.match(result)) {
+      console.error("❌ FAILED: Order creation rejected!");
+      console.error("❌ Error payload:", result.payload);
       Alert.alert(t("common.error"), result.payload as string);
+    } else {
+      console.warn("⚠️ Unknown result status");
     }
   }, [
     dispatch,
@@ -219,22 +258,34 @@ export default function CheckoutScreen() {
     address,
     cityDisplayText,
     notes,
-    validate,
     t,
     selectedCityId,
     selectedAreaId,
     appliedCoupon,
     totals.subtotal,
+    items.length,
   ]);
 
   return (
     <ScreenWrapper>
       <View style={styles.content}>
         {/* Order Summary */}
-        <Text style={styles.sectionTitle}>{t("checkout.orderSummary")}</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
+          <Text style={styles.sectionTitle}>{t("checkout.orderSummary")}</Text>
+        </View>
         <View style={styles.summaryCard}>
           {items.map((item) => {
-            const price = item.product.discountPrice ?? item.product.price;
+            // Use selected unit price if available (for dozen/box/carton), otherwise use product price
+            const price = item.selectedUnit
+              ? item.selectedUnit.price
+              : (item.product.discountPrice ?? item.product.price);
+            // Use selected unit label if available, otherwise use product unit
+            const unitLabel = item.selectedUnit
+              ? isArabic
+                ? item.selectedUnit.label
+                : item.selectedUnit.labelEn
+              : item.product.unit;
             return (
               <View key={item.cartItemId} style={styles.summaryItem}>
                 <View style={styles.summaryItemDetails}>
@@ -242,7 +293,7 @@ export default function CheckoutScreen() {
                     {item.product.name}
                   </Text>
                   <Text style={styles.summaryItemQty}>
-                    x{item.quantity} {item.product.unit}
+                    x{item.quantity} {unitLabel}
                   </Text>
                 </View>
                 <Text style={styles.summaryItemPrice}>
@@ -296,137 +347,174 @@ export default function CheckoutScreen() {
         </View>
 
         {/* Shipping Details */}
-        <Text style={styles.sectionTitle}>{t("checkout.shippingAddress")}</Text>
-
-        {/* City Selector */}
-        <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
-        <Pressable
-          style={[
-            styles.citySelector,
-            formErrors.city ? styles.citySelectorError : undefined,
-          ]}
-          onPress={() => {
-            setShowCityPicker(!showCityPicker);
-            setShowAreaPicker(false);
-          }}
-        >
-          <Text
-            style={[styles.cityText, !selectedCity && styles.cityPlaceholder]}
-          >
-            {selectedCity
-              ? getCityName(selectedCity)
-              : t("location.selectCity")}
+        <View style={styles.sectionHeader}>
+          <Ionicons name="location-outline" size={18} color={Colors.primary} />
+          <Text style={styles.sectionTitle}>
+            {t("checkout.shippingAddress")}
           </Text>
-          <Ionicons
-            name={showCityPicker ? "chevron-up" : "chevron-down"}
-            size={18}
-            color={Colors.textSecondary}
-          />
-        </Pressable>
-        {formErrors.city ? (
-          <Text style={styles.errorText}>{formErrors.city}</Text>
-        ) : null}
+        </View>
+        <View style={styles.shippingCard}>
+          {/* City Selector */}
+          <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
+          <Pressable
+            style={[
+              styles.citySelector,
+              formErrors.city ? styles.citySelectorError : undefined,
+            ]}
+            onPress={() => {
+              setShowCityPicker(!showCityPicker);
+              setShowAreaPicker(false);
+            }}
+          >
+            <Text
+              style={[styles.cityText, !selectedCity && styles.cityPlaceholder]}
+            >
+              {selectedCity
+                ? getCityName(selectedCity)
+                : t("location.selectCity")}
+            </Text>
+            <Ionicons
+              name={showCityPicker ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={Colors.textSecondary}
+            />
+          </Pressable>
+          {formErrors.city ? (
+            <Text style={styles.errorText}>{formErrors.city}</Text>
+          ) : null}
 
-        {showCityPicker ? (
-          <View style={styles.cityList}>
-            {cities.map((c) => (
-              <Text
-                key={c.id}
-                style={[
-                  styles.cityOption,
-                  selectedCityId === c.id && styles.cityOptionActive,
-                ]}
+          {showCityPicker ? (
+            <View style={styles.dropdownList}>
+              {cities.map((c, index) => (
+                <Pressable
+                  key={c.id}
+                  style={[
+                    styles.dropdownItem,
+                    selectedCityId === c.id && styles.dropdownItemActive,
+                    index === cities.length - 1 && styles.dropdownItemLast,
+                  ]}
+                  onPress={() => {
+                    setSelectedCityId(c.id);
+                    setSelectedAreaId(null);
+                    setShowCityPicker(false);
+                    if (formErrors.city)
+                      setFormErrors((prev) => ({ ...prev, city: undefined }));
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownItemText,
+                      selectedCityId === c.id && styles.dropdownItemTextActive,
+                    ]}
+                  >
+                    {getCityName(c)}
+                  </Text>
+                  {selectedCityId === c.id ? (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={Colors.primary}
+                    />
+                  ) : null}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {/* Area Selector — only if city is selected and has areas */}
+          {selectedCity && areas.length > 0 ? (
+            <>
+              {/* <Text style={styles.fieldLabel}>{t("location.selectArea")}</Text> */}
+              <Pressable
+                style={styles.citySelector}
                 onPress={() => {
-                  setSelectedCityId(c.id);
-                  setSelectedAreaId(null);
+                  setShowAreaPicker(!showAreaPicker);
                   setShowCityPicker(false);
-                  if (formErrors.city)
-                    setFormErrors((prev) => ({ ...prev, city: undefined }));
                 }}
               >
-                {getCityName(c)}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+                <Text
+                  style={[
+                    styles.cityText,
+                    !selectedArea && styles.cityPlaceholder,
+                  ]}
+                >
+                  {selectedArea
+                    ? getAreaName(selectedArea)
+                    : t("location.selectArea")}
+                </Text>
+                <Ionicons
+                  name={showAreaPicker ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={Colors.textSecondary}
+                />
+              </Pressable>
 
-        {/* Area Selector — only if city is selected and has areas */}
-        {selectedCity && areas.length > 0 ? (
-          <>
-            <Text style={styles.fieldLabel}>{t("location.selectArea")}</Text>
-            <Pressable
-              style={styles.citySelector}
-              onPress={() => {
-                setShowAreaPicker(!showAreaPicker);
-                setShowCityPicker(false);
-              }}
-            >
-              <Text
-                style={[
-                  styles.cityText,
-                  !selectedArea && styles.cityPlaceholder,
-                ]}
-              >
-                {selectedArea
-                  ? getAreaName(selectedArea)
-                  : t("location.selectArea")}
-              </Text>
-              <Ionicons
-                name={showAreaPicker ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={Colors.textSecondary}
-              />
-            </Pressable>
-
-            {showAreaPicker ? (
-              <View style={styles.cityList}>
-                {areas.map((a) => (
-                  <Text
-                    key={a.id}
-                    style={[
-                      styles.cityOption,
-                      selectedAreaId === a.id && styles.cityOptionActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedAreaId(a.id);
-                      setShowAreaPicker(false);
-                    }}
-                  >
-                    {getAreaName(a)}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-          </>
-        ) : null}
-        <Input
-          label={t("checkout.shippingAddress")}
-          placeholder={t("checkout.addressPlaceholder")}
-          value={address}
-          onChangeText={(text) => {
-            setAddress(text);
-            if (formErrors.address)
-              setFormErrors((prev) => ({ ...prev, address: undefined }));
-          }}
-          // error={formErrors.address}
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
-          style={styles.addressInput}
-        />
-        <Input
-          label={t("checkout.notes")}
-          placeholder={t("checkout.notesPlaceholder")}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={2}
-          textAlignVertical="top"
-          style={styles.notesInput}
-        />
+              {showAreaPicker ? (
+                <View style={styles.dropdownList}>
+                  {areas.map((a, index) => (
+                    <Pressable
+                      key={a.id}
+                      style={[
+                        styles.dropdownItem,
+                        selectedAreaId === a.id && styles.dropdownItemActive,
+                        index === areas.length - 1 && styles.dropdownItemLast,
+                      ]}
+                      onPress={() => {
+                        setSelectedAreaId(a.id);
+                        setShowAreaPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownItemText,
+                          selectedAreaId === a.id &&
+                            styles.dropdownItemTextActive,
+                        ]}
+                      >
+                        {getAreaName(a)}
+                      </Text>
+                      {selectedAreaId === a.id ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={Colors.primary}
+                        />
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          ) : null}
+          <Input
+            label=""
+            placeholder={t("checkout.addressPlaceholder")}
+            value={address}
+            onChangeText={(text) => {
+              setAddress(text);
+            }}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            style={styles.addressInput}
+          />
+          <Input
+            label=""
+            placeholder={t("checkout.notesPlaceholder")}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={2}
+            textAlignVertical="top"
+            style={styles.notesInput}
+          />
+        </View>
 
         {/* Discount Code */}
-        <Text style={styles.sectionTitle}>{t("checkout.discountCode")}</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="pricetag-outline" size={18} color={Colors.primary} />
+          <Text style={styles.sectionTitle}>{t("checkout.discountCode")}</Text>
+        </View>
         {appliedCoupon ? (
           <View style={styles.couponAppliedCard}>
             <View style={styles.couponAppliedRow}>
@@ -503,12 +591,17 @@ const styles = StyleSheet.create({
   content: {
     paddingVertical: Spacing.xl,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xl,
+  },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: "700",
     color: Colors.text,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.lg,
   },
   summaryCard: {
     backgroundColor: Colors.surface,
@@ -562,6 +655,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
+  shippingCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    ...Shadows.sm,
+  },
   addressInput: {
     minHeight: 70,
   },
@@ -587,24 +686,35 @@ const styles = StyleSheet.create({
   cityPlaceholder: {
     color: Colors.textLight,
   },
-  cityList: {
+  dropdownList: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    maxHeight: 200,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     overflow: "hidden",
-    ...Shadows.md,
   },
-  cityOption: {
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    fontSize: FontSize.sm,
-    color: Colors.text,
+    paddingVertical: Spacing.md + 2,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  cityOptionActive: {
+  dropdownItemActive: {
     backgroundColor: Colors.primaryXLight,
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownItemText: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  dropdownItemTextActive: {
     color: Colors.primary,
     fontWeight: "700",
   },

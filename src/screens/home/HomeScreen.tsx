@@ -15,7 +15,7 @@ import { fetchCategories } from "@/src/store/slices/categories.slice";
 import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
 import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
-import type { Category, Order, Product } from "@/src/types";
+import type { Category, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -56,7 +56,7 @@ export default function HomeScreen() {
     (state) => state.notifications.unreadCount,
   );
   const [refreshing, setRefreshing] = useState(false);
-  const [recentOrders] = useState<Order[]>([]);
+  const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
 
   // Quick action buttons for the home screen
   const QUICK_ACTIONS = [
@@ -94,7 +94,7 @@ export default function HomeScreen() {
     (force = false) => {
       dispatch(fetchNotices());
       dispatch(fetchFeaturedProducts({ force }));
-      dispatch(fetchCategories());
+      dispatch(fetchCategories(undefined));
       if (isAuthenticated) {
         dispatch(fetchNotifications());
       }
@@ -113,7 +113,7 @@ export default function HomeScreen() {
     await Promise.all([
       dispatch(fetchNotices()),
       dispatch(fetchFeaturedProducts({ force: true })),
-      dispatch(fetchCategories()),
+      dispatch(fetchCategories(undefined)),
     ]);
     setRefreshing(false);
   }, [dispatch]);
@@ -127,7 +127,11 @@ export default function HomeScreen() {
 
   const handleCategoryPress = useCallback(
     (category: Category) => {
-      router.push(`/products?categoryId=${category.id}`);
+      if (category.hasChildren) {
+        router.push(`/categories?parentId=${category.id}`);
+      } else {
+        router.push(`/products?categoryId=${category.id}`);
+      }
     },
     [router],
   );
@@ -165,7 +169,7 @@ export default function HomeScreen() {
         <View style={{ flex: 1 }}>
           {isAuthenticated && (
             <Text style={styles.greeting}>
-              {t("home.welcomeBack")} {user?.storeName ?? user?.username}
+              {t("home.welcomeBack")} {user?.username ?? user?.storeName}
             </Text>
           )}
           <Text style={styles.storeName}>
@@ -271,7 +275,7 @@ export default function HomeScreen() {
         </>
       ) : null}
 
-      {/* Featured Products */}
+      {/* Featured Products - 2 Column Grid */}
       {featured.length > 0 ? (
         <>
           <SectionHeader
@@ -279,52 +283,59 @@ export default function HomeScreen() {
             actionLabel={t("common.viewAll")}
             onAction={() => router.push("/products")}
           />
-          <FlatList
-            data={featured}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => (
-              <ProductCard product={item} onPress={handleProductPress} />
-            )}
-          />
+          <View style={styles.gridContainer}>
+            <FlatList
+              data={featured.slice(0, displayedFeaturedCount)}
+              numColumns={2}
+              columnWrapperStyle={styles.gridRow}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.gridContent}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <ProductCard product={item} onPress={handleProductPress} grid={true} />
+              )}
+            />
+          </View>
+          {displayedFeaturedCount < featured.length && (
+            <View style={styles.gridButtonContainer}>
+              <Pressable
+                style={styles.viewMoreButton}
+                onPress={() =>
+                  setDisplayedFeaturedCount((prev) => Math.min(prev + 4, featured.length))
+                }
+              >
+                <Text style={styles.viewMoreButtonText}>
+                  {t("common.viewMore")}
+                </Text>
+                <Ionicons
+                  name="arrow-down"
+                  size={16}
+                  color={Colors.primary}
+                  style={{ marginStart: 8 }}
+                />
+              </Pressable>
+            </View>
+          )}
+          {displayedFeaturedCount === featured.length && featured.length > 4 && (
+            <View style={styles.gridButtonContainer}>
+              <Pressable
+                style={styles.viewAllButton}
+                onPress={() => router.push("/products")}
+              >
+                <Text style={styles.viewAllButtonText}>
+                  {t("common.viewAll")}
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={16}
+                  color={Colors.white}
+                  style={{ marginStart: 8 }}
+                />
+              </Pressable>
+            </View>
+          )}
         </>
       ) : null}
-
-      {/* Recent Orders */}
-      <SectionHeader
-        title={t("home.recentOrders")}
-        actionLabel={t("home.allOrders")}
-        onAction={() => router.push("/(tabs)/orders")}
-      />
-      {recentOrders.length > 0 ? (
-        recentOrders.map((order) => (
-          <View key={order.id} style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-              <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  order.status === "DELIVERED" && styles.statusDelivered,
-                  order.status === "CANCELLED" && styles.statusCancelled,
-                ]}
-              >
-                <Text style={styles.statusText}>{order.status}</Text>
-              </View>
-            </View>
-            <Text style={styles.orderInfo}>
-              {order.itemCount} items · {(order.total ?? 0).toFixed(2)}{" "}
-              {t("common.currency")}
-            </Text>
-          </View>
-        ))
-      ) : (
-        <View style={styles.emptyOrders}>
-          <Ionicons name="receipt-outline" size={28} color={Colors.textLight} />
-          <Text style={styles.emptyText}>{t("home.noRecentOrders")}</Text>
-        </View>
-      )}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -517,61 +528,53 @@ const styles = StyleSheet.create({
   horizontalList: {
     paddingHorizontal: Spacing.xxl,
   },
-  /* Orders */
-  orderCard: {
-    marginHorizontal: Spacing.xxl,
+  /* Grid Layout */
+  gridContainer: {
+    paddingHorizontal: Spacing.lg,
+  },
+  gridContent: {
+    paddingBottom: Spacing.sm,
+  },
+  gridRow: {
+    gap: Spacing.md,
     marginBottom: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    ...Shadows.sm,
   },
-  orderHeader: {
+  gridButtonContainer: {
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.lg,
+    alignItems: "center",
+  },
+  viewMoreButton: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.xs,
-  },
-  orderNumber: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#fef3c7",
-  },
-  statusDelivered: {
-    backgroundColor: "#dcfce7",
-  },
-  statusCancelled: {
-    backgroundColor: "#fee2e2",
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "capitalize",
-    color: Colors.text,
-  },
-  orderInfo: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-  },
-  emptyOrders: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxxl,
-    marginHorizontal: Spacing.xxl,
-    backgroundColor: Colors.surface,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
-    ...Shadows.sm,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.white,
   },
-  emptyText: {
+  viewMoreButtonText: {
     fontSize: FontSize.sm,
-    color: Colors.textLight,
-    marginTop: Spacing.sm,
+    fontWeight: "700",
+    color: Colors.primary,
   },
+  viewAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+  },
+  viewAllButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.white,
+  },
+  /* Orders */
   bottomSpacer: {
     height: Spacing.xxxl,
   },

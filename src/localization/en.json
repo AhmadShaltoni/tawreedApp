@@ -14,6 +14,7 @@
     "noResults": "No results",
     "seeAll": "See All",
     "viewAll": "View All",
+    "viewMore": "View More",
     "currency": "JOD",
     "items": "items",
     "item": "item"
@@ -65,6 +66,7 @@
     "search": "Search products...",
     "noProducts": "No products",
     "noProductsMessage": "No products available at the moment",
+    "showAllDescendants": "Show all products",
     "minOrder": "Min Order",
     "min": "Min",
     "left": "left",
@@ -96,9 +98,12 @@
   "categories": {
     "title": "Categories",
     "all": "All Categories",
+    "root": "Home",
     "noCategories": "No categories",
     "noCategoriesMessage": "No categories available at the moment",
-    "productCount": "{{count}} products"
+    "productCount": "{{count}} products",
+    "viewProducts": "View Products ({{count}})",
+    "viewAllProducts": "View All Products (with subcategories)"
   },
   "cart": {
     "title": "Cart",
@@ -133,12 +138,22 @@
     "discountCodePlaceholder": "Enter discount code",
     "apply": "Apply",
     "couponApplied": "✓ Code applied",
+    "couponError": {
+      "CODE_NOT_FOUND": "Discount code not found, please check and try again",
+      "CODE_INACTIVE": "This discount code is currently inactive",
+      "CODE_NOT_STARTED": "This discount code is not active yet",
+      "CODE_EXPIRED": "This discount code has expired",
+      "CODE_USAGE_LIMIT_REACHED": "This discount code has reached its usage limit",
+      "CODE_ALREADY_USED": "You have already used this discount code",
+      "ORDER_BELOW_MINIMUM": "Order total is below the minimum required amount",
+      "UNKNOWN": "An error occurred while validating the code"
+    },
     "discount": "Discount",
     "subtotal": "Subtotal",
     "totalAfterDiscount": "Total after discount"
   },
   "orders": {
-    "title": "Orders",
+    "title": "Order History",
     "noOrders": "No orders yet",
     "noOrdersMessage": "Your orders will appear here once you place them",
     "browseProducts": "Browse Products",
@@ -161,7 +176,10 @@
     "cannotEdit": "Cannot Edit Order",
     "cannotEditMessage": "You cannot edit this order because its status is ({{status}}). Only pending orders can be modified.",
     "buyerNotes": "Buyer Notes",
-    "placedOn": "Placed on"
+    "placedOn": "Placed on",
+    "pricingSummary": "Pricing Summary",
+    "fees": "Additional Fees",
+    "viewDetails": "View Details"
   },
   "notifications": {
     "title": "Notifications",

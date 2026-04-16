@@ -4,8 +4,8 @@ const getDefaultApiUrl = () => {
   // Web (browser) runs on the same machine as the backend → use localhost
   if (Platform.OS === "web") return "http://localhost:3000";
   // Mobile device accesses backend over LAN IP
-  return "http://192.168.20.149:3000";
-  // return "http://192.168.100.15:3000";
+  // return "http://192.168.20.149:3000";
+  return "http://192.168.100.15:3000";
 };
 
 export const API_BASE_URL =

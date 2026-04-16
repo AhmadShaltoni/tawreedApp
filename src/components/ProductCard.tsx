@@ -266,7 +266,8 @@ const styles = StyleSheet.create({
     width: 155,
   },
   cardGrid: {
-    width: "100%",
+    flex: 1,
+    width: undefined,
     marginRight: 0,
   },
   imageContainer: {

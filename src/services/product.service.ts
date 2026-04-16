@@ -66,6 +66,7 @@ export const productService = {
     const params: Record<string, string | number | boolean> = {};
     if (filters?.search) params.search = filters.search;
     if (filters?.categoryId) params.categoryId = filters.categoryId;
+    if (filters?.includeDescendants) params.includeDescendants = true;
     if (filters?.minPrice !== undefined) params.minPrice = filters.minPrice;
     if (filters?.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
     if (filters?.featured !== undefined) params.featured = filters.featured;

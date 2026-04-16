@@ -1,5 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
-import type { Category } from "@/src/types";
+import type { BreadcrumbItem, Category } from "@/src/types";
 import apiClient from "./api";
 
 interface CategoryImageData {
@@ -12,14 +12,21 @@ interface ApiCategory {
   name: string;
   nameEn?: string;
   slug: string;
+  parentId?: string | null;
+  depth?: number;
+  hasChildren?: boolean;
+  childrenCount?: number;
+  productsCount?: number;
   image?: CategoryImageData | null;
   sortOrder: number;
   isActive: boolean;
   _count?: { products: number };
+  children?: ApiCategory[];
 }
 
 interface ApiCategoriesResponse {
   categories: ApiCategory[];
+  breadcrumb?: BreadcrumbItem[];
 }
 
 function mapCategory(raw: ApiCategory): Category {
@@ -37,17 +44,38 @@ function mapCategory(raw: ApiCategory): Category {
   return {
     id: raw.id,
     name: raw.name,
+    nameEn: raw.nameEn,
     nameAr: raw.name,
+    slug: raw.slug || "",
+    parentId: raw.parentId ?? null,
+    depth: raw.depth ?? 0,
+    hasChildren: raw.hasChildren ?? false,
+    childrenCount: raw.childrenCount ?? 0,
+    productsCount: raw.productsCount ?? raw._count?.products ?? 0,
     image,
-    productCount: raw._count?.products,
+    productCount: raw.productsCount ?? raw._count?.products,
+    children: raw.children?.map(mapCategory),
   };
 }
 
+export interface CategoriesResult {
+  categories: Category[];
+  breadcrumb: BreadcrumbItem[];
+}
+
 export const categoryService = {
-  getCategories: async (): Promise<Category[]> => {
+  /** Fetch categories. Pass parentId to get children of a specific category. */
+  getCategories: async (parentId?: string): Promise<CategoriesResult> => {
+    const params: Record<string, string> = {};
+    if (parentId) params.parentId = parentId;
+
     const { data } = await apiClient.get<ApiCategoriesResponse>(
       API_ENDPOINTS.CATEGORIES.LIST,
+      { params },
     );
-    return data.categories.map(mapCategory);
+    return {
+      categories: data.categories.map(mapCategory),
+      breadcrumb: data.breadcrumb ?? [],
+    };
   },
 };

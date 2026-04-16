@@ -79,9 +79,30 @@ export interface CategoryImage {
 export interface Category {
   id: string;
   name: string;
+  nameEn?: string;
   nameAr?: string;
+  slug: string;
+  parentId: string | null;
+  depth: number;
+  hasChildren: boolean;
+  childrenCount: number;
+  productsCount: number;
   image?: CategoryImage;
+  children?: Category[];
+  /** @deprecated Use productsCount instead */
   productCount?: number;
+}
+
+export interface BreadcrumbItem {
+  id: string;
+  name: string;
+  nameEn?: string;
+  slug: string;
+  image?: CategoryImage | null;
+  depth?: number;
+  hasChildren?: boolean;
+  childrenCount?: number;
+  productsCount?: number;
 }
 
 export interface ProductsResponse {
@@ -94,6 +115,7 @@ export interface ProductsResponse {
 export interface ProductFilters {
   search?: string;
   categoryId?: string;
+  includeDescendants?: boolean;
   minPrice?: number;
   maxPrice?: number;
   featured?: boolean;
@@ -104,6 +126,7 @@ export interface ProductFilters {
 
 export type OrderStatus =
   | "PENDING"
+  | "CONFIRMED"
   | "PROCESSING"
   | "SHIPPED"
   | "DELIVERED"
@@ -154,6 +177,7 @@ export interface CreateOrderPayload {
   deliveryAddress: string;
   deliveryCity: string;
   buyerNotes?: string;
+  couponCode?: string;
 }
 
 export interface EditOrderPayload {

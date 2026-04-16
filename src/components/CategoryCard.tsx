@@ -1,8 +1,9 @@
 import { Colors, FontSize, Shadows, Spacing } from "@/src/constants/theme";
 import type { Category } from "@/src/types";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { I18nManager, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -48,12 +49,27 @@ function CategoryCard({ category, onPress }: CategoryCardProps) {
         />
         {/* Gradient overlay for readability */}
         <View style={styles.overlay} />
+        {/* Products count badge */}
+        {category.productsCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{category.productsCount}</Text>
+          </View>
+        )}
       </View>
       <Text style={styles.name} numberOfLines={1}>
         {category.name}
       </Text>
-      {category.productCount != null ? (
-        <Text style={styles.count}>{category.productCount} products</Text>
+      {category.hasChildren ? (
+        <View style={styles.childrenRow}>
+          <Ionicons
+            name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"}
+            size={10}
+            color={Colors.primary}
+          />
+          <Text style={styles.childrenCount}>{category.childrenCount}</Text>
+        </View>
+      ) : category.productsCount > 0 ? (
+        <Text style={styles.count}>{category.productsCount}</Text>
       ) : null}
     </AnimatedPressable>
   );
@@ -84,11 +100,39 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(30, 58, 138, 0.08)",
   },
+  badge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.secondary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: Colors.white,
+  },
   name: {
     fontSize: FontSize.xs,
     fontWeight: "600",
     color: Colors.text,
     textAlign: "center",
+  },
+  childrenRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    marginTop: 2,
+  },
+  childrenCount: {
+    fontSize: 10,
+    color: Colors.primary,
+    fontWeight: "600",
   },
   count: {
     fontSize: 10,

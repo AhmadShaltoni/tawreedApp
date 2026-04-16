@@ -53,10 +53,16 @@ export const fetchOrderDetail = createAsyncThunk(
 export const createOrder = createAsyncThunk(
   "orders/create",
   async (payload: CreateOrderPayload, { rejectWithValue }) => {
+    console.log("🔵 Redux: createOrder thunk started with payload:", payload);
     try {
-      return await orderService.createOrder(payload);
+      const result = await orderService.createOrder(payload);
+      console.log("🟢 Redux: orderService.createOrder returned:", result);
+      return result;
     } catch (error: any) {
-      return rejectWithValue(getErrorMessage(error));
+      console.error("🔴 Redux: createOrder error:", error);
+      const errorMessage = getErrorMessage(error);
+      console.error("🔴 Redux: Error message:", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   },
 );
@@ -120,10 +126,12 @@ const ordersSlice = createSlice({
     // Create order
     builder
       .addCase(createOrder.pending, (state) => {
+        console.log("🟡 Redux: createOrder.pending");
         state.creating = true;
         state.error = null;
       })
       .addCase(createOrder.fulfilled, (state, action) => {
+        console.log("🟢 Redux: createOrder.fulfilled");
         state.creating = false;
         state.items = [
           {
@@ -133,11 +141,16 @@ const ordersSlice = createSlice({
             total: action.payload.total,
             itemCount: action.payload.items?.length ?? 0,
             createdAt: action.payload.createdAt,
+            items: action.payload.items,
           },
           ...state.items,
         ];
       })
       .addCase(createOrder.rejected, (state, action) => {
+        console.log(
+          "🔴 Redux: createOrder.rejected with error:",
+          action.payload,
+        );
         state.creating = false;
         state.error = action.payload as string;
       });

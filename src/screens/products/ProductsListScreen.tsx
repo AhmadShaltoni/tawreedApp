@@ -17,6 +17,7 @@ import {
   setFilters,
 } from "@/src/store/slices/products.slice";
 import type { Product } from "@/src/types";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -37,7 +39,10 @@ export default function ProductsListScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const params = useLocalSearchParams<{ categoryId?: string }>();
+  const params = useLocalSearchParams<{
+    categoryId?: string;
+    includeDescendants?: string;
+  }>();
 
   const { items, loading, loadingMore, total, page, filters } = useAppSelector(
     (state) => state.products,
@@ -48,11 +53,21 @@ export default function ProductsListScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     params.categoryId ?? null,
   );
+  const [includeDescendants, setIncludeDescendants] = useState(
+    params.includeDescendants === "true",
+  );
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load initial data
+  // Find the selected category object to check hasChildren
+  const selectedCategoryObj = useMemo(
+    () => categories.find((c) => c.id === selectedCategory),
+    [categories, selectedCategory],
+  );
+  const showDescendantsToggle = selectedCategoryObj?.hasChildren === true;
+
+  // Load initial data — root categories for filter chips
   useEffect(() => {
-    dispatch(fetchCategories());
+    dispatch(fetchCategories(undefined));
   }, [dispatch]);
 
   useEffect(() => {
@@ -61,10 +76,11 @@ export default function ProductsListScreen() {
         ...filters,
         search: search || undefined,
         categoryId: selectedCategory ?? undefined,
+        includeDescendants: selectedCategory && includeDescendants ? true : undefined,
         page: 1,
       }),
     );
-  }, [dispatch, search, selectedCategory]);
+  }, [dispatch, search, selectedCategory, includeDescendants]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -73,11 +89,12 @@ export default function ProductsListScreen() {
         ...filters,
         search: search || undefined,
         categoryId: selectedCategory ?? undefined,
+        includeDescendants: selectedCategory && includeDescendants ? true : undefined,
         page: 1,
       }),
     );
     setRefreshing(false);
-  }, [dispatch, filters, search, selectedCategory]);
+  }, [dispatch, filters, search, selectedCategory, includeDescendants]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || items.length >= total) return;
@@ -86,6 +103,7 @@ export default function ProductsListScreen() {
         ...filters,
         search: search || undefined,
         categoryId: selectedCategory ?? undefined,
+        includeDescendants: selectedCategory && includeDescendants ? true : undefined,
         page: page + 1,
       }),
     );
@@ -94,6 +112,7 @@ export default function ProductsListScreen() {
     filters,
     search,
     selectedCategory,
+    includeDescendants,
     page,
     loadingMore,
     items.length,
@@ -113,6 +132,7 @@ export default function ProductsListScreen() {
 
   const handleCategoryFilter = useCallback((categoryId: string | null) => {
     setSelectedCategory(categoryId);
+    setIncludeDescendants(false);
   }, []);
 
   const renderProduct = useCallback(
@@ -157,7 +177,7 @@ export default function ProductsListScreen() {
                   !selectedCategory && styles.categoryChipTextActive,
                 ]}
               >
-                All
+                {t("categories.all")}
               </Text>
             </Pressable>
             {categories.map((cat) => (
@@ -183,6 +203,22 @@ export default function ProductsListScreen() {
           </ScrollView>
         ) : null}
 
+        {/* Include descendants toggle */}
+        {showDescendantsToggle ? (
+          <View style={styles.descendantsRow}>
+            <Ionicons name="layers-outline" size={16} color={Colors.primary} />
+            <Text style={styles.descendantsLabel}>
+              {t("products.showAllDescendants")}
+            </Text>
+            <Switch
+              value={includeDescendants}
+              onValueChange={setIncludeDescendants}
+              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
+              thumbColor={includeDescendants ? Colors.primary : Colors.textLight}
+            />
+          </View>
+        ) : null}
+
         {/* Results count */}
         <View style={styles.resultsRow}>
           <Text style={styles.resultsCount}>
@@ -195,6 +231,8 @@ export default function ProductsListScreen() {
       search,
       categories,
       selectedCategory,
+      showDescendantsToggle,
+      includeDescendants,
       total,
       handleSearchSubmit,
       handleCategoryFilter,
@@ -295,6 +333,19 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
+  },
+  descendantsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.xxl,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  descendantsLabel: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    color: Colors.text,
+    fontWeight: "500",
   },
   listContent: {
     paddingBottom: Spacing.xxxl,

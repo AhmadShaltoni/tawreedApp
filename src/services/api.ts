@@ -17,14 +17,33 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log("📤 HTTP Request:", {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      hasToken: !!token,
+      data: config.data,
+    });
     return config;
   },
   (error) => Promise.reject(error),
 );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("📥 HTTP Response:", {
+      status: response.status,
+      url: response.config.url,
+      data: response.data,
+    });
+    return response;
+  },
   (error) => {
+    console.error("📥 HTTP Error:", {
+      status: error.response?.status,
+      url: error.response?.config?.url,
+      data: error.response?.data,
+      message: error.message,
+    });
     if (error.response?.status === 401) {
       removeToken();
     }
