@@ -61,7 +61,32 @@ const mockProduct = {
   stock: 100,
   featured: false,
   createdAt: "2026-01-01",
+  isActive: true,
+  variants: [],
 };
+
+/** Helper to create a mock cart API item with required variant fields */
+function mockCartApiItem(overrides: Record<string, any> = {}) {
+  const product = overrides.product ?? mockProduct;
+  return {
+    id: overrides.id ?? "cart-1",
+    variantId: overrides.variantId ?? "var-default",
+    variant: overrides.variant ?? {
+      id: "var-default",
+      size: "",
+      sizeEn: null,
+      stock: product.stock ?? 100,
+      minOrderQuantity: product.minOrder ?? 1,
+      isDefault: true,
+      product,
+      units: [],
+    },
+    productUnitId: overrides.productUnitId ?? null,
+    productUnit: overrides.productUnit ?? null,
+    product,
+    quantity: overrides.quantity ?? 1,
+  } as any;
+}
 
 const mockUnit = {
   id: "unit-1",
@@ -104,12 +129,7 @@ describe("Cart Slice", () => {
   describe("Fetch Cart", () => {
     it("should fetch cart items from API", async () => {
       const apiItems = [
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 3,
-        },
+        mockCartApiItem({ id: "cart-1", quantity: 3 }),
       ];
       mockCartService.getCart.mockResolvedValueOnce(apiItems);
 
@@ -138,12 +158,9 @@ describe("Cart Slice", () => {
   // ─── Add to Cart ───
   describe("Add to Cart", () => {
     it("should add a new product to cart", async () => {
-      mockCartService.addToCart.mockResolvedValueOnce({
-        id: "cart-1",
-        productId: "prod-1",
-        product: mockProduct,
-        quantity: 2,
-      });
+      mockCartService.addToCart.mockResolvedValueOnce(
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
+      );
 
       await store.dispatch(
         addToCartAsync({ product: mockProduct, quantity: 2 }),
@@ -155,14 +172,14 @@ describe("Cart Slice", () => {
     });
 
     it("should add product with selected unit", async () => {
-      mockCartService.addToCart.mockResolvedValueOnce({
-        id: "cart-2",
-        productId: "prod-1",
-        productUnitId: "unit-1",
-        product: mockProduct,
-        productUnit: mockUnit,
-        quantity: 1,
-      });
+      mockCartService.addToCart.mockResolvedValueOnce(
+        mockCartApiItem({
+          id: "cart-2",
+          productUnitId: "unit-1",
+          productUnit: mockUnit,
+          quantity: 1,
+        }),
+      );
 
       await store.dispatch(
         addToCartAsync({
@@ -179,23 +196,17 @@ describe("Cart Slice", () => {
 
     it("should update existing item quantity if already in cart", async () => {
       // Add first item
-      mockCartService.addToCart.mockResolvedValueOnce({
-        id: "cart-1",
-        productId: "prod-1",
-        product: mockProduct,
-        quantity: 2,
-      });
+      mockCartService.addToCart.mockResolvedValueOnce(
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
+      );
       await store.dispatch(
         addToCartAsync({ product: mockProduct, quantity: 2 }),
       );
 
       // Add same item again - API returns updated quantity
-      mockCartService.addToCart.mockResolvedValueOnce({
-        id: "cart-1",
-        productId: "prod-1",
-        product: mockProduct,
-        quantity: 5,
-      });
+      mockCartService.addToCart.mockResolvedValueOnce(
+        mockCartApiItem({ id: "cart-1", quantity: 5 }),
+      );
       await store.dispatch(
         addToCartAsync({ product: mockProduct, quantity: 3 }),
       );
@@ -222,21 +233,13 @@ describe("Cart Slice", () => {
     it("should update item quantity", async () => {
       // Seed cart
       mockCartService.getCart.mockResolvedValueOnce([
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 2,
-        },
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
       ]);
       await store.dispatch(fetchCart());
 
-      mockCartService.updateCartItem.mockResolvedValueOnce({
-        id: "cart-1",
-        productId: "prod-1",
-        product: mockProduct,
-        quantity: 5,
-      });
+      mockCartService.updateCartItem.mockResolvedValueOnce(
+        mockCartApiItem({ id: "cart-1", quantity: 5 }),
+      );
 
       await store.dispatch(
         updateCartItemAsync({ cartItemId: "cart-1", quantity: 5 }),
@@ -248,12 +251,7 @@ describe("Cart Slice", () => {
 
     it("should track updating state per item", async () => {
       mockCartService.getCart.mockResolvedValueOnce([
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 2,
-        },
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
       ]);
       await store.dispatch(fetchCart());
 
@@ -269,12 +267,7 @@ describe("Cart Slice", () => {
 
       expect(store.getState().cart.updating["cart-1"]).toBe(true);
 
-      resolveUpdate!({
-        id: "cart-1",
-        productId: "prod-1",
-        product: mockProduct,
-        quantity: 5,
-      });
+      resolveUpdate!(mockCartApiItem({ id: "cart-1", quantity: 5 }));
       await promise;
 
       expect(store.getState().cart.updating["cart-1"]).toBeUndefined();
@@ -285,18 +278,13 @@ describe("Cart Slice", () => {
   describe("Remove from Cart", () => {
     it("should remove item via API", async () => {
       mockCartService.getCart.mockResolvedValueOnce([
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 2,
-        },
-        {
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
+        mockCartApiItem({
           id: "cart-2",
-          productId: "prod-2",
+          variantId: "var-2",
           product: { ...mockProduct, id: "prod-2" },
           quantity: 1,
-        },
+        }),
       ]);
       await store.dispatch(fetchCart());
       expect(store.getState().cart.items).toHaveLength(2);
@@ -314,12 +302,7 @@ describe("Cart Slice", () => {
   describe("Local Reducers", () => {
     beforeEach(async () => {
       mockCartService.getCart.mockResolvedValueOnce([
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 3,
-        },
+        mockCartApiItem({ id: "cart-1", quantity: 3 }),
       ]);
       await store.dispatch(fetchCart());
     });
@@ -354,12 +337,7 @@ describe("Cart Slice", () => {
   describe("Logout Cleanup", () => {
     it("should clear cart on logout", async () => {
       mockCartService.getCart.mockResolvedValueOnce([
-        {
-          id: "cart-1",
-          productId: "prod-1",
-          product: mockProduct,
-          quantity: 2,
-        },
+        mockCartApiItem({ id: "cart-1", quantity: 2 }),
       ]);
       await store.dispatch(fetchCart());
       expect(store.getState().cart.items).toHaveLength(1);

@@ -10,24 +10,58 @@ export interface ProductUnit {
   sortOrder: number;
 }
 
+export interface ProductVariant {
+  id: string;
+  size: string;
+  sizeEn: string | null;
+  sku: string | null;
+  barcode: string | null;
+  stock: number;
+  minOrderQuantity: number;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  units: ProductUnit[];
+}
+
 export interface Product {
   id: string;
   name: string;
   nameAr?: string;
   description: string;
   descriptionAr?: string;
-  price: number;
-  discountPrice?: number;
-  sku: string;
   images: string[];
   categoryId: string;
   categoryName?: string;
-  unit: string;
-  minOrder: number;
-  stock: number;
-  featured: boolean;
+  isActive: boolean;
   createdAt: string;
+  variants: ProductVariant[];
+  /** Convenience: derived from default variant's default unit */
+  price: number;
+  discountPrice?: number;
+  /** Convenience: derived from default variant */
+  stock: number;
+  minOrder: number;
+  sku: string;
+  unit: string;
+  featured: boolean;
+  /** @deprecated Use variants[].units instead */
   units?: ProductUnit[];
+}
+
+/** Raw API variant shape */
+export interface ApiProductVariant {
+  id: string;
+  size: string;
+  sizeEn?: string | null;
+  sku?: string | null;
+  barcode?: string | null;
+  stock: number;
+  minOrderQuantity: number;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  units: ProductUnit[];
 }
 
 /** Raw product shape from the API */
@@ -37,16 +71,9 @@ export interface ApiProduct {
   nameEn?: string | null;
   description: string;
   descriptionEn?: string | null;
-  price: number;
-  compareAtPrice?: number | null;
   image?: string | null;
-  images: string[];
+  images?: string[];
   categoryId: string;
-  unit: string;
-  sku?: string | null;
-  barcode?: string | null;
-  stock: number;
-  minOrderQuantity: number;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -57,6 +84,15 @@ export interface ApiProduct {
     nameEn?: string;
     slug: string;
   };
+  variants?: ApiProductVariant[];
+  /** @deprecated Old flat fields — kept for backward compat */
+  price?: number;
+  compareAtPrice?: number | null;
+  unit?: string;
+  sku?: string | null;
+  barcode?: string | null;
+  stock?: number;
+  minOrderQuantity?: number;
   units?: ProductUnit[];
 }
 
@@ -148,7 +184,10 @@ export interface OrderItem {
   id: string;
   productId: string;
   productName: string;
+  productNameEn?: string;
   productImage?: string;
+  variantSize?: string;
+  variantSizeEn?: string;
   price: number;
   quantity: number;
   unit: string;
@@ -188,20 +227,46 @@ export interface EditOrderPayload {
 
 export interface CartItemAPI {
   id: string;
-  productId: string;
+  variantId: string;
+  variant: {
+    id: string;
+    size: string;
+    sizeEn?: string | null;
+    stock: number;
+    minOrderQuantity: number;
+    isDefault: boolean;
+    product: ApiProduct;
+    units: ProductUnit[];
+  };
   productUnitId?: string | null;
-  product: Product;
   productUnit?: ProductUnit | null;
   quantity: number;
+  /** @deprecated Use variant.product */
+  product?: Product;
+  /** @deprecated Use variantId */
+  productId?: string;
 }
 
 export interface RawCartItemAPI {
   id: string;
-  productId: string;
+  variantId: string;
+  variant: {
+    id: string;
+    size: string;
+    sizeEn?: string | null;
+    stock: number;
+    minOrderQuantity: number;
+    isDefault: boolean;
+    product: ApiProduct;
+    units: ProductUnit[];
+  };
   productUnitId?: string | null;
-  product: ApiProduct;
   productUnit?: ProductUnit | null;
   quantity: number;
+  /** @deprecated backward compat */
+  productId?: string;
+  /** @deprecated backward compat */
+  product?: ApiProduct;
 }
 
 export interface CartAPIResponse {
@@ -217,12 +282,13 @@ export interface AddToCartResponse {
 export interface CartItem {
   cartItemId: string;
   product: Product;
+  variant?: ProductVariant;
   quantity: number;
   selectedUnit?: ProductUnit;
 }
 
 export interface AddToCartPayload {
-  productId: string;
+  variantId: string;
   productUnitId?: string;
   quantity: number;
 }

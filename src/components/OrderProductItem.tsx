@@ -22,6 +22,9 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
   const unitLabel = isAr
     ? (item.unitLabel ?? item.unit)
     : (item.unitLabelEn ?? item.unit);
+  const variantSize = isAr
+    ? item.variantSize
+    : (item.variantSizeEn ?? item.variantSize);
 
   return (
     <View style={styles.container}>
@@ -42,6 +45,9 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
         <Text style={styles.name} numberOfLines={2}>
           {item.productName}
         </Text>
+        {variantSize ? (
+          <Text style={styles.variantSize}>{variantSize}</Text>
+        ) : null}
         <Text style={styles.meta}>
           {(item.price ?? 0).toFixed(2)} {t("common.currency")} ×{" "}
           {item.quantity} {unitLabel}
@@ -84,6 +90,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.text,
     lineHeight: 20,
+  },
+  variantSize: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: "500",
+    marginTop: 1,
   },
   meta: {
     fontSize: FontSize.xs,

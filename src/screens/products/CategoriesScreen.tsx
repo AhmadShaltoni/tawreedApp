@@ -2,12 +2,7 @@ import CategoryCard from "@/src/components/CategoryCard";
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import SearchBar from "@/src/components/ui/SearchBar";
-import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Spacing
-} from "@/src/constants/theme";
+import { BorderRadius, Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { categoryService } from "@/src/services/category.service";
 import type { BreadcrumbItem, Category } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,14 +10,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    FlatList,
-    I18nManager,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  FlatList,
+  I18nManager,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 
 const NUM_COLUMNS = 4;
@@ -157,7 +151,7 @@ export default function CategoriesScreen() {
   return (
     <View style={styles.container}>
       {/* Breadcrumb bar */}
-      {breadcrumb.length > 0 && (
+      {/* {breadcrumb.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -191,7 +185,7 @@ export default function CategoriesScreen() {
             </View>
           ))}
         </ScrollView>
-      )}
+      )} */}
 
       <View style={styles.searchContainer}>
         <SearchBar

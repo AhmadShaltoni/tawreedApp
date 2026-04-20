@@ -66,10 +66,7 @@ function CategoryCard({ category, onPress }: CategoryCardProps) {
             size={10}
             color={Colors.primary}
           />
-          <Text style={styles.childrenCount}>{category.childrenCount}</Text>
         </View>
-      ) : category.productsCount > 0 ? (
-        <Text style={styles.count}>{category.productsCount}</Text>
       ) : null}
     </AnimatedPressable>
   );

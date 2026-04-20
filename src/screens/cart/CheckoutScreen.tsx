@@ -286,11 +286,18 @@ export default function CheckoutScreen() {
                 ? item.selectedUnit.label
                 : item.selectedUnit.labelEn
               : item.product.unit;
+            const variantSize = item.variant?.size;
+            const variantLabel = variantSize
+              ? isArabic
+                ? variantSize
+                : (item.variant?.sizeEn ?? variantSize)
+              : null;
             return (
               <View key={item.cartItemId} style={styles.summaryItem}>
                 <View style={styles.summaryItemDetails}>
                   <Text style={styles.summaryItemName} numberOfLines={1}>
                     {item.product.name}
+                    {variantLabel ? ` (${variantLabel})` : ""}
                   </Text>
                   <Text style={styles.summaryItemQty}>
                     x{item.quantity} {unitLabel}

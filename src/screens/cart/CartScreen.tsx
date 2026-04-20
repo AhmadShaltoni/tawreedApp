@@ -69,7 +69,8 @@ export default function CartScreen() {
   const handleIncrement = useCallback(
     (item: CartItem) => {
       requireAuth(() => {
-        if (item.quantity < item.product.stock) {
+        const maxStock = item.variant?.stock ?? item.product.stock;
+        if (item.quantity < maxStock) {
           dispatch(
             updateCartItemAsync({
               cartItemId: item.cartItemId,
@@ -85,7 +86,9 @@ export default function CartScreen() {
   const handleDecrement = useCallback(
     (item: CartItem) => {
       requireAuth(() => {
-        if (item.quantity > item.product.minOrder) {
+        const minQty =
+          item.variant?.minOrderQuantity ?? item.product.minOrder;
+        if (item.quantity > minQty) {
           dispatch(
             updateCartItemAsync({
               cartItemId: item.cartItemId,
@@ -144,6 +147,15 @@ export default function CartScreen() {
           ? item.selectedUnit.label
           : item.selectedUnit.labelEn
         : item.product.unit;
+      const variantSize = item.variant?.size;
+      const variantLabel = variantSize
+        ? isArabic
+          ? variantSize
+          : (item.variant?.sizeEn ?? variantSize)
+        : null;
+      const maxStock = item.variant?.stock ?? item.product.stock;
+      const minQty =
+        item.variant?.minOrderQuantity ?? item.product.minOrder;
 
       return (
         <View style={[styles.cartItem, isUpdating && styles.itemUpdating]}>
@@ -161,6 +173,11 @@ export default function CartScreen() {
             <Text style={styles.itemName} numberOfLines={2}>
               {item.product.name}
             </Text>
+            {variantLabel ? (
+              <Text style={styles.itemVariant}>
+                {t("cart.size", { size: variantLabel })}
+              </Text>
+            ) : null}
             <Text style={styles.itemPrice}>
               {unitPrice.toFixed(2)} {t("common.currency")} / {unitLabel}
             </Text>
@@ -170,14 +187,14 @@ export default function CartScreen() {
                   onPress={() => handleDecrement(item)}
                   style={styles.qtyBtn}
                   disabled={
-                    item.quantity <= item.product.minOrder || isUpdating
+                    item.quantity <= minQty || isUpdating
                   }
                 >
                   <Ionicons
                     name="remove"
                     size={16}
                     color={
-                      item.quantity <= item.product.minOrder
+                      item.quantity <= minQty
                         ? Colors.textLight
                         : Colors.primary
                     }
@@ -187,13 +204,13 @@ export default function CartScreen() {
                 <Pressable
                   onPress={() => handleIncrement(item)}
                   style={styles.qtyBtn}
-                  disabled={item.quantity >= item.product.stock || isUpdating}
+                  disabled={item.quantity >= maxStock || isUpdating}
                 >
                   <Ionicons
                     name="add"
                     size={16}
                     color={
-                      item.quantity >= item.product.stock
+                      item.quantity >= maxStock
                         ? Colors.textLight
                         : Colors.primary
                     }
@@ -216,7 +233,7 @@ export default function CartScreen() {
         </View>
       );
     },
-    [updating, handleIncrement, handleDecrement, handleRemove, t],
+    [updating, handleIncrement, handleDecrement, handleRemove, t, i18n.language],
   );
 
   if (loading && items.length === 0) {
@@ -374,6 +391,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.text,
     lineHeight: 18,
+  },
+  itemVariant: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: "500",
+    marginTop: 1,
   },
   itemPrice: {
     fontSize: FontSize.xs,

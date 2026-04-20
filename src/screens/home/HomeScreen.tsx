@@ -19,7 +19,7 @@ import type { Category, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     FlatList,
@@ -57,6 +57,26 @@ export default function HomeScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
+  
+  // Dynamic RTL styles
+  const isRTL = I18nManager.isRTL;
+  const dynamicHeaderStyle = useMemo(() => ({
+    flexDirection: isRTL ? "row-reverse" : "row",
+  }), [isRTL]);
+  const dynamicHeaderActionsStyle = useMemo(() => ({
+    marginLeft: isRTL ? 0 : Spacing.md,
+    marginRight: isRTL ? Spacing.md : 0,
+  }), [isRTL]);
+  const dynamicNotifBadgeStyle = useMemo(() => ({
+    [isRTL ? "left" : "right"]: -2,
+  }), [isRTL]);
+  const dynamicHeroButtonStyle = useMemo(() => ({
+    flexDirection: isRTL ? "row-reverse" : "row",
+    alignSelf: isRTL ? "flex-end" : "flex-start",
+  }), [isRTL]);
+  const dynamicQuickActionsStyle = useMemo(() => ({
+    flexDirection: isRTL ? "row-reverse" : "row",
+  }), [isRTL]);
 
   // Quick action buttons for the home screen
   const QUICK_ACTIONS = [
@@ -164,7 +184,7 @@ export default function HomeScreen() {
       {/* Welcome Header */}
       <Animated.View
         entering={FadeInDown.duration(400).delay(50)}
-        style={styles.header}
+        style={[styles.header, dynamicHeaderStyle]}
       >
         <View style={{ flex: 1 }}>
           {isAuthenticated && (
@@ -183,7 +203,7 @@ export default function HomeScreen() {
             </Text>
           )}
         </View>
-        <View style={styles.headerActionsContainer}>
+        <View style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}>
           {!isAuthenticated && (
             <Pressable
               style={styles.loginButton}
@@ -204,7 +224,7 @@ export default function HomeScreen() {
               color={Colors.text}
             />
             {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
+              <View style={[styles.notifBadge, dynamicNotifBadgeStyle]}>
                 <Text style={styles.notifBadgeText}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </Text>
@@ -223,7 +243,7 @@ export default function HomeScreen() {
           <Text style={styles.heroTag}>{t("home.featuredProducts")}</Text>
           <Text style={styles.heroTitle}>{t("quickActions.products")}</Text>
           <Pressable
-            style={styles.heroButton}
+            style={[styles.heroButton, dynamicHeroButtonStyle]}
             onPress={() => router.push("/products")}
           >
             <Text style={styles.heroButtonText}>{t("common.viewAll")}</Text>
@@ -242,7 +262,7 @@ export default function HomeScreen() {
       {/* Quick Actions */}
       <Animated.View
         entering={FadeInDown.duration(400).delay(200)}
-        style={styles.quickActions}
+        style={[styles.quickActions, dynamicQuickActionsStyle]}
       >
         {QUICK_ACTIONS.map((action, i) => (
           <QuickActionTile
@@ -389,7 +409,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: I18nManager.isRTL ? "row-reverse" : "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: Spacing.xxl,
@@ -400,8 +419,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    marginLeft: I18nManager.isRTL ? 0 : Spacing.md,
-    marginRight: I18nManager.isRTL ? Spacing.md : 0,
   },
   loginButton: {
     width: 42,
@@ -439,7 +456,6 @@ const styles = StyleSheet.create({
   notifBadge: {
     position: "absolute",
     top: -2,
-    right: -2,
     backgroundColor: Colors.secondary,
     borderRadius: 10,
     minWidth: 18,
@@ -484,9 +500,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   heroButton: {
-    flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
     backgroundColor: Colors.secondary,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
@@ -506,7 +520,6 @@ const styles = StyleSheet.create({
   },
   /* Quick actions */
   quickActions: {
-    flexDirection: "row",
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.lg,
     gap: Spacing.sm,

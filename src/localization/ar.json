@@ -52,7 +52,7 @@
     "title": "الرئيسية",
     "welcomeBack": "مرحبا بعودتك،",
     "browseAsGuest": "تصفح كضيف",
-    "browseAsGuestSubtitle": "سجل الدخول للتمكن من الوصول لجميع الميزات",
+    "browseAsGuestSubtitle": "سجل الدخول للوصول الى جميع الخدمات",
     "categories": "الأقسام الرئيسية",
     "featuredProducts": "المنتجات الأكثر مبيعآ",
     "recentOrders": "الطلبات الأخيرة",
@@ -83,7 +83,9 @@
     "filters": "تصفية",
     "sort": "ترتيب",
     "category": "القسم",
-    "selectUnit": "اختر الوحدة",
+    "selectUnit": "اختر نوع البيع",
+    "selectSize": "اختر الحجم",
+    "size": "الحجم",
     "piece": "قطعة",
     "dozen": "دزينة",
     "carton": "كرتونة",
@@ -93,7 +95,12 @@
     "gram": "غرام",
     "liter": "لتر",
     "pallet": "طبلية",
-    "piecesCount": "{{count}} قطعة"
+    "piecesCount": "{{count}} قطعة",
+    "mostOrdered": "الأكثر طلباً",
+    "unitPrice": "سعر القطعة",
+    "quantity": "الكمية",
+    "pricePerUnit": "سعر {{unit}}",
+    "pricePerUnitCount": "سعر {{unit}} ({{count}} قطعة)"
   },
   "categories": {
     "title": "الأقسام",
@@ -117,7 +124,8 @@
     "removeItemMessage": "إزالة {{name}} من السلة؟",
     "subtotal": "المجموع الفرعي",
     "checkout": "إتمام الطلب",
-    "proceedToCheckout": "المتابعة إلى الدفع"
+    "proceedToCheckout": "المتابعة إلى الدفع",
+    "size": "الحجم: {{size}}"
   },
   "checkout": {
     "title": "إتمام الطلب",

@@ -49,6 +49,8 @@ const mockProducts = [
     stock: 100,
     featured: false,
     createdAt: "2026-01-01",
+    isActive: true,
+    variants: [],
   },
   {
     id: "prod-2",
@@ -63,6 +65,8 @@ const mockProducts = [
     stock: 50,
     featured: true,
     createdAt: "2026-01-02",
+    isActive: true,
+    variants: [],
   },
 ];
 

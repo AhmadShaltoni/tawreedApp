@@ -1,5 +1,5 @@
 import { cartService } from "@/src/services/cart.service";
-import type { CartItem, CartItemAPI, Product, ProductUnit } from "@/src/types";
+import type { CartItem, CartItemAPI, Product, ProductUnit, ProductVariant } from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import {
   createAsyncThunk,
@@ -9,16 +9,35 @@ import {
 import { logout } from "./auth.slice";
 
 function mapApiItemToCartItem(item: CartItemAPI): CartItem {
+  const product = item.product!;
+  const variant: ProductVariant | undefined = item.variant
+    ? {
+        id: item.variant.id,
+        size: item.variant.size,
+        sizeEn: item.variant.sizeEn ?? null,
+        sku: null,
+        barcode: null,
+        stock: item.variant.stock,
+        minOrderQuantity: item.variant.minOrderQuantity,
+        isDefault: item.variant.isDefault,
+        isActive: true,
+        sortOrder: 0,
+        units: item.variant.units ?? [],
+      }
+    : undefined;
+
+  const units = variant?.units ?? product.units ?? [];
   const selectedUnit =
     item.productUnit ??
-    (item.productUnitId && item.product.units
-      ? item.product.units.find((u) => u.id === item.productUnitId)
+    (item.productUnitId && units.length > 0
+      ? units.find((u) => u.id === item.productUnitId)
       : undefined) ??
     undefined;
 
   return {
     cartItemId: item.id,
-    product: item.product,
+    product,
+    variant,
     quantity: item.quantity,
     selectedUnit: selectedUnit ?? undefined,
   };
@@ -57,12 +76,22 @@ export const addToCartAsync = createAsyncThunk(
       product,
       quantity,
       selectedUnit,
-    }: { product: Product; quantity: number; selectedUnit?: ProductUnit },
+      selectedVariant,
+    }: {
+      product: Product;
+      quantity: number;
+      selectedUnit?: ProductUnit;
+      selectedVariant?: ProductVariant;
+    },
     { rejectWithValue },
   ) => {
     try {
+      const variant =
+        selectedVariant ??
+        product.variants.find((v) => v.isDefault) ??
+        product.variants[0];
       const apiItem = await cartService.addToCart({
-        productId: product.id,
+        variantId: variant.id,
         productUnitId: selectedUnit?.id,
         quantity,
       });

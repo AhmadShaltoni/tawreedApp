@@ -6,58 +6,121 @@ import type {
   ProductFilters,
   ProductsResponse,
   ProductUnit,
+  ProductVariant,
 } from "@/src/types";
 import apiClient from "./api";
 
+function buildImageUrl(img: string): string {
+  return img.startsWith("http") ? img : `${API_BASE_URL}${img}`;
+}
+
+function mapUnit(u: ProductUnit): ProductUnit {
+  return {
+    id: u.id,
+    unit: u.unit,
+    label: u.label,
+    labelEn: u.labelEn,
+    piecesPerUnit: u.piecesPerUnit,
+    price: u.price,
+    compareAtPrice: u.compareAtPrice ?? null,
+    isDefault: u.isDefault,
+    sortOrder: u.sortOrder,
+  };
+}
+
 /** Map a raw API product to the app's Product type */
 export function mapProduct(raw: ApiProduct): Product {
-  const hasComparePrice =
-    raw.compareAtPrice != null && raw.compareAtPrice > raw.price;
-
   // Build full image URLs
   const images: string[] = [];
   if (raw.image) {
-    const imageUrl = raw.image.startsWith("http")
-      ? raw.image
-      : `${API_BASE_URL}${raw.image}`;
-    images.push(imageUrl);
+    images.push(buildImageUrl(raw.image));
   }
   for (const img of raw.images ?? []) {
     if (img) {
-      images.push(img.startsWith("http") ? img : `${API_BASE_URL}${img}`);
+      images.push(buildImageUrl(img));
     }
   }
+
+  // Map variants (new API structure)
+  const variants: ProductVariant[] = (raw.variants ?? []).map((v) => ({
+    id: v.id,
+    size: v.size,
+    sizeEn: v.sizeEn ?? null,
+    sku: v.sku ?? null,
+    barcode: v.barcode ?? null,
+    stock: v.stock,
+    minOrderQuantity: v.minOrderQuantity,
+    isDefault: v.isDefault,
+    isActive: v.isActive,
+    sortOrder: v.sortOrder,
+    units: (v.units ?? []).map(mapUnit),
+  }));
+
+  // If API still sends flat structure (no variants), create a single variant for backward compat
+  if (variants.length === 0 && raw.price != null) {
+    const fallbackUnits: ProductUnit[] = raw.units
+      ? raw.units.map(mapUnit)
+      : [];
+    variants.push({
+      id: `${raw.id}_default`,
+      size: "",
+      sizeEn: null,
+      sku: raw.sku ?? null,
+      barcode: raw.barcode ?? null,
+      stock: raw.stock ?? 0,
+      minOrderQuantity: raw.minOrderQuantity ?? 1,
+      isDefault: true,
+      isActive: true,
+      sortOrder: 0,
+      units: fallbackUnits,
+    });
+  }
+
+  // Derive convenience fields from default variant
+  const defaultVariant =
+    variants.find((v) => v.isDefault) ?? variants[0] ?? null;
+  const defaultUnit =
+    defaultVariant?.units.find((u) => u.isDefault) ??
+    defaultVariant?.units[0] ??
+    null;
+
+  const price = defaultUnit
+    ? defaultUnit.compareAtPrice != null &&
+      defaultUnit.compareAtPrice > defaultUnit.price
+      ? defaultUnit.compareAtPrice
+      : defaultUnit.price
+    : (raw.price ?? 0);
+  const discountPrice = defaultUnit
+    ? defaultUnit.compareAtPrice != null &&
+      defaultUnit.compareAtPrice > defaultUnit.price
+      ? defaultUnit.price
+      : undefined
+    : raw.compareAtPrice != null && raw.compareAtPrice > (raw.price ?? 0)
+      ? raw.price
+      : undefined;
 
   return {
     id: raw.id,
     name: raw.name,
     nameAr: raw.name,
-    description: raw.description,
-    descriptionAr: raw.description,
-    price: hasComparePrice ? raw.compareAtPrice! : raw.price,
-    discountPrice: hasComparePrice ? raw.price : undefined,
-    sku: raw.sku ?? "",
+    description: raw.description ?? "",
+    descriptionAr: raw.description ?? "",
     images,
     categoryId: raw.categoryId,
     categoryName: raw.category?.name,
-    unit: raw.unit,
-    minOrder: raw.minOrderQuantity ?? 1,
-    stock: raw.stock,
-    featured: false,
+    isActive: raw.isActive,
     createdAt: raw.createdAt,
-    units: raw.units?.map(
-      (u): ProductUnit => ({
-        id: u.id,
-        unit: u.unit,
-        label: u.label,
-        labelEn: u.labelEn,
-        piecesPerUnit: u.piecesPerUnit,
-        price: u.price,
-        compareAtPrice: u.compareAtPrice ?? null,
-        isDefault: u.isDefault,
-        sortOrder: u.sortOrder,
-      }),
-    ),
+    variants,
+    // Convenience fields from default variant
+    price,
+    discountPrice,
+    sku: defaultVariant?.sku ?? raw.sku ?? "",
+    stock: defaultVariant?.stock ?? raw.stock ?? 0,
+    minOrder: defaultVariant?.minOrderQuantity ?? raw.minOrderQuantity ?? 1,
+    unit: raw.unit ?? defaultUnit?.unit ?? "",
+    featured: false,
+    // Deprecated: flatten units from default variant for backward compat
+    units: defaultVariant?.units,
   };
 }
 

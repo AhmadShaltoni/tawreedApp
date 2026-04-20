@@ -9,28 +9,19 @@ import {
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch } from "@/src/store";
 import { addToCartAsync } from "@/src/store/slices/cart.slice";
-import type { Product, ProductUnit } from "@/src/types";
+import type { Product, ProductUnit, ProductVariant } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  I18nManager,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ProductCardProps {
   product: Product;
@@ -46,19 +37,43 @@ function ProductCard({
   grid = false,
 }: ProductCardProps) {
   const { t, i18n } = useTranslation();
-  const isRTL = I18nManager.isRTL;
   const isArabic = i18n.language === "ar";
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const { requireAuth, showLoginModal, setShowLoginModal } = useAuthGuard();
-  const scale = useSharedValue(1);
+  const variantScrollRef = useRef<ScrollView>(null);
+  const unitScrollRef = useRef<ScrollView>(null);
+  const [quantity, setQuantity] = useState(1);
 
+  // --- Variants ---
+  const variants = useMemo(
+    () =>
+      product.variants && product.variants.length > 0
+        ? [...product.variants]
+            .filter((v) => v.isActive)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+        : [],
+    [product.variants],
+  );
+
+  const defaultVariant = useMemo(
+    () => variants.find((v) => v.isDefault) ?? variants[0] ?? null,
+    [variants],
+  );
+
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    defaultVariant,
+  );
+
+  const hasVariants = variants.length >= 1;
+  const hasMultipleVariants = variants.length > 1;
+
+  // --- Units (from selected variant) ---
   const units = useMemo(
     () =>
-      product.units && product.units.length > 0
-        ? [...product.units].sort((a, b) => a.sortOrder - b.sortOrder)
+      selectedVariant && selectedVariant.units.length > 0
+        ? [...selectedVariant.units].sort((a, b) => a.sortOrder - b.sortOrder)
         : null,
-    [product.units],
+    [selectedVariant],
   );
 
   const defaultUnit = useMemo(
@@ -70,6 +85,24 @@ function ProductCard({
     defaultUnit,
   );
 
+  const handleVariantChange = useCallback(
+    (variant: ProductVariant) => {
+      setSelectedVariant(variant);
+      const newUnits = [...variant.units].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+      const newDefault =
+        newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
+      setSelectedUnit(newDefault);
+      Haptics.selectionAsync();
+    },
+    [],
+  );
+
+  const hasUnits = (units?.length ?? 0) >= 1;
+  const hasMultipleUnits = (units?.length ?? 0) > 1;
+
+  // --- Pricing ---
   const activePrice = selectedUnit ? selectedUnit.price : product.price;
   const activeComparePrice = selectedUnit
     ? selectedUnit.compareAtPrice
@@ -85,17 +118,21 @@ function ProductCard({
       )
     : 0;
 
-  const isLowStock = product.stock > 0 && product.stock <= 5;
+  // --- Stock ---
+  const currentStock = selectedVariant?.stock ?? product.stock;
+  const isOutOfStock = currentStock === 0;
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const getUnitLabel = (unit: ProductUnit) =>
+    isArabic ? unit.label : unit.labelEn;
 
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
-  };
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+  const getVariantLabel = (variant: ProductVariant) =>
+    isArabic ? variant.size : (variant.sizeEn ?? variant.size);
+
+  /** Get the display price for a specific variant (from its default unit) */
+  const getVariantPrice = (variant: ProductVariant): number => {
+    const vUnits = [...variant.units].sort((a, b) => a.sortOrder - b.sortOrder);
+    const vDefault = vUnits.find((u) => u.isDefault) ?? vUnits[0];
+    return vDefault ? vDefault.price : product.price;
   };
 
   const handleAddToCart = useCallback(() => {
@@ -103,146 +140,252 @@ function ProductCard({
       dispatch(
         addToCartAsync({
           product,
-          quantity: 1,
+          quantity,
           selectedUnit: selectedUnit ?? undefined,
+          selectedVariant: selectedVariant ?? undefined,
         }),
       );
+      setQuantity(1);
     });
-  }, [dispatch, product, selectedUnit, router, requireAuth, t]);
+  }, [dispatch, product, quantity, selectedUnit, selectedVariant, requireAuth]);
 
-  const getUnitLabel = (unit: ProductUnit) =>
-    isArabic ? unit.label : unit.labelEn;
+  const currency = isArabic ? "د.أ" : "JOD";
 
   return (
     <>
-      <AnimatedPressable
+      <View
         style={[
           styles.card,
           compact && styles.cardCompact,
           grid && styles.cardGrid,
-          animStyle,
         ]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress(product);
-        }}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
       >
-        <View style={styles.imageContainer}>
-          <Image
-            source={
-              product.images?.[0]
-                ? { uri: product.images[0] }
-                : require("@/assets/images/icon.png")
-            }
-            style={[styles.image, compact && styles.imageCompact]}
-            contentFit="cover"
-            transition={200}
-            recyclingKey={product.id}
-          />
-          {/* Discount badge */}
-          {hasDiscount ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>-{discountPercent}%</Text>
-            </View>
-          ) : null}
-          {/* Low stock indicator */}
-          {isLowStock ? (
-            <View style={styles.stockBadge}>
-              <Text style={styles.stockText}>
-                {product.stock} {t("products.left")}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.info}>
-          <Text
-            style={[styles.name, isRTL && styles.textRTL]}
-            numberOfLines={2}
-          >
-            {product.name}
-          </Text>
-          {!compact && product.categoryName ? (
-            <Text
-              style={[styles.category, isRTL && styles.textRTL]}
-              numberOfLines={1}
-            >
-              {product.categoryName}
-            </Text>
-          ) : null}
-
-          {/* Unit selector chips */}
-          {units ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.unitsScroll}
-              contentContainerStyle={[
-                styles.unitsRow,
-                isRTL && styles.unitsRowRTL,
-              ]}
-            >
-              {units.map((unit) => {
-                const isSelected = selectedUnit?.id === unit.id;
-                const isDisabled = units.length === 1;
-                return (
-                  <Pressable
-                    key={unit.id}
-                    style={[
-                      styles.unitChip,
-                      isSelected && styles.unitChipSelected,
-                      isDisabled && styles.unitChipDisabled,
-                    ]}
-                    onPress={() => {
-                      if (!isDisabled) {
-                        setSelectedUnit(unit);
-                        Haptics.selectionAsync();
-                      }
-                    }}
-                    disabled={isDisabled}
-                  >
-                    <Text
-                      style={[
-                        styles.unitChipText,
-                        isSelected && styles.unitChipTextSelected,
-                        isDisabled && styles.unitChipTextDisabled,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {getUnitLabel(unit)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-
-          {/* Price row */}
-          <View style={[styles.priceRow, isRTL && styles.priceRowRTL]}>
-            <Text style={[styles.price, isRTL && styles.textRTL]}>
-              {activePrice.toFixed(2)} {t("common.currency")}
-            </Text>
+        {/* Image section */}
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onPress(product);
+          }}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={
+                product.images?.[0]
+                  ? { uri: product.images[0] }
+                  : require("@/assets/images/icon.png")
+              }
+              style={[styles.image, compact && styles.imageCompact]}
+              contentFit="contain"
+              transition={200}
+              recyclingKey={product.id}
+            />
             {hasDiscount ? (
-              <Text style={styles.originalPrice}>
-                {activeComparePrice!.toFixed(2)} {t("common.currency")}
-              </Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {isArabic ? `خصم ${discountPercent}%` : `${discountPercent}% OFF`}
+                </Text>
+              </View>
+            ) : null}
+            <Pressable style={styles.favoriteIcon}>
+              <Ionicons name="heart-outline" size={20} color={Colors.primary} />
+            </Pressable>
+            {isOutOfStock ? (
+              <View style={styles.outOfStockOverlay}>
+                <Text style={styles.outOfStockText}>
+                  {t("products.outOfStock")}
+                </Text>
+              </View>
             ) : null}
           </View>
+        </Pressable>
 
-          {/* Add to cart button */}
+        {/* Info section */}
+        <View style={styles.info}>
+          <Pressable onPress={() => onPress(product)}>
+            <Text style={styles.name} numberOfLines={2}>
+              {product.name}
+            </Text>
+          </Pressable>
+
+          {/* ── Size selector ── */}
+          {hasVariants ? (
+            <View style={styles.selectorGroup}>
+              <View style={styles.selectorHeader}>
+                <Text style={styles.selectorLabel}>
+                  {isArabic ? "اختر الحجم" : "Select Size"}
+                </Text>
+                <Ionicons name="pricetag-outline" size={13} color={Colors.primary} />
+              </View>
+              <ScrollView
+                ref={variantScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {variants.map((variant) => {
+                  const isSelected = selectedVariant?.id === variant.id;
+                  const variantOutOfStock = variant.stock === 0;
+                  const variantPrice = getVariantPrice(variant);
+                  const isSingleOption = !hasMultipleVariants;
+                  return (
+                    <Pressable
+                      key={variant.id}
+                      style={[
+                        styles.chip,
+                        isSelected && styles.chipSelected,
+                        variantOutOfStock && styles.chipDisabled,
+                      ]}
+                      onPress={() => {
+                        if (!variantOutOfStock && hasMultipleVariants) handleVariantChange(variant);
+                      }}
+                      disabled={variantOutOfStock || isSingleOption}
+                    >
+                      {isSelected && (
+                        <View style={styles.checkBadge}>
+                          <Ionicons name="checkmark" size={9} color={Colors.white} />
+                        </View>
+                      )}
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {getVariantLabel(variant)}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.chipPrice,
+                          isSelected && styles.chipPriceSelected,
+                        ]}
+                      >
+                        {currency} {variantPrice.toFixed(2)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {/* ── Divider ── */}
+          {hasVariants && hasUnits ? (
+            <View style={styles.sectionDivider} />
+          ) : null}
+
+          {/* ── Unit selector ── */}
+          {hasUnits && units ? (
+            <View style={styles.selectorGroup}>
+              <View style={styles.selectorHeader}>
+                <Text style={styles.selectorLabel}>
+                  {isArabic ? "اختر الكمية" : "Select Unit"}
+                </Text>
+                <Ionicons name="cube-outline" size={13} color={Colors.primary} />
+              </View>
+              <ScrollView
+                ref={unitScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {units.map((unit) => {
+                  const isSelected = selectedUnit?.id === unit.id;
+                  const unitLabel = getUnitLabel(unit);
+                  const isSingleUnit = !hasMultipleUnits;
+                  return (
+                    <Pressable
+                      key={unit.id}
+                      style={[
+                        styles.chip,
+                        styles.chipUnit,
+                        isSelected && styles.chipSelected,
+                      ]}
+                      onPress={() => {
+                        if (hasMultipleUnits) {
+                          setSelectedUnit(unit);
+                          Haptics.selectionAsync();
+                        }
+                      }}
+                      disabled={isSingleUnit}
+                    >
+                      {isSelected && (
+                        <View style={styles.checkBadge}>
+                          <Ionicons name="checkmark" size={9} color={Colors.white} />
+                        </View>
+                      )}
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {unitLabel}
+                      </Text>
+                      {unit.piecesPerUnit > 1 && (
+                        <Text
+                          style={[
+                            styles.chipSub,
+                            isSelected && styles.chipSubSelected,
+                          ]}
+                        >
+                          ({unit.piecesPerUnit})
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {/* ── Price + Quantity row ── */}
+          <View style={styles.priceQtyRow}>
+            <View style={styles.priceBlock}>
+              <Text style={styles.currentPrice}>
+                {currency} {(activePrice * quantity).toFixed(2)}
+              </Text>
+              {hasDiscount && (
+                <Text style={styles.originalPrice}>
+                  {currency} {activeComparePrice!.toFixed(2)}
+                </Text>
+              )}
+            </View>
+            <View style={styles.qtyControl}>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => setQuantity((q) => Math.max(1, q + 1))}
+              >
+                <Ionicons name="add" size={14} color={Colors.text} />
+              </Pressable>
+              <Text style={styles.qtyText}>{quantity}</Text>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+              >
+                <Ionicons name="remove" size={14} color={Colors.text} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* ── Add to cart ── */}
           <Pressable
             style={({ pressed }) => [
-              styles.addToCartBtn,
-              pressed && styles.addToCartBtnPressed,
+              styles.cartBtn,
+              pressed && styles.cartBtnPressed,
+              isOutOfStock && styles.cartBtnDisabled,
             ]}
             onPress={handleAddToCart}
+            disabled={isOutOfStock}
           >
             <Ionicons name="cart" size={16} color={Colors.white} />
-            <Text style={styles.addToCartText}>{t("products.addToCart")}</Text>
+            <Text style={styles.cartBtnText}>
+              {isArabic ? "أضف إلى السلة" : "Add to Cart"}
+            </Text>
           </Pressable>
         </View>
-      </AnimatedPressable>
+      </View>
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -253,154 +396,217 @@ function ProductCard({
 
 export default memo(ProductCard);
 
+// ─── Styles ─────────────────────────────────────────
+const CARD_RADIUS = 16;
+
 const styles = StyleSheet.create({
+  /* ── Card ── */
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.white,
+    borderRadius: CARD_RADIUS,
     overflow: "hidden",
-    width: 175,
+    width: 178,
     marginRight: Spacing.md,
     ...Shadows.md,
   },
-  cardCompact: {
-    width: 155,
-  },
-  cardGrid: {
-    flex: 1,
-    width: undefined,
-    marginRight: 0,
-  },
+  cardCompact: { width: 158 },
+  cardGrid: { flex: 1, width: undefined, marginRight: 0 },
+
+  /* ── Image ── */
   imageContainer: {
     position: "relative",
+    backgroundColor: Colors.white,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  image: {
-    width: "100%",
-    height: 145,
-    backgroundColor: Colors.inputBackground,
-  },
-  imageCompact: {
-    height: 120,
-  },
+  image: { width: "75%", height: 130 },
+  imageCompact: { height: 100 },
+
   badge: {
     position: "absolute",
-    top: Spacing.sm,
-    left: Spacing.sm,
+    top: 8,
+    left: 8,
     backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.sm + 2,
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 6,
   },
-  badgeText: {
+  badgeText: { color: Colors.white, fontSize: 10, fontWeight: "800" },
+
+  favoriteIcon: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    padding: 2,
+  },
+  outOfStockOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingVertical: 4,
+    alignItems: "center",
+  },
+  outOfStockText: {
     color: Colors.white,
     fontSize: FontSize.xs,
     fontWeight: "700",
   },
-  stockBadge: {
-    position: "absolute",
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: "rgba(239,68,68,0.9)",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  stockText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "700",
-  },
+
+  /* ── Info ── */
   info: {
-    padding: Spacing.md,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
   name: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-    lineHeight: 19,
-  },
-  textRTL: {
-    textAlign: "right",
-  },
-  category: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-  },
-  unitsScroll: {
-    marginBottom: Spacing.sm,
-    marginHorizontal: -2,
-  },
-  unitsRow: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 2,
-  },
-  unitsRowRTL: {
-    flexDirection: "row-reverse",
-  },
-  unitChip: {
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  unitChipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + "10",
-  },
-  unitChipText: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: Colors.textSecondary,
-  },
-  unitChipTextSelected: {
-    color: Colors.primary,
+    fontSize: 13,
     fontWeight: "700",
+    color: Colors.text,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 2,
   },
-  unitChipDisabled: {
-    opacity: 0.6,
-  },
-  unitChipTextDisabled: {
-    color: Colors.textLight,
-  },
-  priceRow: {
+
+  /* ── Selector ── */
+  selectorGroup: { marginTop: 8 },
+  selectorHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
+    justifyContent: "flex-end",
+    gap: 4,
+    marginBottom: 6,
   },
-  priceRowRTL: {
-    flexDirection: "row-reverse",
-  },
-  price: {
-    fontSize: FontSize.md,
+  selectorLabel: {
+    fontSize: 11,
     fontWeight: "700",
+    color: Colors.text,
+  },
+
+  /* ── Chips ── */
+  chipsRow: { gap: 5, flexDirection: "row", paddingBottom: 8 },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.2,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 54,
+    position: "relative",
+    overflow: "visible",
+  },
+  chipUnit: { minWidth: 50, paddingHorizontal: 12 },
+  chipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: "#dbeafe",
+  },
+  chipDisabled: { opacity: 0.35 },
+  chipText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  chipTextSelected: { color: Colors.primary, fontWeight: "700" },
+  chipPrice: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: Colors.textLight,
+    textAlign: "center",
+    marginTop: 1,
+  },
+  chipPriceSelected: { color: Colors.primary },
+  chipSub: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: Colors.textLight,
+    marginTop: 1,
+  },
+  chipSubSelected: { color: Colors.primary },
+  checkBadge: {
+    position: "absolute",
+    bottom: -7,
+    alignSelf: "center",
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+    zIndex: 1,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginTop: 10,
+  },
+
+  /* ── Price + Qty row ── */
+  priceQtyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  priceBlock: { alignItems: "flex-start" },
+  currentPrice: {
+    fontSize: 14,
+    fontWeight: "800",
     color: Colors.primary,
   },
   originalPrice: {
-    fontSize: FontSize.xs,
+    fontSize: 9,
     color: Colors.textLight,
     textDecorationLine: "line-through",
+    marginTop: 1,
   },
-  addToCartBtn: {
+
+  qtyControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.white,
+  },
+  qtyBtn: {
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qtyText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.text,
+    minWidth: 22,
+    textAlign: "center",
+  },
+
+  /* ── Add to cart ── */
+  cartBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: Spacing.sm,
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.full,
+    gap: 6,
   },
-  addToCartBtnPressed: {
-    opacity: 0.8,
-  },
-  addToCartText: {
+  cartBtnPressed: { opacity: 0.85 },
+  cartBtnDisabled: { backgroundColor: Colors.textLight },
+  cartBtnText: {
     color: Colors.white,
-    fontSize: FontSize.sm,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });

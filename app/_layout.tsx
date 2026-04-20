@@ -137,7 +137,7 @@ function AuthGate() {
           name="categories"
           options={{
             headerShown: true,
-            title: "Categories",
+            title: "الأصناف",
             animation: "slide_from_right",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },

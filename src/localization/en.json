@@ -83,7 +83,9 @@
     "filters": "Filters",
     "sort": "Sort",
     "category": "Category",
-    "selectUnit": "Select Unit",
+    "selectUnit": "Select Sale Type",
+    "selectSize": "Select Size",
+    "size": "Size",
     "piece": "Piece",
     "dozen": "Dozen",
     "carton": "Carton",
@@ -93,7 +95,12 @@
     "gram": "Gram",
     "liter": "Liter",
     "pallet": "Pallet",
-    "piecesCount": "{{count}} pieces"
+    "piecesCount": "{{count}} pieces",
+    "mostOrdered": "Most Ordered",
+    "unitPrice": "Unit Price",
+    "quantity": "Quantity",
+    "pricePerUnit": "{{unit}} Price",
+    "pricePerUnitCount": "{{unit}} Price ({{count}} pcs)"
   },
   "categories": {
     "title": "Categories",
@@ -117,7 +124,8 @@
     "removeItemMessage": "Remove {{name}} from cart?",
     "subtotal": "Subtotal",
     "checkout": "Checkout",
-    "proceedToCheckout": "Proceed to Checkout"
+    "proceedToCheckout": "Proceed to Checkout",
+    "size": "Size: {{size}}"
   },
   "checkout": {
     "title": "Checkout",

@@ -26,6 +26,17 @@ i18n.use(initReactI18next).init({
   compatibilityJSON: "v4",
 });
 
+// Apply RTL setting for default language
+const applyRTLSetting = (lang: string) => {
+  const isArabic = lang === "ar";
+  
+  // For iOS, we need to ensure RTL is applied immediately and properly
+  if (I18nManager.isRTL !== isArabic) {
+    I18nManager.allowRTL(isArabic);
+    I18nManager.forceRTL(isArabic);
+  }
+};
+
 // Load saved language preference
 export async function loadSavedLanguage(): Promise<void> {
   try {
@@ -33,15 +44,12 @@ export async function loadSavedLanguage(): Promise<void> {
     if (saved && (saved === "ar" || saved === "en")) {
       await changeLanguage(saved);
     } else {
-      // Apply default RTL setting
-      const isArabic = i18n.language === "ar";
-      if (I18nManager.isRTL !== isArabic) {
-        I18nManager.allowRTL(isArabic);
-        I18nManager.forceRTL(isArabic);
-      }
+      // Apply default RTL setting for Arabic
+      applyRTLSetting(defaultLang);
     }
   } catch {
-    // Use default
+    // Use default RTL setting
+    applyRTLSetting(defaultLang);
   }
 }
 
@@ -49,12 +57,10 @@ export async function changeLanguage(lang: "ar" | "en"): Promise<void> {
   await i18n.changeLanguage(lang);
   await AsyncStorage.setItem(LANGUAGE_KEY, lang);
 
-  const isArabic = lang === "ar";
-  if (I18nManager.isRTL !== isArabic) {
-    I18nManager.allowRTL(isArabic);
-    I18nManager.forceRTL(isArabic);
-    // Note: RTL change requires app restart to take full effect
-  }
+  // Apply RTL settings immediately
+  applyRTLSetting(lang);
+  
+  // Note: RTL change requires app restart to take full effect on iOS
 }
 
 export function getCurrentLanguage(): "ar" | "en" {
