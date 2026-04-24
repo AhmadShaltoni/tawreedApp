@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "tawreedApp",
+    "name": "tawreed - توريد",
     "slug": "tawreedApp",
     "version": "1.0.0",
     "projectId": "550e8400-e29b-41d4-a716-446655440000",
@@ -11,14 +11,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.tawreedApp"
+      "bundleIdentifier": "tawreedApp.com.jo"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1e3a8a",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "monochromeImage": "./assets/images/blackWhiteLogo"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -34,7 +34,7 @@
         {
           "image": "./assets/images/splash.png",
           "resizeMode": "cover",
-          "backgroundColor": "#2E4DA7"
+          "backgroundColor": "#1e3a8a"
         }
       ],
       "expo-secure-store",
