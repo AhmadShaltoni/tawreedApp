@@ -11,7 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "tawreedApp.com.jo"
+      "bundleIdentifier": "tawreed.app.com"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,8 @@
         "monochromeImage": "./assets/images/blackWhiteLogo"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "tawreedApp.com.jo"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6558d894-f677-4246-8392-31dd91f4213e"
+      }
     }
   }
 }
