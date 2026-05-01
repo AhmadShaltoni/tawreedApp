@@ -40,7 +40,7 @@ function CategoryCard({ category, onPress }: CategoryCardProps) {
           source={
             category.image?.url
               ? { uri: category.image.url }
-              : require("@/assets/images/icon.png")
+              : require("@/assets/images/icon2.png")
           }
           accessibilityLabel={category.image?.alt || category.name}
           style={styles.image}
