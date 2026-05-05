@@ -432,7 +432,7 @@ CREATE INDEX "DeviceToken_token_idx" ON "DeviceToken"("token");
          [
            "expo-notifications",
            {
-             "icon": "./path/to/notification-icon.png",
+             "icon": "./path/to/notification-icon2.png",
              "color": "#3B82F6"
            }
          ]

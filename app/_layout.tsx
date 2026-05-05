@@ -1,12 +1,15 @@
+import * as SplashScreen from "expo-splash-screen";
 import { Stack, useFocusEffect, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
 import WhatsAppFAB from "@/src/components/WhatsAppFAB";
+import { Config } from "@/src/config/env";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import { loadSavedLanguage } from "@/src/localization/i18n";
@@ -14,6 +17,9 @@ import { notificationService } from "@/src/services/notification.service";
 import { store, useAppDispatch, useAppSelector } from "@/src/store";
 import { restoreSession } from "@/src/store/slices/auth.slice";
 import { fetchCart } from "@/src/store/slices/cart.slice";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // Setup global notification navigation handler
 declare global {
@@ -36,7 +42,25 @@ function AuthGate() {
   useEffect(() => {
     loadSavedLanguage();
     dispatch(restoreSession());
+
+    // Log app configuration in development
+    if (__DEV__) {
+      console.log("✅ App initialized with Config:", {
+        API_BASE_URL: Config.API_BASE_URL,
+        APP_ENV: Config.APP_ENV,
+        IS_DEV: Config.IS_DEV,
+      });
+    }
   }, [dispatch]);
+
+  // Hide splash screen when app is initialized
+  useEffect(() => {
+    if (isInitialized) {
+      SplashScreen.hideAsync().catch((err) => {
+        console.warn("[SplashScreen] Failed to hide:", err);
+      });
+    }
+  }, [isInitialized]);
 
   // Initialize push notifications (on every app focus)
   useFocusEffect(
@@ -198,9 +222,11 @@ function AuthGate() {
 
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <AuthGate />
-    </Provider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <AuthGate />
+      </Provider>
+    </SafeAreaProvider>
   );
 }
 

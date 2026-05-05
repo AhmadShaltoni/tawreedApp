@@ -163,7 +163,7 @@ export default function CartScreen() {
             source={
               item.product.images?.[0]
                 ? { uri: item.product.images[0] }
-                : require("@/assets/images/icon.png")
+                : require("@/assets/images/icon2.png")
             }
             style={styles.itemImage}
             contentFit="cover"

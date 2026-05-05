@@ -5,10 +5,17 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const { t } = useTranslation();
   const cartItemCount = useAppSelector((state) => state.cart.items.length);
+  const insets = useSafeAreaInsets();
+
+  // Calculate safe bottom padding
+  // Minimum 8dp padding + actual system inset
+  const bottomPaddingAndroid = Math.max(insets.bottom, 8);
+  const tabBarHeightAndroid = 56 + bottomPaddingAndroid;
 
   return (
     <Tabs
@@ -39,8 +46,8 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.06,
           shadowRadius: 8,
-          height: Platform.OS === "ios" ? 88 : 64,
-          paddingBottom: Platform.OS === "ios" ? 28 : 8,
+          height: Platform.OS === "ios" ? 88 : tabBarHeightAndroid,
+          paddingBottom: Platform.OS === "ios" ? insets.bottom : bottomPaddingAndroid,
           paddingTop: 8,
         },
         tabBarLabelStyle: {

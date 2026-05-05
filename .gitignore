@@ -31,7 +31,10 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+# .env.development and .env.production are committed (they contain public URLs)
+# .env.local and .env.*.local are ignored (for personal/local overrides)
+.env.local
+.env.*.local
 
 # typescript
 *.tsbuildinfo

@@ -1,15 +1,14 @@
-import { Platform } from "react-native";
+import { Config } from "@/src/config/env";
 
-const getDefaultApiUrl = () => {
-  // Web (browser) runs on the same machine as the backend → use localhost
-  if (Platform.OS === "web") return "http://localhost:3000";
-  // Mobile device accesses backend over LAN IP
-  return "http://192.168.20.149:3000";
-  // return "http://192.168.100.15:3000";
-};
-
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? getDefaultApiUrl();
+/**
+ * API base URL is injected at build time from environment variables.
+ * Loaded from:
+ *   - .env.development (local development)
+ *   - .env.production (production builds, EAS)
+ * 
+ * If undefined, the app fails at startup with a clear error message.
+ */
+export const API_BASE_URL = Config.API_BASE_URL;
 
 export const API_ENDPOINTS = {
   AUTH: {

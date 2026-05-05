@@ -225,7 +225,7 @@ export default function ProductDetailScreen() {
                 <View style={styles.imageWrapper}>
                   <Image
                     source={
-                      item ? { uri: item } : require("@/assets/images/icon.png")
+                      item ? { uri: item } : require("@/assets/images/icon2.png")
                     }
                     style={styles.galleryImage}
                     contentFit="contain"

@@ -26,7 +26,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
     "platforms": ["ios", "android", "web"],
 
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon2.png",
     "userInterfaceStyle": "light",
 
     "ios": {
@@ -40,21 +40,21 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
 
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon2.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.tawreed.app"
     },
 
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon2.png"
     },
 
     "plugins": [
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/notification-icon2.png",
           "color": "#3B82F6",
           "sounds": ["./assets/sounds/notification.wav"]
         }
@@ -62,7 +62,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
     ],
 
     "notification": {
-      "icon": "assets/notification-icon.png",
+      "icon": "assets/notification-icon2.png",
       "color": "#3B82F7",
       "sounds": ["assets/sounds/notification.wav"]
     }

@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/src/constants/api";
+import { Config } from "@/src/config/env";
 import type { Notification } from "@/src/types";
 import { notificationPermissionTracker } from "@/src/utils/notificationPermissionTracker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -275,7 +276,7 @@ class NotificationServiceClass {
 
       // Get current token
       const token = await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID || "tawreed",
+        projectId: Config.PROJECT_ID,
       });
 
       const deviceToken = token.data;

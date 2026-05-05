@@ -172,7 +172,7 @@ function ProductCard({
               source={
                 product.images?.[0]
                   ? { uri: product.images[0] }
-                  : require("@/assets/images/icon.png")
+                  : require("@/assets/images/icon2.png")
               }
               style={[styles.image, compact && styles.imageCompact]}
               contentFit="contain"
