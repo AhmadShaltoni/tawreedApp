@@ -18,12 +18,12 @@ Expo replaces all `process.env.EXPO_PUBLIC_*` references with their **literal va
 
 ### How This Differs by Build Method
 
-| Build Method | Where `.env` Comes From | Result |
-|---|---|---|
-| `expo start` (local) | `.env.development` from your machine ✅ | Works — env vars loaded |
-| `npx expo run:android` (local) | `.env.development` from your machine ✅ | Works — env vars loaded |
-| `eas build --profile production` (cloud) | `eas.json` `env` section ✅ | Works — EAS provides env |
-| Production APK/AAB (old system) | `.env.local` (gitignored, not in cloud) ❌ | Fails — env undefined |
+| Build Method                             | Where `.env` Comes From                    | Result                   |
+| ---------------------------------------- | ------------------------------------------ | ------------------------ |
+| `expo start` (local)                     | `.env.development` from your machine ✅    | Works — env vars loaded  |
+| `npx expo run:android` (local)           | `.env.development` from your machine ✅    | Works — env vars loaded  |
+| `eas build --profile production` (cloud) | `eas.json` `env` section ✅                | Works — EAS provides env |
+| Production APK/AAB (old system)          | `.env.local` (gitignored, not in cloud) ❌ | Fails — env undefined    |
 
 ### The Previous Problem
 
@@ -35,6 +35,7 @@ export const API_BASE_URL =
 ```
 
 This silently fell back to `http://192.168.20.149:3000` on real devices, which:
+
 - Doesn't exist on device networks
 - Causes silent API failures (no error thrown)
 - Makes debugging extremely difficult
@@ -47,18 +48,21 @@ This silently fell back to `http://192.168.20.149:3000` on real devices, which:
 ### 1. Environment Files
 
 **`.env.development`** — Used by `expo start` and local builds
+
 ```
 EXPO_PUBLIC_API_URL=http://192.168.20.149:3000
 EXPO_PUBLIC_APP_ENV=development
 ```
 
 **`.env.production`** — Used by `eas build` and `expo export`
+
 ```
 EXPO_PUBLIC_API_URL=https://tawreedportal-production.up.railway.app
 EXPO_PUBLIC_APP_ENV=production
 ```
 
 **`.env.example`** — Committed to git, documents required variables for new developers
+
 ```
 EXPO_PUBLIC_API_URL=http://192.168.20.149:3000
 EXPO_PUBLIC_APP_ENV=development
@@ -70,14 +74,15 @@ This module is the **single source of truth** for all environment configuration:
 
 ```typescript
 export const Config = {
-  API_BASE_URL: getApiUrl(),        // Validated, throws if missing
-  APP_ENV: getAppEnv(),              // "development" | "production"
-  PROJECT_ID: getProjectId(),        // Expo notifications project ID
-  IS_DEV: __DEV__,                   // Convenience flag
+  API_BASE_URL: getApiUrl(), // Validated, throws if missing
+  APP_ENV: getAppEnv(), // "development" | "production"
+  PROJECT_ID: getProjectId(), // Expo notifications project ID
+  IS_DEV: __DEV__, // Convenience flag
 } as const;
 ```
 
 **Key Features:**
+
 - ✅ **Fail-Fast**: Throws a clear error at app startup if `EXPO_PUBLIC_API_URL` is undefined
 - ✅ **Type-Safe**: Exports `ConfigType` for TypeScript support
 - ✅ **Single Import**: Any file can `import { Config } from "@/src/config/env"`
@@ -86,15 +91,18 @@ export const Config = {
 ### 3. Updated `src/constants/api.ts`
 
 **Before:**
+
 ```typescript
 const getDefaultApiUrl = () => {
   if (Platform.OS === "web") return "http://localhost:3000";
   return "http://192.168.20.149:3000"; // ❌ Silent fallback
 };
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? getDefaultApiUrl();
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? getDefaultApiUrl();
 ```
 
 **After:**
+
 ```typescript
 import { Config } from "@/src/config/env";
 
@@ -169,6 +177,7 @@ if (__DEV__) {
 ```
 
 Console output example:
+
 ```
 ✅ App initialized with Config: {
   "API_BASE_URL": "http://192.168.20.149:3000",
@@ -205,6 +214,7 @@ npx expo start --no-dev --minify
 ```
 
 This:
+
 - Minifies JavaScript (like production)
 - Reads `.env.production` (simulates prod config)
 - Does NOT use hot reload
@@ -272,6 +282,7 @@ This shows what environment variables will be used without actually building.
 ### 4. Test API Connectivity
 
 In the app, make an API call and check:
+
 - Network tab in React Native debugger
 - Console logs from `src/services/api.ts`
 
@@ -288,6 +299,7 @@ npm run dev
 ```
 
 Expected behavior: App crashes immediately with:
+
 ```
 ❌ EXPO_PUBLIC_API_URL is not defined!
 This environment variable must be set in one of:
@@ -303,12 +315,14 @@ This environment variable must be set in one of:
 ### Add a Staging Environment
 
 1. Create `.env.staging`:
+
    ```
    EXPO_PUBLIC_API_URL=https://staging-api.tawreed.app
    EXPO_PUBLIC_APP_ENV=staging
    ```
 
 2. Add to `eas.json`:
+
    ```json
    {
      "build": {
@@ -324,6 +338,7 @@ This environment variable must be set in one of:
    ```
 
 3. Add to `package.json`:
+
    ```json
    "build:staging": "eas build --profile staging --platform android"
    ```
@@ -365,6 +380,7 @@ const getApiKey = (): string => {
 ```
 
 EAS Secrets are:
+
 - Injected server-side during builds
 - Never stored in `.env` files
 - Never committed to git
@@ -375,6 +391,7 @@ EAS Secrets are:
 ## Best Practices
 
 ✅ **DO:**
+
 - Commit `.env.development` and `.env.production` (they contain public URLs only)
 - Commit `.env.example` (template for new developers)
 - Use `eas secret:create` for actual secrets (API keys, tokens, etc.)
@@ -383,6 +400,7 @@ EAS Secrets are:
 - Use the Config module for all environment-dependent settings
 
 ❌ **DON'T:**
+
 - Commit `.env.local` or `.env.*.local` (personal overrides)
 - Put secrets directly in `.env` files
 - Use `process.env` directly in components (import from Config instead)
@@ -401,16 +419,15 @@ EAS Secrets are:
 
 ## Summary of Files Changed
 
-| File | Changes |
-|---|---|
-| `.env.development` | **NEW** — Local dev configuration |
-| `.env.production` | **NEW** — Production configuration |
-| `.env.example` | **NEW** — Template for developers |
-| `src/config/env.ts` | **NEW** — Central config module with validation |
-| `src/constants/api.ts` | Updated — Use Config module, remove fallback |
-| `eas.json` | Updated — Add EXPO_PUBLIC_APP_ENV to all profiles |
-| `package.json` | Updated — Add build convenience scripts |
-| `.gitignore` | Updated — Clarify env file handling |
-| `src/services/notification.service.ts` | Updated — Use Config.PROJECT_ID |
-| `app/_layout.tsx` | Updated — Add Config import and dev logging |
-
+| File                                   | Changes                                           |
+| -------------------------------------- | ------------------------------------------------- |
+| `.env.development`                     | **NEW** — Local dev configuration                 |
+| `.env.production`                      | **NEW** — Production configuration                |
+| `.env.example`                         | **NEW** — Template for developers                 |
+| `src/config/env.ts`                    | **NEW** — Central config module with validation   |
+| `src/constants/api.ts`                 | Updated — Use Config module, remove fallback      |
+| `eas.json`                             | Updated — Add EXPO_PUBLIC_APP_ENV to all profiles |
+| `package.json`                         | Updated — Add build convenience scripts           |
+| `.gitignore`                           | Updated — Clarify env file handling               |
+| `src/services/notification.service.ts` | Updated — Use Config.PROJECT_ID                   |
+| `app/_layout.tsx`                      | Updated — Add Config import and dev logging       |

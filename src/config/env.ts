@@ -1,9 +1,9 @@
 /**
  * Environment Configuration Module
- * 
+ *
  * Centralizes all environment-dependent configuration.
  * Loaded at app startup and validates required variables.
- * 
+ *
  * Environment variables are injected at JavaScript bundle time by Expo.
  * - Local dev: read from .env.development automatically
  * - Production: read from .env.production automatically
@@ -18,12 +18,12 @@ const getApiUrl = (): string => {
   if (!url || url.trim() === "") {
     throw new Error(
       "❌ EXPO_PUBLIC_API_URL is not defined!\n\n" +
-      "This environment variable must be set in one of:\n" +
-      "  • .env.development (for local development)\n" +
-      "  • .env.production (for production builds)\n" +
-      "  • eas.json (for EAS cloud builds)\n\n" +
-      "Without it, the app cannot communicate with the backend.\n" +
-      "See .env.example for the required format."
+        "This environment variable must be set in one of:\n" +
+        "  • .env.development (for local development)\n" +
+        "  • .env.production (for production builds)\n" +
+        "  • eas.json (for EAS cloud builds)\n\n" +
+        "Without it, the app cannot communicate with the backend.\n" +
+        "See .env.example for the required format.",
     );
   }
 
@@ -35,7 +35,7 @@ const getAppEnv = (): "development" | "production" => {
 
   if (!["development", "production"].includes(env)) {
     console.warn(
-      `⚠️  EXPO_PUBLIC_APP_ENV is set to "${env}", expected "development" or "production"`
+      `⚠️  EXPO_PUBLIC_APP_ENV is set to "${env}", expected "development" or "production"`,
     );
   }
 
@@ -76,6 +76,6 @@ if (__DEV__) {
     "🔧 App Config Loaded:",
     `\n  API: ${Config.API_BASE_URL}`,
     `\n  ENV: ${Config.APP_ENV}`,
-    `\n  DEV: ${Config.IS_DEV}`
+    `\n  DEV: ${Config.IS_DEV}`,
   );
 }

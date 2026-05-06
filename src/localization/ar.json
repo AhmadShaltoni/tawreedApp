@@ -54,7 +54,7 @@
     "browseAsGuest": "تصفح كضيف",
     "browseAsGuestSubtitle": "سجل الدخول للوصول الى جميع الخدمات",
     "categories": "الأقسام الرئيسية",
-    "featuredProducts": "المنتجات الأكثر مبيعآ",
+    "featuredProducts": "الأكثر مبيعآ",
     "recentOrders": "الطلبات الأخيرة",
     "allOrders": "كل الطلبات",
     "noRecentOrders": "لا توجد طلبات حديثة"
@@ -158,7 +158,11 @@
     },
     "discount": "الخصم",
     "subtotal": "المجموع الفرعي",
-    "totalAfterDiscount": "الإجمالي بعد الخصم"
+    "totalAfterDiscount": "الإجمالي بعد الخصم",
+    "successTitle": "تمت عملية الشراء بنجاح",
+    "successMessage": "يمكنك متابعة الشحنة من خلال سجل الطلبات",
+    "goToOrders": "متابعة سجل الطلبات",
+    "goToHome": "العودة إلى القائمة الرئيسية"
   },
   "orders": {
     "title": "سجل الطلبات",

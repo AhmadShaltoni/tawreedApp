@@ -5,7 +5,7 @@ import { Config } from "@/src/config/env";
  * Loaded from:
  *   - .env.development (local development)
  *   - .env.production (production builds, EAS)
- * 
+ *
  * If undefined, the app fails at startup with a clear error message.
  */
 export const API_BASE_URL = Config.API_BASE_URL;

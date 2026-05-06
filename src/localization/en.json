@@ -158,7 +158,11 @@
     },
     "discount": "Discount",
     "subtotal": "Subtotal",
-    "totalAfterDiscount": "Total after discount"
+    "totalAfterDiscount": "Total after discount",
+    "successTitle": "Order Placed Successfully",
+    "successMessage": "You can track your shipment through the order history",
+    "goToOrders": "Go to Order History",
+    "goToHome": "Return to Home"
   },
   "orders": {
     "title": "Order History",

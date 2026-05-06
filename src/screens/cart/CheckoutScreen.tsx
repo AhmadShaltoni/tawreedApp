@@ -23,6 +23,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -68,6 +69,7 @@ export default function CheckoutScreen() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] =
     useState<CouponValidateSuccess | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
   const areas = selectedCity?.areas ?? [];
@@ -243,8 +245,8 @@ export default function CheckoutScreen() {
       console.log("🗑️ Clearing cart...");
       dispatch(clearCart());
 
-      console.log("🏠 Redirecting to Home");
-      router.replace("/(tabs)");
+      console.log("� Showing success modal");
+      setShowSuccessModal(true);
     } else if (createOrder.rejected.match(result)) {
       console.error("❌ FAILED: Order creation rejected!");
       console.error("❌ Error payload:", result.payload);
@@ -590,6 +592,44 @@ export default function CheckoutScreen() {
           style={styles.confirmBtn}
         />
       </View>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+            </View>
+            <Text style={styles.modalTitle}>{t("checkout.successTitle")}</Text>
+            <Text style={styles.modalMessage}>{t("checkout.successMessage")}</Text>
+            <View style={styles.modalButtons}>
+              <Button
+                title={t("checkout.goToOrders")}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.replace("/(tabs)/orders");
+                }}
+                variant="primary"
+                style={styles.modalButton}
+              />
+              <Button
+                title={t("checkout.goToHome")}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.replace("/(tabs)");
+                }}
+                variant="outline"
+                style={styles.modalButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -811,5 +851,44 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.success,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    width: "100%",
+    alignItems: "center",
+    ...Shadows.md,
+  },
+  modalIconContainer: {
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: "700",
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  modalMessage: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    width: "100%",
+    gap: Spacing.sm,
+  },
+  modalButton: {
+    width: "100%",
   },
 });
