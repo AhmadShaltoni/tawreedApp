@@ -55,13 +55,13 @@ export default function NotificationsScreen() {
     dispatch(fetchNotifications());
   }, [dispatch]);
 
-  // Auto-mark all as read when screen comes into focus
+  // ✅ إصلاح: فقط جلب الإشعارات، بدون auto-mark-all-as-read
+  // المستخدم يختار "Mark All Read" يدويًا
   useFocusEffect(
     useCallback(() => {
-      if (items.length > 0) {
-        dispatch(markAllNotificationsRead());
-      }
-    }, [dispatch, items.length]),
+      // جلب الإشعارات الحديثة عند فتح الشاشة
+      dispatch(fetchNotifications());
+    }, [dispatch]),
   );
 
   const onRefresh = useCallback(async () => {

@@ -22,7 +22,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "tawreedApp.com.jo"
+      "package": "tawreedApp.com.jo",
+      "versionCode": 15
     },
     "web": {
       "output": "static",

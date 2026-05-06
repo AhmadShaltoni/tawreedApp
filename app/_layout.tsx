@@ -69,7 +69,13 @@ function AuthGate() {
 
       const initNotifications = async () => {
         try {
+          // ✅ Initialize Firebase notifications
           await notificationService.initializePushNotifications();
+
+          // ✅ Register Redux dispatch for real-time updates
+          notificationService.setReduxDispatch((action) => {
+            dispatch(action);
+          });
         } catch (error) {
           console.error(
             "[AuthGate] Failed to initialize push notifications:",
@@ -100,7 +106,7 @@ function AuthGate() {
       return () => {
         notificationService.cleanup();
       };
-    }, [router]),
+    }, [router, dispatch]),
   );
 
   // Fetch cart when user is authenticated

@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import apiClient from "./api";
 import { getToken } from "./tokenStorage";
+import { notificationServiceFirebase } from "./firebaseNotification.service";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -557,48 +558,99 @@ class NotificationServiceClass {
   }
 }
 
-// Export both old interface and new class
+// Export Expo service for backward compatibility (keeping for reference)
 export const pushNotificationService = new NotificationServiceClass();
 
+// ✅ Unified notification service using Firebase
 export const notificationService = {
+  // ============================================
+  // In-App Notifications (API calls)
+  // ============================================
   getNotifications: async (): Promise<Notification[]> => {
-    const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.LIST);
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.notifications)) return data.notifications;
-    return [];
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.LIST);
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.notifications)) return data.notifications;
+      return [];
+    } catch (error) {
+      console.error("[NotificationService] Error fetching notifications:", error);
+      return [];
+    }
   },
 
   markAsRead: async (id: string): Promise<void> => {
-    await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_READ(id));
+    try {
+      await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_READ(id));
+      console.log("[NotificationService] Notification marked as read:", id);
+    } catch (error) {
+      console.error("[NotificationService] Error marking as read:", error);
+    }
   },
 
   markAllAsRead: async (): Promise<void> => {
-    await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
+    try {
+      await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
+      console.log("[NotificationService] All notifications marked as read");
+    } catch (error) {
+      console.error("[NotificationService] Error marking all as read:", error);
+    }
   },
 
-  // Push notification methods
+  // ============================================
+  // Push Notifications (Firebase)
+  // ============================================
+  
+  /**
+   * ✅ Initialize Firebase push notifications
+   */
   initializePushNotifications: async () => {
-    return pushNotificationService.initialize();
+    console.log("[NotificationService] Initializing Firebase notifications...");
+    return notificationServiceFirebase.initialize();
   },
 
+  /**
+   * ✅ Get and register FCM token with backend
+   */
   registerDeviceToken: async () => {
-    return pushNotificationService.registerDeviceToken();
+    console.log("[NotificationService] Registering device token...");
+    return notificationServiceFirebase.getAndRegisterFCMToken();
   },
 
+  /**
+   * ✅ Register token after user login
+   */
   registerTokenAfterLogin: async () => {
-    return pushNotificationService.registerTokenAfterLogin();
+    console.log("[NotificationService] Registering token after login...");
+    return notificationServiceFirebase.registerTokenAfterLogin();
   },
 
+  /**
+   * ✅ Unregister token on logout
+   */
   unregisterToken: async () => {
-    return pushNotificationService.unregisterToken();
+    console.log("[NotificationService] Unregistering token...");
+    return notificationServiceFirebase.unregisterToken();
   },
 
+  /**
+   * ✅ Get stored FCM token
+   */
   getDeviceToken: async () => {
-    return pushNotificationService.getDeviceToken();
+    return notificationServiceFirebase.getStoredToken();
   },
 
+  /**
+   * ✅ Set Redux dispatch for real-time updates
+   */
+  setReduxDispatch: (dispatch: (action: any) => void) => {
+    notificationServiceFirebase.setReduxDispatch(dispatch);
+  },
+
+  /**
+   * ✅ Clean up resources
+   */
   cleanup: () => {
-    pushNotificationService.cleanup();
+    notificationServiceFirebase.cleanup();
   },
 };

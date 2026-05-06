@@ -54,7 +54,21 @@ export const markAllNotificationsRead = createAsyncThunk(
 const notificationsSlice = createSlice({
   name: "notifications",
   initialState,
-  reducers: {},
+  reducers: {
+    // ✅ جديد: إضافة إشعار وارد من Firebase (foreground)
+    addIncomingNotification: (state, action) => {
+      const newNotif = action.payload;
+      state.items.unshift({
+        ...newNotif,
+        id: newNotif.id || `temp_${Date.now()}`,
+      });
+      state.unreadCount += 1;
+      console.log(
+        "[NotificationsSlice] Incoming notification added, unreadCount:",
+        state.unreadCount
+      );
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchNotifications.pending, (state) => {
@@ -65,6 +79,10 @@ const notificationsSlice = createSlice({
         state.loading = false;
         state.items = action.payload;
         state.unreadCount = action.payload.filter((n) => !n.read).length;
+        console.log(
+          "[NotificationsSlice] Notifications fetched, unreadCount:",
+          state.unreadCount
+        );
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         state.loading = false;
@@ -76,6 +94,10 @@ const notificationsSlice = createSlice({
       if (item && !item.read) {
         item.read = true;
         state.unreadCount = Math.max(0, state.unreadCount - 1);
+        console.log(
+          "[NotificationsSlice] Notification marked as read, unreadCount:",
+          state.unreadCount
+        );
       }
     });
 
@@ -84,8 +106,13 @@ const notificationsSlice = createSlice({
         n.read = true;
       });
       state.unreadCount = 0;
+      console.log(
+        "[NotificationsSlice] All notifications marked as read, unreadCount:",
+        state.unreadCount
+      );
     });
   },
 });
 
+export const { addIncomingNotification } = notificationsSlice.actions;
 export default notificationsSlice.reducer;
