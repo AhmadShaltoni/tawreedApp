@@ -3,19 +3,19 @@ import Button from "@/src/components/ui/Button";
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-    clearCart,
-    fetchCart,
-    removeFromCartAsync,
-    updateCartItemAsync,
+  clearCart,
+  fetchCart,
+  removeFromCartAsync,
+  updateCartItemAsync,
 } from "@/src/store/slices/cart.slice";
 import type { CartItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,19 +24,21 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CartScreen() {
   const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, requireAuth, showLoginModal, setShowLoginModal } =
     useAuthGuard();
   const { items, loading, updating, error } = useAppSelector(
@@ -86,8 +88,7 @@ export default function CartScreen() {
   const handleDecrement = useCallback(
     (item: CartItem) => {
       requireAuth(() => {
-        const minQty =
-          item.variant?.minOrderQuantity ?? item.product.minOrder;
+        const minQty = item.variant?.minOrderQuantity ?? item.product.minOrder;
         if (item.quantity > minQty) {
           dispatch(
             updateCartItemAsync({
@@ -154,8 +155,7 @@ export default function CartScreen() {
           : (item.variant?.sizeEn ?? variantSize)
         : null;
       const maxStock = item.variant?.stock ?? item.product.stock;
-      const minQty =
-        item.variant?.minOrderQuantity ?? item.product.minOrder;
+      const minQty = item.variant?.minOrderQuantity ?? item.product.minOrder;
 
       return (
         <View style={[styles.cartItem, isUpdating && styles.itemUpdating]}>
@@ -186,9 +186,7 @@ export default function CartScreen() {
                 <Pressable
                   onPress={() => handleDecrement(item)}
                   style={styles.qtyBtn}
-                  disabled={
-                    item.quantity <= minQty || isUpdating
-                  }
+                  disabled={item.quantity <= minQty || isUpdating}
                 >
                   <Ionicons
                     name="remove"
@@ -233,7 +231,14 @@ export default function CartScreen() {
         </View>
       );
     },
-    [updating, handleIncrement, handleDecrement, handleRemove, t, i18n.language],
+    [
+      updating,
+      handleIncrement,
+      handleDecrement,
+      handleRemove,
+      t,
+      i18n.language,
+    ],
   );
 
   if (loading && items.length === 0) {
@@ -300,7 +305,12 @@ export default function CartScreen() {
         />
 
         {/* Bottom summary */}
-        <View style={styles.bottomBar}>
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
+          ]}
+        >
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t("cart.subtotal")}</Text>
             <Text style={styles.totalValue}>

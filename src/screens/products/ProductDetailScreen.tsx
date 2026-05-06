@@ -35,9 +35,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_HEIGHT = SCREEN_WIDTH * 0.75;
@@ -47,6 +48,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { requireAuth, showLoginModal, setShowLoginModal } = useAuthGuard();
   const { selectedProduct: product, loadingDetail } = useAppSelector(
     (state) => state.products,
@@ -72,8 +74,9 @@ export default function ProductDetailScreen() {
     [variants],
   );
 
-  const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null,
+  );
 
   useEffect(() => {
     if (defaultVariant && !selectedVariant) {
@@ -111,8 +114,7 @@ export default function ProductDetailScreen() {
     const newUnits = [...variant.units].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     );
-    const newDefault =
-      newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
+    const newDefault = newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
     setSelectedUnit(newDefault);
     setQuantity(variant.minOrderQuantity);
     Haptics.selectionAsync();
@@ -199,7 +201,10 @@ export default function ProductDetailScreen() {
   const isOutOfStock = currentStock === 0;
 
   const scrollVariants = (direction: "left" | "right") => {
-    variantScrollRef.current?.scrollTo({ x: direction === "right" ? 200 : 0, animated: true });
+    variantScrollRef.current?.scrollTo({
+      x: direction === "right" ? 200 : 0,
+      animated: true,
+    });
   };
 
   return (
@@ -225,7 +230,9 @@ export default function ProductDetailScreen() {
                 <View style={styles.imageWrapper}>
                   <Image
                     source={
-                      item ? { uri: item } : require("@/assets/images/icon2.png")
+                      item
+                        ? { uri: item }
+                        : require("@/assets/images/icon2.png")
                     }
                     style={styles.galleryImage}
                     contentFit="contain"
@@ -246,7 +253,11 @@ export default function ProductDetailScreen() {
 
             {/* Favorite icon */}
             <View style={styles.favoriteButton}>
-              <Ionicons name="heart-outline" size={26} color={Colors.textLight} />
+              <Ionicons
+                name="heart-outline"
+                size={26}
+                color={Colors.textLight}
+              />
             </View>
 
             {/* Back button overlay */}
@@ -308,7 +319,11 @@ export default function ProductDetailScreen() {
                     onPress={() => scrollVariants(isRTL ? "right" : "left")}
                     hitSlop={8}
                   >
-                    <Ionicons name={isRTL ? "chevron-forward" : "chevron-back"} size={20} color={Colors.textSecondary} />
+                    <Ionicons
+                      name={isRTL ? "chevron-forward" : "chevron-back"}
+                      size={20}
+                      color={Colors.textSecondary}
+                    />
                   </Pressable>
                   <ScrollView
                     ref={variantScrollRef}
@@ -338,7 +353,8 @@ export default function ProductDetailScreen() {
                             style={[
                               styles.variantChipLabel,
                               isSelected && styles.variantChipLabelSelected,
-                              variantOutOfStock && styles.variantChipLabelDisabled,
+                              variantOutOfStock &&
+                                styles.variantChipLabelDisabled,
                             ]}
                           >
                             {getVariantLabel(variant)}
@@ -352,7 +368,11 @@ export default function ProductDetailScreen() {
                     onPress={() => scrollVariants(isRTL ? "left" : "right")}
                     hitSlop={8}
                   >
-                    <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={20} color={Colors.textSecondary} />
+                    <Ionicons
+                      name={isRTL ? "chevron-back" : "chevron-forward"}
+                      size={20}
+                      color={Colors.textSecondary}
+                    />
                   </Pressable>
                 </View>
               </View>
@@ -400,7 +420,9 @@ export default function ProductDetailScreen() {
                             isSelected && styles.unitCardSubSelected,
                           ]}
                         >
-                          {t("products.pricePerUnit", { unit: getUnitLabel(unit) })}
+                          {t("products.pricePerUnit", {
+                            unit: getUnitLabel(unit),
+                          })}
                         </Text>
                       </Pressable>
                     );
@@ -422,7 +444,9 @@ export default function ProductDetailScreen() {
                               unit: getUnitLabel(unit),
                               count: unit.piecesPerUnit,
                             })
-                          : t("products.pricePerUnit", { unit: getUnitLabel(unit) })}
+                          : t("products.pricePerUnit", {
+                              unit: getUnitLabel(unit),
+                            })}
                       </Text>
                       <Text style={styles.priceComparisonValue}>
                         {unit.price.toFixed(2)} {t("common.currency")}
@@ -447,23 +471,20 @@ export default function ProductDetailScreen() {
 
             {/* Quantity Selector */}
             <View style={styles.quantitySection}>
-              <Text style={styles.selectorLabel}>
-                {t("products.quantity")}
-              </Text>
+              <Text style={styles.selectorLabel}>{t("products.quantity")}</Text>
               <View style={styles.quantityPill}>
                 <Pressable
                   onPress={() => {
                     decrementQty();
                     Haptics.selectionAsync();
                   }}
-                  style={[styles.qtyButton, quantity <= currentMinOrder && styles.qtyButtonDisabled]}
+                  style={[
+                    styles.qtyButton,
+                    quantity <= currentMinOrder && styles.qtyButtonDisabled,
+                  ]}
                   disabled={quantity <= currentMinOrder}
                 >
-                  <Ionicons
-                    name="remove"
-                    size={22}
-                    color={Colors.white}
-                  />
+                  <Ionicons name="remove" size={22} color={Colors.white} />
                 </Pressable>
                 <Text style={styles.qtyText}>{quantity}</Text>
                 <Pressable
@@ -471,14 +492,13 @@ export default function ProductDetailScreen() {
                     incrementQty();
                     Haptics.selectionAsync();
                   }}
-                  style={[styles.qtyButton, quantity >= currentStock && styles.qtyButtonDisabled]}
+                  style={[
+                    styles.qtyButton,
+                    quantity >= currentStock && styles.qtyButtonDisabled,
+                  ]}
                   disabled={quantity >= currentStock}
                 >
-                  <Ionicons
-                    name="add"
-                    size={22}
-                    color={Colors.white}
-                  />
+                  <Ionicons name="add" size={22} color={Colors.white} />
                 </Pressable>
               </View>
             </View>
@@ -486,16 +506,22 @@ export default function ProductDetailScreen() {
         </ScrollView>
 
         {/* Bottom Add to Cart Button */}
-        <View style={styles.bottomBar}>
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
+          ]}
+        >
           <Pressable
-            style={[styles.addToCartButton, isOutOfStock && styles.addToCartDisabled]}
+            style={[
+              styles.addToCartButton,
+              isOutOfStock && styles.addToCartDisabled,
+            ]}
             onPress={handleAddToCart}
             disabled={isOutOfStock}
           >
             <Ionicons name="cart-outline" size={22} color={Colors.white} />
-            <Text style={styles.addToCartText}>
-              {t("products.addToCart")}
-            </Text>
+            <Text style={styles.addToCartText}>{t("products.addToCart")}</Text>
           </Pressable>
         </View>
       </View>

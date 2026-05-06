@@ -6,15 +6,16 @@ import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  clearError,
-  continueAsGuest,
-  login,
+    clearError,
+    continueAsGuest,
+    login,
 } from "@/src/store/slices/auth.slice";
 import { Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FormErrors {
   phone?: string;
@@ -25,6 +26,7 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const [phone, setPhone] = useState("");
@@ -80,7 +82,12 @@ export default function LoginScreen() {
 
   return (
     <ScreenWrapper>
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+        ]}
+      >
         <Animated.View
           entering={FadeInDown.duration(500).delay(50)}
           style={styles.header}

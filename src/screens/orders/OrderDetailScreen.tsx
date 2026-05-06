@@ -39,12 +39,14 @@ import {
     TextInput,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OrderDetailScreen() {
   const { t, i18n } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const isAr = i18n.language === "ar";
 
   /** Show a short, readable order ID */
@@ -193,7 +195,10 @@ export default function OrderDetailScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+        ]}
       >
         {/* Section 1: Header Card — Order number, date, status */}
         <View style={styles.headerCard}>

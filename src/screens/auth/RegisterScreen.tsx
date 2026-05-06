@@ -11,6 +11,7 @@ import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FormErrors {
   username?: string;
@@ -24,6 +25,7 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const [username, setUsername] = useState("");
@@ -117,7 +119,12 @@ export default function RegisterScreen() {
 
   return (
     <ScreenWrapper>
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+        ]}
+      >
         <Animated.View
           entering={FadeInDown.duration(500).delay(50)}
           style={styles.header}

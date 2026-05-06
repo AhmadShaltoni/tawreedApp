@@ -2,11 +2,11 @@ import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { couponService } from "@/src/services/coupon.service";
 import { locationService } from "@/src/services/location.service";
@@ -20,16 +20,17 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FormErrors {
   city?: string;
@@ -39,6 +40,7 @@ export default function CheckoutScreen() {
   const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { items } = useAppSelector((state) => state.cart);
   const { creating, error } = useAppSelector((state) => state.orders);
   const { user } = useAppSelector((state) => state.auth);
@@ -270,7 +272,12 @@ export default function CheckoutScreen() {
 
   return (
     <ScreenWrapper>
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+        ]}
+      >
         {/* Order Summary */}
         <View style={styles.sectionHeader}>
           <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
@@ -603,10 +610,16 @@ export default function CheckoutScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconContainer}>
-              <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+              <Ionicons
+                name="checkmark-circle"
+                size={64}
+                color={Colors.success}
+              />
             </View>
             <Text style={styles.modalTitle}>{t("checkout.successTitle")}</Text>
-            <Text style={styles.modalMessage}>{t("checkout.successMessage")}</Text>
+            <Text style={styles.modalMessage}>
+              {t("checkout.successMessage")}
+            </Text>
             <View style={styles.modalButtons}>
               <Button
                 title={t("checkout.goToOrders")}

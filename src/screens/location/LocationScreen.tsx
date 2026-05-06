@@ -1,10 +1,10 @@
 import Button from "@/src/components/ui/Button";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch } from "@/src/store";
@@ -16,15 +16,15 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -47,10 +47,10 @@ async function matchLocationToCityAndArea(
   cities: City[],
 ): Promise<{ cityId: string; areaId?: string } | null> {
   try {
-    console.log(
-      "🗺️ [Location Matching] Reverse geocoding coordinates:",
-      { latitude, longitude },
-    );
+    console.log("🗺️ [Location Matching] Reverse geocoding coordinates:", {
+      latitude,
+      longitude,
+    });
 
     const results = await Location.reverseGeocodeAsync({
       latitude,
@@ -75,14 +75,11 @@ async function matchLocationToCityAndArea(
     const geocodedRegion = normalizeString(primaryResult.region || "");
     const geocodedDistrict = normalizeString(primaryResult.district || "");
 
-    console.log(
-      "🔍 [Location Matching] Extracted normalized names:",
-      {
-        city: geocodedCity,
-        region: geocodedRegion,
-        district: geocodedDistrict,
-      },
-    );
+    console.log("🔍 [Location Matching] Extracted normalized names:", {
+      city: geocodedCity,
+      region: geocodedRegion,
+      district: geocodedDistrict,
+    });
 
     // Try to match with available cities
     for (const city of cities) {
@@ -150,17 +147,12 @@ async function matchLocationToCityAndArea(
       {
         geocodedCity,
         geocodedRegion,
-        availableCities: cities
-          .slice(0, 3)
-          .map((c) => c.name),
+        availableCities: cities.slice(0, 3).map((c) => c.name),
       },
     );
     return null;
   } catch (error) {
-    console.error(
-      "🚨 [Location Matching] Error during matching:",
-      error,
-    );
+    console.error("🚨 [Location Matching] Error during matching:", error);
     return null;
   }
 }
@@ -219,8 +211,7 @@ export default function LocationScreen() {
   const handleAutoDetect = useCallback(async () => {
     setDetectingLocation(true);
     try {
-      const { status } =
-        await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("", t("location.permissionDenied"));
         return;
@@ -241,9 +232,7 @@ export default function LocationScreen() {
 
       // Try to match coordinates to city and area
       if (cities.length > 0) {
-        console.log(
-          "🔄 Attempting to match coordinates to city/area...",
-        );
+        console.log("🔄 Attempting to match coordinates to city/area...");
         const match = await matchLocationToCityAndArea(
           coords.latitude,
           coords.longitude,
@@ -251,10 +240,7 @@ export default function LocationScreen() {
         );
 
         if (match) {
-          console.log(
-            "🎯 Match successful - updating selections",
-            match,
-          );
+          console.log("🎯 Match successful - updating selections", match);
           setSelectedCityId(match.cityId);
           if (match.areaId) {
             setSelectedAreaId(match.areaId);
@@ -263,9 +249,7 @@ export default function LocationScreen() {
             setSelectedAreaId(null);
           }
         } else {
-          console.log(
-            "ℹ️ No match found - keeping coordinates only",
-          );
+          console.log("ℹ️ No match found - keeping coordinates only");
           // Coordinates are set but no city/area match
           // User can still proceed with just GPS coords
           Alert.alert(
@@ -334,7 +318,10 @@ export default function LocationScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + Spacing.xl, Spacing.xxxl) },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -354,11 +341,7 @@ export default function LocationScreen() {
           entering={FadeInDown.duration(500).delay(100)}
           style={styles.header}
         >
-          <Ionicons
-            name="location-sharp"
-            size={64}
-            color={Colors.secondary}
-          />
+          <Ionicons name="location-sharp" size={64} color={Colors.secondary} />
           <Text style={styles.title}>{t("location.title")}</Text>
         </Animated.View>
 
@@ -551,11 +534,7 @@ function PickerModal({
                   {item.label}
                 </Text>
                 {item.id === selectedId && (
-                  <Ionicons
-                    name="checkmark"
-                    size={20}
-                    color={Colors.primary}
-                  />
+                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
                 )}
               </Pressable>
             ))}
