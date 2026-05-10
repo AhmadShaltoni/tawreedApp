@@ -13,6 +13,7 @@ import { Config } from "@/src/config/env";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import { loadSavedLanguage } from "@/src/localization/i18n";
+import { initializeFirebase } from "@/src/services/firebase-init";
 import { notificationService } from "@/src/services/notification.service";
 import { store, useAppDispatch, useAppSelector } from "@/src/store";
 import { restoreSession } from "@/src/store/slices/auth.slice";
@@ -38,19 +39,33 @@ function AuthGate() {
   const { displayModal, handleModalEnable, handleModalClose } =
     usePushNotificationPermission();
 
-  // Initialize localization
+  // Initialize localization and Firebase
   useEffect(() => {
-    loadSavedLanguage();
-    dispatch(restoreSession());
+    const initialize = async () => {
+      try {
+        // ✅ Initialize Firebase FIRST (required before using messaging)
+        console.log("[AppInit] Initializing Firebase...");
+        await initializeFirebase();
+        console.log("[AppInit] ✅ Firebase initialized");
+      } catch (error) {
+        console.error("[AppInit] Firebase initialization failed:", error);
+        // Continue anyway - notifications will fail gracefully
+      }
+      
+      loadSavedLanguage();
+      dispatch(restoreSession());
 
-    // Log app configuration in development
-    if (__DEV__) {
-      console.log("✅ App initialized with Config:", {
-        API_BASE_URL: Config.API_BASE_URL,
-        APP_ENV: Config.APP_ENV,
-        IS_DEV: Config.IS_DEV,
-      });
-    }
+      // Log app configuration in development
+      if (__DEV__) {
+        console.log("✅ App initialized with Config:", {
+          API_BASE_URL: Config.API_BASE_URL,
+          APP_ENV: Config.APP_ENV,
+          IS_DEV: Config.IS_DEV,
+        });
+      }
+    };
+
+    initialize();
   }, [dispatch]);
 
   // Hide splash screen when app is initialized

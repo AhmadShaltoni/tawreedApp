@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import apiClient from "./api";
 import { getToken } from "./tokenStorage";
 import { API_ENDPOINTS } from "@/src/constants/api";
+import { initializeFirebase, isFirebaseInitialized } from "./firebase-init";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -37,6 +38,14 @@ class FirebaseNotificationService {
     try {
       console.log("[Firebase] Initializing Firebase Messaging...");
 
+      // ✅ CRITICAL: Initialize Firebase first
+      if (!isFirebaseInitialized()) {
+        console.log("[Firebase] Firebase not initialized yet, initializing...");
+        await initializeFirebase();
+      } else {
+        console.log("[Firebase] Firebase already initialized");
+      }
+
       // طلب الصلاحيات من المستخدم
       const authStatus = await messaging().requestPermission();
       const enabled =
@@ -59,6 +68,7 @@ class FirebaseNotificationService {
       }
     } catch (error) {
       console.error("[Firebase] Initialization error:", error);
+      throw error; // Re-throw to handle in caller
     }
   }
 
