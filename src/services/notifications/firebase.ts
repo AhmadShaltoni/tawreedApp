@@ -19,8 +19,8 @@ import {
     requestPermission,
 } from "@react-native-firebase/messaging";
 import { Platform } from "react-native";
-import apiClient from "./api";
-import { getToken as getJwtToken } from "./tokenStorage";
+import apiClient from "../api";
+import { getToken as getJwtToken } from "../tokenStorage";
 
 const STORAGE_KEYS = {
   FCM_TOKEN: "fcm_token",
