@@ -1,9 +1,10 @@
 import {
-  authService,
-  type LoginPayload,
-  type RegisterPayload,
-  type User,
+    authService,
+    type LoginPayload,
+    type RegisterPayload,
+    type User,
 } from "@/src/services/auth.service";
+import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
@@ -34,6 +35,10 @@ export const login = createAsyncThunk(
     try {
       const response = await authService.login(payload);
       await setToken(response.token);
+
+      // Register FCM token with backend now that user is authenticated
+      await notificationService.registerTokenAfterLogin();
+
       return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
@@ -48,6 +53,10 @@ export const register = createAsyncThunk(
     try {
       const response = await authService.register(payload);
       await setToken(response.token);
+
+      // Register FCM token with backend now that user is authenticated
+      await notificationService.registerTokenAfterLogin();
+
       return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
@@ -74,6 +83,10 @@ export const restoreSession = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk("auth/logout", async () => {
+  // Unregister FCM token from user account
+  await notificationService.unregisterTokenOnLogout();
+
+  // Clear JWT token from secure storage
   await removeToken();
 });
 

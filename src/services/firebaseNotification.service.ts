@@ -1,12 +1,18 @@
+import { API_ENDPOINTS } from "@/src/constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import messaging from "@react-native-firebase/messaging";
-import { useRouter } from "expo-router";
-import * as Device from "expo-device";
+import {
+  AuthorizationStatus,
+  getInitialNotification,
+  getMessaging,
+  getToken,
+  onMessage,
+  onNotificationOpenedApp,
+  requestPermission,
+} from "@react-native-firebase/messaging";
 import { Platform } from "react-native";
 import apiClient from "./api";
-import { getToken } from "./tokenStorage";
-import { API_ENDPOINTS } from "@/src/constants/api";
 import { initializeFirebase, isFirebaseInitialized } from "./firebase-init";
+import { getToken as getJwtToken } from "./tokenStorage";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -47,10 +53,11 @@ class FirebaseNotificationService {
       }
 
       // طلب الصلاحيات من المستخدم
-      const authStatus = await messaging().requestPermission();
+      const messagingInstance = getMessaging();
+      const authStatus = await requestPermission(messagingInstance);
       const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
 
       if (enabled) {
         console.log("[Firebase] Notification permission granted");
@@ -78,18 +85,19 @@ class FirebaseNotificationService {
   async getAndRegisterFCMToken(): Promise<string | null> {
     try {
       // الحصول على Token من Firebase
-      const fcmToken = await messaging().getToken();
+      const messagingInstance = getMessaging();
+      const fcmToken = await getToken(messagingInstance);
       console.log("[Firebase] FCM Token obtained:", fcmToken);
 
       // حفظ Token محلياً
       await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, fcmToken);
 
       // التحقق من تسجيل المستخدم
-      const jwtToken = await getToken();
+      const jwtToken = await getJwtToken();
 
       if (!jwtToken) {
         console.log(
-          "[Firebase] No JWT token, token will be registered after login"
+          "[Firebase] No JWT token, token will be registered after login",
         );
         return fcmToken;
       }
@@ -109,7 +117,7 @@ class FirebaseNotificationService {
    */
   private async registerTokenWithBackend(
     fcmToken: string,
-    jwtToken: string
+    jwtToken: string,
   ): Promise<void> {
     try {
       const platform = Platform.OS === "ios" ? "IOS" : "ANDROID";
@@ -129,7 +137,7 @@ class FirebaseNotificationService {
           headers: {
             Authorization: `Bearer ${jwtToken}`,
           },
-        }
+        },
       );
 
       if (response.status === 201 || response.status === 200) {
@@ -143,7 +151,7 @@ class FirebaseNotificationService {
       // إذا كان الخطأ 401 (Unauthorized)، فإن Token ربما يُسجّل بعد تسجيل الدخول
       if (error.response?.status === 401) {
         console.log(
-          "[Firebase] Token registration deferred (not authenticated yet)"
+          "[Firebase] Token registration deferred (not authenticated yet)",
         );
       }
     }
@@ -154,38 +162,44 @@ class FirebaseNotificationService {
    */
   private setupMessageHandlers(): void {
     // معالج الرسائل الواردة (Foreground)
-    this.messageUnsubscribe = messaging().onMessage(async (remoteMessage) => {
-      console.log("[Firebase] Foreground message received:", {
-        title: remoteMessage.notification?.title,
-        body: remoteMessage.notification?.body,
-        data: remoteMessage.data,
-      });
-
-      // تحديث Redux بالإشعار الجديد
-      if (this.reduxDispatch) {
-        // إضافة الإشعار الجديد إلى الحالة
-        this.reduxDispatch({
-          type: "notifications/addIncomingNotification",
-          payload: {
-            id: `temp_${Date.now()}`,
-            title: remoteMessage.notification?.title || "إشعار جديد",
-            message: remoteMessage.notification?.body || "",
-            type: this.getNotificationType(remoteMessage.data?.type),
-            read: false,
-            createdAt: new Date().toISOString(),
-            data: remoteMessage.data,
-          },
+    this.messageUnsubscribe = onMessage(
+      getMessaging(),
+      async (remoteMessage) => {
+        console.log("[Firebase] Foreground message received:", {
+          title: remoteMessage.notification?.title,
+          body: remoteMessage.notification?.body,
+          data: remoteMessage.data,
         });
 
-        // جلب الإشعارات الكاملة من Backend
-        this.reduxDispatch({
-          type: "notifications/fetchNotifications/pending",
-        });
-      }
-    });
+        // تحديث Redux بالإشعار الجديد
+        if (this.reduxDispatch) {
+          // إضافة الإشعار الجديد إلى الحالة
+          const rawType = remoteMessage.data?.type;
+          const typeString = typeof rawType === "string" ? rawType : undefined;
+
+          this.reduxDispatch({
+            type: "notifications/addIncomingNotification",
+            payload: {
+              id: `temp_${Date.now()}`,
+              title: remoteMessage.notification?.title || "إشعار جديد",
+              message: remoteMessage.notification?.body || "",
+              type: this.getNotificationType(typeString),
+              read: false,
+              createdAt: new Date().toISOString(),
+              data: remoteMessage.data,
+            },
+          });
+
+          // جلب الإشعارات الكاملة من Backend
+          this.reduxDispatch({
+            type: "notifications/fetchNotifications/pending",
+          });
+        }
+      },
+    );
 
     // معالج الضغط على الإشعار من الخلفية
-    messaging().onNotificationOpenedApp((remoteMessage) => {
+    onNotificationOpenedApp(getMessaging(), (remoteMessage) => {
       console.log("[Firebase] Notification opened app:", {
         title: remoteMessage.notification?.title,
         data: remoteMessage.data,
@@ -195,17 +209,15 @@ class FirebaseNotificationService {
     });
 
     // معالج الإشعار عند فتح التطبيق (killed state)
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log("[Firebase] App opened from notification:", {
-            title: remoteMessage.notification?.title,
-          });
+    getInitialNotification(getMessaging()).then((remoteMessage) => {
+      if (remoteMessage) {
+        console.log("[Firebase] App opened from notification:", {
+          title: remoteMessage.notification?.title,
+        });
 
-          this.handleNotificationTap(remoteMessage);
-        }
-      });
+        this.handleNotificationTap(remoteMessage);
+      }
+    });
   }
 
   /**
@@ -213,7 +225,8 @@ class FirebaseNotificationService {
    */
   private handleNotificationTap(remoteMessage: any): void {
     try {
-      const linkUrl = remoteMessage.data?.linkUrl || remoteMessage.data?.link_url;
+      const linkUrl =
+        remoteMessage.data?.linkUrl || remoteMessage.data?.link_url;
       const notificationData = remoteMessage.data;
 
       console.log("[Firebase] Handling notification tap:", {
@@ -245,7 +258,7 @@ class FirebaseNotificationService {
    * تحديد نوع الإشعار من البيانات
    */
   private getNotificationType(
-    typeString?: string
+    typeString?: string,
   ): "order_update" | "new_product" | "promotion" | "system" {
     const typeMap: Record<string, any> = {
       ORDER_UPDATE: "order_update",
@@ -259,6 +272,10 @@ class FirebaseNotificationService {
       NEW_OFFER: "order_update",
     };
 
+    if (!typeString) {
+      return "system";
+    }
+
     return typeMap[typeString] || "system";
   }
 
@@ -267,7 +284,7 @@ class FirebaseNotificationService {
    */
   async registerTokenAfterLogin(): Promise<void> {
     try {
-      const jwtToken = await getToken();
+      const jwtToken = await getJwtToken();
       if (!jwtToken) return;
 
       const fcmToken = await AsyncStorage.getItem(STORAGE_KEYS.FCM_TOKEN);
@@ -289,7 +306,7 @@ class FirebaseNotificationService {
    */
   async unregisterToken(): Promise<void> {
     try {
-      const jwtToken = await getToken();
+      const jwtToken = await getJwtToken();
       const fcmToken = await AsyncStorage.getItem(STORAGE_KEYS.FCM_TOKEN);
 
       if (!fcmToken) {
@@ -307,7 +324,7 @@ class FirebaseNotificationService {
                 Authorization: `Bearer ${jwtToken}`,
               },
               data: { token: fcmToken },
-            }
+            },
           );
 
           if (response.status === 200) {
@@ -351,8 +368,7 @@ class FirebaseNotificationService {
 }
 
 // تصدير الخدمة
-export const firebaseNotificationService =
-  new FirebaseNotificationService();
+export const firebaseNotificationService = new FirebaseNotificationService();
 
 // تصدير واجهة موحدة متوافقة مع الكود الموجود
 export const notificationServiceFirebase = {

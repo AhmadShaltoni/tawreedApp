@@ -8,15 +8,10 @@ import {
     Colors,
     Shadows,
     Spacing,
-    Typography
+    Typography,
 } from "@/src/constants/theme-modern";
 import React from "react";
-import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    Text
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
 interface ModernButtonProps {
   title: string;
@@ -97,11 +92,11 @@ function getStyles(
   fullWidth: boolean,
   isPressed: boolean,
 ) {
-  let backgroundColor = Colors.primary;
-  let textColor = Colors.white;
-  let paddingVertical = Spacing.md;
-  let paddingHorizontal = Spacing.lg;
-  let fontSize = Typography.fontSize.md;
+  let backgroundColor: string = Colors.primary;
+  let textColor: string = Colors.white;
+  let paddingVertical: number = Spacing.md;
+  let paddingHorizontal: number = Spacing.lg;
+  let fontSize: number = Typography.fontSize.md;
 
   // Variant styles
   if (variant === "accent") {

@@ -24,6 +24,9 @@ export interface User {
   username: string;
   phone: string;
   storeName: string;
+  name?: string;
+  email?: string;
+  businessName?: string;
   role: string;
   cityId?: string | null;
   areaId?: string | null;

@@ -43,10 +43,10 @@ export function ModernProductCard({
   const [isPressed, setIsPressed] = useState(false);
 
   // Calculate discount percentage if applicable
-  const discountPercent = product.originalPrice
-    ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100,
-      )
+  const currentPrice = product.discountPrice ?? product.price;
+  const originalPrice = product.discountPrice ? product.price : null;
+  const discountPercent = originalPrice
+    ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;
 
   // Mock rating data (in real app, fetch from API)
@@ -59,8 +59,9 @@ export function ModernProductCard({
     onAddToCart(product.id);
   };
 
-  const isLowStock = product.stock && product.stock < 5;
-  const isBestseller = product.sells && product.sells > 100; // Mock bestseller logic
+  const isLowStock = product.stock < 5;
+  const isBestseller = product.featured;
+  const imageUrl = product.images?.[0];
 
   return (
     <Pressable
@@ -70,12 +71,13 @@ export function ModernProductCard({
         containerStyle,
       ]}
       onPress={() => onPress(product.id)}
-      activeOpacity={0.7}
     >
       {/* IMAGE CONTAINER */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: product.image }}
+          source={
+            imageUrl ? { uri: imageUrl } : require("@/assets/images/icon2.png")
+          }
           style={styles.image}
           resizeMode="cover"
         />
@@ -123,19 +125,19 @@ export function ModernProductCard({
         <View style={styles.priceContainer}>
           <View style={{ flexDirection: "row", gap: Spacing.sm }}>
             <Text style={styles.currentPrice}>
-              JD {product.price.toFixed(2)}
+              JD {currentPrice.toFixed(2)}
             </Text>
-            {product.originalPrice && (
+            {originalPrice && (
               <Text style={styles.originalPrice}>
-                JD {product.originalPrice.toFixed(2)}
+                JD {originalPrice.toFixed(2)}
               </Text>
             )}
           </View>
 
           {/* SAVINGS INDICATOR */}
-          {product.originalPrice && discountPercent > 0 && (
+          {originalPrice && discountPercent > 0 && (
             <Text style={styles.savingsText}>
-              Save JD {(product.originalPrice - product.price).toFixed(2)}
+              Save JD {(originalPrice - currentPrice).toFixed(2)}
             </Text>
           )}
         </View>

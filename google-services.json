@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "878745452445",
+    "project_id": "tawreed-d7550",
+    "storage_bucket": "tawreed-d7550.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878745452445:android:4c0144ac04a8d169b13974",
+        "android_client_info": {
+          "package_name": "com.tawreed.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQF6m1yPFrAZN8rwwDtNWuCsSG0vX1YWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878745452445:android:7c66c1d5b8ca0444b13974",
+        "android_client_info": {
+          "package_name": "tawreedApp.com.jo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQF6m1yPFrAZN8rwwDtNWuCsSG0vX1YWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

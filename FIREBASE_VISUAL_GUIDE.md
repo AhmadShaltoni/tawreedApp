@@ -25,7 +25,7 @@
 │  Frontend (Mobile App):                   Backend (Next.js):     │
 │  ┌──────────────────────┐               ┌──────────────────┐    │
 │  │ Firebase SDK         │               │  Firebase Admin  │    │
-│  │ messaging().getToken()│ ━ FCM Token ━→│  Cloud Messaging │    │
+│  │ getToken(getMessaging())│ ━ FCM Token ━→│  Cloud Messaging │    │
 │  └──────────────────────┘               └──────────────────┘    │
 │        ✅ Firebase Token                    ✅ Firebase Token    │
 │                                              PERFECT MATCH! ✅   │
@@ -52,14 +52,14 @@
                       ↓
         ┌──────────────────────────────────┐
         │ firebaseNotification.service.ts  │
-        │ → messaging().requestPermission()│
+        │ → requestPermission(getMessaging())│
         └──────────────┬───────────────────┘
                       │
                       ├─── ✅ Permission Granted
                       │
                       ↓
         ┌────────────────────────────────────┐
-        │ messaging().getToken()             │
+        │ getToken(getMessaging())           │
         │ → Get FCM Token                    │
         └──────────────┬─────────────────────┘
                       │

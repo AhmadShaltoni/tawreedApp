@@ -14,7 +14,7 @@ import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import { loadSavedLanguage } from "@/src/localization/i18n";
 import { initializeFirebase } from "@/src/services/firebase-init";
-import { notificationService } from "@/src/services/notification.service";
+import { notificationService } from "@/src/services/notifications";
 import { store, useAppDispatch, useAppSelector } from "@/src/store";
 import { restoreSession } from "@/src/store/slices/auth.slice";
 import { fetchCart } from "@/src/store/slices/cart.slice";
@@ -47,11 +47,19 @@ function AuthGate() {
         console.log("[AppInit] Initializing Firebase...");
         await initializeFirebase();
         console.log("[AppInit] ✅ Firebase initialized");
+
+        // ✅ Initialize notification system
+        console.log("[AppInit] Initializing notification system...");
+        await notificationService.initialize();
+        console.log("[AppInit] ✅ Notification system initialized");
       } catch (error) {
-        console.error("[AppInit] Firebase initialization failed:", error);
+        console.error(
+          "[AppInit] Firebase/Notification initialization failed:",
+          error,
+        );
         // Continue anyway - notifications will fail gracefully
       }
-      
+
       loadSavedLanguage();
       dispatch(restoreSession());
 
@@ -77,51 +85,35 @@ function AuthGate() {
     }
   }, [isInitialized]);
 
-  // Initialize push notifications (on every app focus)
+  // Setup notification handlers when auth state and router are ready
   useFocusEffect(
     useCallback(() => {
-      console.log("[AuthGate] App focused, checking notifications");
+      console.log("[AuthGate] Setting up notification handlers");
 
-      const initNotifications = async () => {
-        try {
-          // ✅ Initialize Firebase notifications
-          await notificationService.initializePushNotifications();
+      try {
+        // Setup notification navigation with current auth state
+        notificationService.setupNavigation(
+          router,
+          isAuthenticated,
+          (linkUrl: string, data?: any) => {
+            // Optional: Dispatch to Redux for UI updates
+            console.log("[AuthGate] Notification navigation callback", linkUrl);
+          },
+        );
 
-          // ✅ Register Redux dispatch for real-time updates
-          notificationService.setReduxDispatch((action) => {
-            dispatch(action);
-          });
-        } catch (error) {
-          console.error(
-            "[AuthGate] Failed to initialize push notifications:",
-            error,
-          );
-        }
-      };
-
-      initNotifications();
-
-      // Setup deep linking for notifications
-      global.notificationNavigation = (linkUrl: string, data?: any) => {
-        if (linkUrl.startsWith("/orders/")) {
-          const id = linkUrl.replace("/orders/", "");
-          router.push(`/order/${id}`);
-        } else if (linkUrl.startsWith("/products/")) {
-          const id = linkUrl.replace("/products/", "");
-          router.push(`/product/${id}`);
-        } else if (linkUrl.includes("/cart")) {
-          router.push("/(tabs)/cart");
-        } else if (linkUrl.includes("/notifications")) {
-          router.push("/notifications");
-        } else {
-          router.push("/(tabs)");
-        }
-      };
+        // Update auth status in notification service
+        notificationService.updateAuthStatus(isAuthenticated);
+      } catch (error) {
+        console.error(
+          "[AuthGate] Failed to setup notification handlers:",
+          error,
+        );
+      }
 
       return () => {
         notificationService.cleanup();
       };
-    }, [router, dispatch]),
+    }, [router, isAuthenticated]),
   );
 
   // Fetch cart when user is authenticated

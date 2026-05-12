@@ -6,12 +6,7 @@
 
 import { BorderRadius, Colors, Spacing } from "@/src/constants/theme-modern";
 import React, { useEffect } from "react";
-import {
-    Animated,
-    StyleSheet,
-    View,
-    ViewStyle
-} from "react-native";
+import { Animated, StyleSheet, View, ViewStyle } from "react-native";
 
 interface SkeletonLoaderProps {
   width?: number | string;
@@ -59,6 +54,13 @@ export function SkeletonLoader({
     }),
   };
 
+  const resolvedWidth =
+    typeof width === "number"
+      ? width
+      : width.endsWith("%")
+        ? (width as `${number}%`)
+        : "auto";
+
   const skeletonItems = Array(count)
     .fill(0)
     .map((_, index) => (
@@ -66,7 +68,7 @@ export function SkeletonLoader({
         key={index}
         style={[
           {
-            width,
+            width: resolvedWidth,
             height,
             borderRadius: radius,
             backgroundColor: Colors.background,

@@ -11,7 +11,14 @@ import {
     Typography,
 } from "@/src/constants/theme-modern";
 import React from "react";
-import { StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
+import {
+    StyleProp,
+    StyleSheet,
+    Text,
+    TextStyle,
+    View,
+    ViewStyle,
+} from "react-native";
 
 type BadgeVariant =
   | "primary"
@@ -26,8 +33,8 @@ interface ModernBadgeProps {
   label: string;
   variant?: BadgeVariant;
   size?: BadgeSize;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
 }
 

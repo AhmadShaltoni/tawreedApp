@@ -3,14 +3,14 @@
  * Must be called before using any Firebase services
  */
 
-import firebase from "@react-native-firebase/app";
+import { getApp, getApps } from "@react-native-firebase/app";
 import { Platform } from "react-native";
 
 let firebaseInitialized = false;
 
 /**
  * Initialize Firebase once at app startup
- * This must be called BEFORE using messaging() or any other Firebase service
+ * This must be called BEFORE using Firebase services like Messaging
  */
 export async function initializeFirebase(): Promise<void> {
   if (firebaseInitialized) {
@@ -21,26 +21,24 @@ export async function initializeFirebase(): Promise<void> {
   try {
     console.log("[Firebase Init] Starting Firebase initialization...");
 
-    // Firebase auto-initializes with config from:
-    // - android/app/google-services.json (Android)
-    // - ios/GoogleService-Info.plist (iOS)
-    // These files are configured via app.json plugins
-
-    // Check if already initialized
-    if (!firebase.apps.length) {
-      console.log("[Firebase Init] No Firebase apps found, auto-initializing...");
-    } else {
-      console.log(
-        "[Firebase Init] Firebase already initialized with",
-        firebase.apps.length,
-        "app(s)"
+    const apps = getApps();
+    if (apps.length === 0) {
+      console.error(
+        "[Firebase Init] No Firebase apps found. Check google-services.json/GoogleService-Info.plist and package name.",
       );
+      throw new Error("Firebase app not initialized");
     }
 
-    // Verify initialization
-    const defaultApp = firebase.app();
+    console.log(
+      "[Firebase Init] Firebase already initialized with",
+      apps.length,
+      "app(s)",
+    );
+
+    const app = getApp();
+
     console.log("[Firebase Init] ✅ Firebase initialized successfully!");
-    console.log("[Firebase Init] App name:", defaultApp.name);
+    console.log("[Firebase Init] App name:", app.name);
     console.log("[Firebase Init] Platform:", Platform.OS);
 
     firebaseInitialized = true;
@@ -54,7 +52,7 @@ export async function initializeFirebase(): Promise<void> {
  * Check if Firebase is initialized
  */
 export function isFirebaseInitialized(): boolean {
-  return firebaseInitialized || (firebase.apps.length > 0);
+  return firebaseInitialized || getApps().length > 0;
 }
 
 /**
@@ -63,8 +61,9 @@ export function isFirebaseInitialized(): boolean {
 export function getFirebaseApp() {
   if (!isFirebaseInitialized()) {
     throw new Error(
-      "Firebase not initialized. Call initializeFirebase() first."
+      "Firebase not initialized. Call initializeFirebase() first.",
     );
   }
-  return firebase.app();
+
+  return getApp();
 }

@@ -30,6 +30,7 @@ import {
     StyleSheet,
     Text,
     View,
+    ViewStyle,
 } from "react-native";
 import Animated, {
     FadeInDown,
@@ -57,26 +58,41 @@ export default function HomeScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
-  
+
   // Dynamic RTL styles
   const isRTL = I18nManager.isRTL;
-  const dynamicHeaderStyle = useMemo(() => ({
-    flexDirection: isRTL ? "row-reverse" : "row",
-  }), [isRTL]);
-  const dynamicHeaderActionsStyle = useMemo(() => ({
-    marginLeft: isRTL ? 0 : Spacing.md,
-    marginRight: isRTL ? Spacing.md : 0,
-  }), [isRTL]);
-  const dynamicNotifBadgeStyle = useMemo(() => ({
-    [isRTL ? "left" : "right"]: -2,
-  }), [isRTL]);
-  const dynamicHeroButtonStyle = useMemo(() => ({
-    flexDirection: isRTL ? "row-reverse" : "row",
-    alignSelf: isRTL ? "flex-end" : "flex-start",
-  }), [isRTL]);
-  const dynamicQuickActionsStyle = useMemo(() => ({
-    flexDirection: isRTL ? "row-reverse" : "row",
-  }), [isRTL]);
+  const dynamicHeaderStyle = useMemo<ViewStyle>(
+    () => ({
+      flexDirection: isRTL ? "row-reverse" : "row",
+    }),
+    [isRTL],
+  );
+  const dynamicHeaderActionsStyle = useMemo<ViewStyle>(
+    () => ({
+      marginLeft: isRTL ? 0 : Spacing.md,
+      marginRight: isRTL ? Spacing.md : 0,
+    }),
+    [isRTL],
+  );
+  const dynamicNotifBadgeStyle = useMemo<ViewStyle>(
+    () => ({
+      ...(isRTL ? { left: -2 } : { right: -2 }),
+    }),
+    [isRTL],
+  );
+  const dynamicHeroButtonStyle = useMemo<ViewStyle>(
+    () => ({
+      flexDirection: isRTL ? "row-reverse" : "row",
+      alignSelf: isRTL ? "flex-end" : "flex-start",
+    }),
+    [isRTL],
+  );
+  const dynamicQuickActionsStyle = useMemo<ViewStyle>(
+    () => ({
+      flexDirection: isRTL ? "row-reverse" : "row",
+    }),
+    [isRTL],
+  );
 
   // Quick action buttons for the home screen
   const QUICK_ACTIONS = [
@@ -203,7 +219,9 @@ export default function HomeScreen() {
             </Text>
           )}
         </View>
-        <View style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}>
+        <View
+          style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}
+        >
           {!isAuthenticated && (
             <Pressable
               style={styles.loginButton}

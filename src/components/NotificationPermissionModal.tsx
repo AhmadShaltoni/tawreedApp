@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
     width: "100%",
     maxWidth: 340,
-    ...Shadows.medium,
+    ...Shadows.md,
   },
   closeButton: {
     position: "absolute",
