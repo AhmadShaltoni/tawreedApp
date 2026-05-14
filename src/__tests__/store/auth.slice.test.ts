@@ -30,17 +30,28 @@ jest.mock("@/src/services/tokenStorage", () => ({
   removeToken: jest.fn(() => Promise.resolve()),
 }));
 
+jest.mock("@/src/services/notifications", () => ({
+  notificationService: {
+    registerTokenAfterLogin: jest.fn(() => Promise.resolve()),
+    unregisterTokenOnLogout: jest.fn(() => Promise.resolve()),
+  },
+}));
+
 jest.mock("@/src/utils/errorHandler", () => ({
   getErrorMessage: jest.fn((e: any) => e.message || "Error"),
 }));
 
 import { authService } from "@/src/services/auth.service";
+import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
 
 const mockAuthService = authService as jest.Mocked<typeof authService>;
 const mockGetToken = getToken as jest.MockedFunction<typeof getToken>;
 const mockSetToken = setToken as jest.MockedFunction<typeof setToken>;
 const mockRemoveToken = removeToken as jest.MockedFunction<typeof removeToken>;
+const mockNotificationService = notificationService as jest.Mocked<
+  typeof notificationService
+>;
 
 function createTestStore() {
   return configureStore({ reducer: { auth: authReducer } });
@@ -110,6 +121,16 @@ describe("Auth Slice", () => {
       expect(mockSetToken).toHaveBeenCalledWith("jwt-token-123");
     });
 
+    it("should relink FCM token on successful login", async () => {
+      mockAuthService.login.mockResolvedValueOnce(mockAuthResponse);
+
+      await store.dispatch(
+        login({ phone: "0791234567", password: "password123" }),
+      );
+
+      expect(mockNotificationService.registerTokenAfterLogin).toHaveBeenCalled();
+    });
+
     it("should handle login failure", async () => {
       mockAuthService.login.mockRejectedValueOnce(
         new Error("بيانات الدخول غير صحيحة"),
@@ -173,6 +194,14 @@ describe("Auth Slice", () => {
       expect(mockSetToken).toHaveBeenCalledWith("jwt-token-123");
     });
 
+    it("should relink FCM token on successful registration", async () => {
+      mockAuthService.register.mockResolvedValueOnce(mockAuthResponse);
+
+      await store.dispatch(register(registerPayload));
+
+      expect(mockNotificationService.registerTokenAfterLogin).toHaveBeenCalled();
+    });
+
     it("should handle registration failure (duplicate phone)", async () => {
       mockAuthService.register.mockRejectedValueOnce(
         new Error("رقم الهاتف مسجل مسبقاً"),
@@ -199,6 +228,15 @@ describe("Auth Slice", () => {
       expect(state.user).toEqual(mockUser);
       expect(state.token).toBe("saved-token");
       expect(state.isInitialized).toBe(true);
+    });
+
+    it("should relink FCM token when restoring a saved session", async () => {
+      mockGetToken.mockResolvedValueOnce("saved-token");
+      mockAuthService.getMe.mockResolvedValueOnce(mockUser);
+
+      await store.dispatch(restoreSession());
+
+      expect(mockNotificationService.registerTokenAfterLogin).toHaveBeenCalled();
     });
 
     it("should handle no saved token", async () => {

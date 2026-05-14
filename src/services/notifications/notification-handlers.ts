@@ -20,13 +20,13 @@ export interface RemoteMessage {
     title?: string;
     body?: string;
   };
-  data?: Record<string, string>;
+  data?: Record<string, string | object>;
 }
 
 export type NotificationHandler = (message: RemoteMessage) => void;
 export type NavigationHandler = (
   linkUrl: string,
-  data?: Record<string, string>,
+  data?: Record<string, string | object>,
 ) => void;
 
 class NotificationHandlersService {
@@ -144,7 +144,7 @@ class NotificationHandlersService {
       notificationType,
     });
 
-    if (linkUrl && this.navigationHandler) {
+    if (typeof linkUrl === "string" && this.navigationHandler) {
       this.navigationHandler(linkUrl, message.data);
     }
   }

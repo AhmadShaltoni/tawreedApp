@@ -74,6 +74,7 @@ export const restoreSession = createAsyncThunk(
         return null;
       }
       const user = await authService.getMe();
+      await notificationService.registerTokenAfterLogin();
       return { token, user };
     } catch {
       await removeToken();

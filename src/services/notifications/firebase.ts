@@ -6,10 +6,10 @@
  * 1. APP INSTALL → Generate FCM token → Register anonymously
  * 2. LOGIN → Re-send same token with auth
  * 3. TOKEN REFRESH → Listen & re-register
- * 4. LOGOUT → DELETE token
+ * 4. LOGOUT → unlink token from authenticated user
  */
 
-import { API_ENDPOINTS } from "@/src/constants/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     AuthorizationStatus,
@@ -18,6 +18,8 @@ import {
     onTokenRefresh,
     requestPermission,
 } from "@react-native-firebase/messaging";
+import axios from "axios";
+import * as Device from "expo-device";
 import { Platform } from "react-native";
 import apiClient from "../api";
 import { getToken as getJwtToken } from "../tokenStorage";
@@ -26,6 +28,15 @@ const STORAGE_KEYS = {
   FCM_TOKEN: "fcm_token",
   FCM_TOKEN_REGISTERED: "fcm_token_registered",
 };
+
+const anonymousApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
 
 class FirebaseMessagingService {
   private tokenRefreshUnsubscribe: (() => void) | null = null;
@@ -53,8 +64,11 @@ class FirebaseMessagingService {
 
       console.log("[FCM] ✅ Notification permission granted");
 
-      // Get initial FCM token
-      await this.getAndStoreFCMToken();
+      // Get initial FCM token and register it before auth is restored.
+      const fcmToken = await this.getAndStoreFCMToken();
+      if (fcmToken) {
+        await this.registerTokenWithBackend(fcmToken, null);
+      }
 
       // Setup token refresh listener
       this.setupTokenRefreshListener();
@@ -111,11 +125,9 @@ class FirebaseMessagingService {
           this.currentToken = newToken;
           await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, newToken);
 
-          // Re-register with backend if user is authenticated
+          // Re-register refreshed tokens for both anonymous and authenticated devices.
           const jwtToken = await getJwtToken();
-          if (jwtToken) {
-            await this.registerTokenWithBackend(newToken, jwtToken);
-          }
+          await this.registerTokenWithBackend(newToken, jwtToken);
         },
       );
 
@@ -131,7 +143,7 @@ class FirebaseMessagingService {
    */
   async registerTokenWithBackend(
     fcmToken?: string,
-    jwtToken?: string,
+    jwtToken?: string | null,
   ): Promise<boolean> {
     try {
       const token =
@@ -145,7 +157,12 @@ class FirebaseMessagingService {
       }
 
       const platform = Platform.OS === "ios" ? "IOS" : "ANDROID";
-      const authToken = jwtToken || (await getJwtToken());
+      const authToken = jwtToken === undefined ? await getJwtToken() : jwtToken;
+      const payload = {
+        token,
+        platform,
+        deviceInfo: this.getDeviceInfo(),
+      };
 
       console.log("[FCM] 📤 Registering token with backend:", {
         platform,
@@ -153,13 +170,14 @@ class FirebaseMessagingService {
         isAuthenticated: !!authToken,
       });
 
-      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
-
-      const response = await apiClient.post(
-        API_ENDPOINTS.REGISTER_DEVICE_TOKEN,
-        { token, platform },
-        { headers },
-      );
+      const response = authToken
+        ? await apiClient.post(API_ENDPOINTS.REGISTER_DEVICE_TOKEN, payload, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          })
+        : await anonymousApiClient.post(
+            API_ENDPOINTS.REGISTER_DEVICE_TOKEN,
+            payload,
+          );
 
       if (response.status === 201 || response.status === 200) {
         console.log("[FCM] ✅ Token registered successfully");
@@ -180,6 +198,19 @@ class FirebaseMessagingService {
       console.error("[FCM] Token registration error:", error);
       return false;
     }
+  }
+
+  private getDeviceInfo(): Record<string, string | number | boolean | null> {
+    return {
+      brand: Device.brand ?? null,
+      manufacturer: Device.manufacturer ?? null,
+      modelName: Device.modelName ?? null,
+      osName: Device.osName ?? Platform.OS,
+      osVersion: Device.osVersion ?? null,
+      deviceName: Device.deviceName ?? null,
+      deviceType: Device.deviceType ?? null,
+      isDevice: Device.isDevice,
+    };
   }
 
   /**

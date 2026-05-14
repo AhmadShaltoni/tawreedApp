@@ -47,7 +47,7 @@ class NotificationServiceCoordinator {
   setupNavigation(
     router: any,
     isAuthenticated: boolean,
-    onNavigate: (linkUrl: string, data?: Record<string, string>) => void,
+    onNavigate: (linkUrl: string, data?: Record<string, string | object>) => void,
   ): void {
     try {
       console.log("[NotificationService] Setting up notification navigation");

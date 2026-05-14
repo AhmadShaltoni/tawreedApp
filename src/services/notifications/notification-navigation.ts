@@ -14,7 +14,7 @@
 
 export interface NotificationNavigation {
   linkUrl: string;
-  data?: Record<string, string>;
+  data?: Record<string, string | object>;
 }
 
 class NotificationNavigationService {
@@ -41,7 +41,7 @@ class NotificationNavigationService {
    * Navigate to screen based on notification link
    * Handles auth redirects automatically
    */
-  navigate(linkUrl: string, data?: Record<string, string>): void {
+  navigate(linkUrl: string, data?: Record<string, string | object>): void {
     if (!this.router) {
       console.warn("[Navigation] Router not initialized");
       return;
@@ -86,7 +86,7 @@ class NotificationNavigationService {
    */
   private navigateToRoute(
     linkUrl: string,
-    data?: Record<string, string>,
+    data?: Record<string, string | object>,
   ): void {
     if (linkUrl.startsWith("/orders/")) {
       // Order Detail: /orders/123 → /order/123
@@ -120,9 +120,10 @@ class NotificationNavigationService {
   /**
    * Get deep link URL from notification data
    */
-  static extractLinkUrl(data?: Record<string, string>): string | null {
+  static extractLinkUrl(data?: Record<string, string | object>): string | null {
     if (!data) return null;
-    return data.linkUrl || data.link_url || null;
+    const linkUrl = data.linkUrl || data.link_url;
+    return typeof linkUrl === "string" ? linkUrl : null;
   }
 
   /**
@@ -133,7 +134,11 @@ class NotificationNavigationService {
       id: remoteMessage.messageId || `msg_${Date.now()}`,
       title: remoteMessage.notification?.title || "Notification",
       body: remoteMessage.notification?.body || "",
-      type: this.mapNotificationType(remoteMessage.data?.type),
+      type: this.mapNotificationType(
+        typeof remoteMessage.data?.type === "string"
+          ? remoteMessage.data.type
+          : undefined,
+      ),
       read: false,
       createdAt: new Date().toISOString(),
       data: remoteMessage.data,
