@@ -393,3 +393,8 @@ export interface CouponConfirmResponse {
   discountAmount: number;
   usageId: string;
 }
+
+// ============================================
+// Loyalty & Rewards System
+// ============================================
+export * from "./loyalty";

@@ -7,6 +7,7 @@ import {
 import authReducer from "./slices/auth.slice";
 import cartReducer from "./slices/cart.slice";
 import categoriesReducer from "./slices/categories.slice";
+import loyaltyReducer from "./slices/loyalty.slice";
 import noticesReducer from "./slices/notices.slice";
 import notificationsReducer from "./slices/notifications.slice";
 import ordersReducer from "./slices/orders.slice";
@@ -21,6 +22,7 @@ export const store = configureStore({
     orders: ordersReducer,
     notices: noticesReducer,
     notifications: notificationsReducer,
+    loyalty: loyaltyReducer,
   },
 });
 

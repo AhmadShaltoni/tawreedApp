@@ -55,6 +55,17 @@ export const API_ENDPOINTS = {
   USER: {
     UPDATE_LOCATION: "/api/v1/user/location",
   },
+  LOYALTY: {
+    BALANCE: "/api/v1/loyalty/balance",
+    TRANSACTIONS: "/api/v1/loyalty/transactions",
+    REWARDS: "/api/v1/loyalty/rewards",
+    REDEEM: "/api/v1/loyalty/rewards/redeem",
+    COUPONS: "/api/v1/loyalty/coupons",
+    VALIDATE_COUPON: "/api/v1/loyalty/coupons/validate",
+    CAMPAIGNS: "/api/v1/loyalty/campaigns",
+    REFERRAL: "/api/v1/loyalty/referral",
+    REFERRAL_APPLY: "/api/v1/loyalty/referral/apply",
+  },
   REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
   UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
 } as const;
