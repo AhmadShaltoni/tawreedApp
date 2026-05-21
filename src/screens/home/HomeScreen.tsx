@@ -1,3 +1,4 @@
+import { BrandCard, BrandCardSkeleton } from "@/src/components/BrandCard";
 import CategoryCard from "@/src/components/CategoryCard";
 import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
@@ -11,11 +12,12 @@ import {
     Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
+import { fetchBrands } from "@/src/store/slices/brands.slice";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
 import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
 import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
-import type { Category, Product } from "@/src/types";
+import type { Brand, Category, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -50,6 +52,9 @@ export default function HomeScreen() {
     (state) => state.products,
   );
   const { items: categories } = useAppSelector((state) => state.categories);
+  const { items: brands, loading: brandsLoading } = useAppSelector(
+    (state) => state.brands,
+  );
   const { items: notices, currentIndex } = useAppSelector(
     (state) => state.notices,
   );
@@ -129,6 +134,7 @@ export default function HomeScreen() {
   const loadData = useCallback(
     (force = false) => {
       dispatch(fetchNotices());
+      dispatch(fetchBrands());
       dispatch(fetchFeaturedProducts({ force }));
       dispatch(fetchCategories(undefined));
       if (isAuthenticated) {
@@ -148,6 +154,7 @@ export default function HomeScreen() {
     setRefreshing(true);
     await Promise.all([
       dispatch(fetchNotices()),
+      dispatch(fetchBrands()),
       dispatch(fetchFeaturedProducts({ force: true })),
       dispatch(fetchCategories(undefined)),
     ]);
@@ -168,6 +175,13 @@ export default function HomeScreen() {
       } else {
         router.push(`/products?categoryId=${category.id}`);
       }
+    },
+    [router],
+  );
+
+  const handleBrandPress = useCallback(
+    (brand: Brand) => {
+      router.push(`/products?brandId=${brand.id}`);
     },
     [router],
   );
@@ -310,6 +324,41 @@ export default function HomeScreen() {
               <CategoryCard category={item} onPress={handleCategoryPress} />
             )}
           />
+        </>
+      ) : null}
+
+      {/* Brands */}
+      {brands.length > 0 || brandsLoading ? (
+        <>
+          <SectionHeader
+            title={t("brands.title")}
+            actionLabel={t("common.seeAll")}
+            onAction={() => router.push("/products")}
+          />
+          <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+            {brandsLoading && brands.length === 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                <BrandCardSkeleton />
+                <BrandCardSkeleton />
+                <BrandCardSkeleton />
+              </ScrollView>
+            ) : (
+              <FlatList
+                data={brands}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.horizontalList}
+                renderItem={({ item }) => (
+                  <BrandCard brand={item} onPress={handleBrandPress} />
+                )}
+              />
+            )}
+          </Animated.View>
         </>
       ) : null}
 

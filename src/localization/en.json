@@ -100,7 +100,14 @@
     "unitPrice": "Unit Price",
     "quantity": "Quantity",
     "pricePerUnit": "{{unit}} Price",
-    "pricePerUnitCount": "{{unit}} Price ({{count}} pcs)"
+    "pricePerUnitCount": "{{unit}} Price ({{count}} pcs)",
+    "allFilter": "All",
+    "totalItems": "Total Items",
+    "totalPrice": "Total Price",
+    "stickyAddToCart": "Add to Cart",
+    "outOfStockOption": "Out of Stock",
+    "perFlavor": "Per Flavor",
+    "selectFlavor": "Select Flavor"
   },
   "categories": {
     "title": "Categories",
@@ -111,6 +118,11 @@
     "productCount": "{{count}} products",
     "viewProducts": "View Products ({{count}})",
     "viewAllProducts": "View All Products (with subcategories)"
+  },
+  "brands": {
+    "title": "Brands",
+    "viewAll": "View All Brands",
+    "productsCount": "{{count}} products"
   },
   "cart": {
     "title": "Cart",

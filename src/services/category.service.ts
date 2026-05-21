@@ -18,6 +18,7 @@ interface ApiCategory {
   childrenCount?: number;
   productsCount?: number;
   image?: CategoryImageData | null;
+  tags?: string[];
   sortOrder: number;
   isActive: boolean;
   _count?: { products: number };
@@ -53,6 +54,7 @@ function mapCategory(raw: ApiCategory): Category {
     childrenCount: raw.childrenCount ?? 0,
     productsCount: raw.productsCount ?? raw._count?.products ?? 0,
     image,
+    tags: raw.tags ?? [],
     productCount: raw.productsCount ?? raw._count?.products,
     children: raw.children?.map(mapCategory),
   };

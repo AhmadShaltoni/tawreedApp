@@ -125,6 +125,7 @@ export interface Category {
   productsCount: number;
   image?: CategoryImage;
   children?: Category[];
+  tags?: string[];
   /** @deprecated Use productsCount instead */
   productCount?: number;
 }
@@ -151,6 +152,8 @@ export interface ProductsResponse {
 export interface ProductFilters {
   search?: string;
   categoryId?: string;
+  brandId?: string;
+  tag?: string;
   includeDescendants?: boolean;
   minPrice?: number;
   maxPrice?: number;
@@ -158,6 +161,19 @@ export interface ProductFilters {
   page?: number;
   limit?: number;
   sort?: string;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  nameEn?: string;
+  slug: string;
+  logo?: string;
+  productCount: number;
+}
+
+export interface BrandsResponse {
+  brands: Brand[];
 }
 
 export type OrderStatus =

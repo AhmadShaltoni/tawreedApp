@@ -5,6 +5,7 @@ import {
     type TypedUseSelectorHook,
 } from "react-redux";
 import authReducer from "./slices/auth.slice";
+import brandsReducer from "./slices/brands.slice";
 import cartReducer from "./slices/cart.slice";
 import categoriesReducer from "./slices/categories.slice";
 import loyaltyReducer from "./slices/loyalty.slice";
@@ -16,6 +17,7 @@ import productsReducer from "./slices/products.slice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    brands: brandsReducer,
     products: productsReducer,
     categories: categoriesReducer,
     cart: cartReducer,

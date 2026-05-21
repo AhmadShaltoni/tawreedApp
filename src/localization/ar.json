@@ -100,7 +100,14 @@
     "unitPrice": "سعر القطعة",
     "quantity": "الكمية",
     "pricePerUnit": "سعر {{unit}}",
-    "pricePerUnitCount": "سعر {{unit}} ({{count}} قطعة)"
+    "pricePerUnitCount": "سعر {{unit}} ({{count}} قطعة)",
+    "allFilter": "الكل",
+    "totalItems": "إجمالي العناصر",
+    "totalPrice": "إجمالي السعر",
+    "stickyAddToCart": "أضف إلى السلة",
+    "outOfStockOption": "غير متوفر",
+    "perFlavor": "لكل نكهة",
+    "selectFlavor": "اختر النكهة"
   },
   "categories": {
     "title": "الأقسام",
@@ -111,6 +118,11 @@
     "productCount": "{{count}} منتج",
     "viewProducts": "عرض المنتجات ({{count}})",
     "viewAllProducts": "عرض كل المنتجات مع الفروع"
+  },
+  "brands": {
+    "title": "العلامات التجارية",
+    "viewAll": "عرض كل العلامات",
+    "productsCount": "{{count}} منتج"
   },
   "cart": {
     "title": "السلة",

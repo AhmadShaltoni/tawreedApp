@@ -37,7 +37,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -55,8 +55,9 @@ export default function ProductDetailScreen() {
   );
   const galleryRef = useRef<FlatList>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const variantScrollRef = useRef<ScrollView>(null);
+
+  // Per-variant quantity state (variantId -> quantity)
+  const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
 
   // --- Variants ---
   const variants = useMemo(
@@ -69,56 +70,34 @@ export default function ProductDetailScreen() {
     [product?.variants],
   );
 
-  const defaultVariant = useMemo(
-    () => variants.find((v) => v.isDefault) ?? variants[0] ?? null,
-    [variants],
-  );
-
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (defaultVariant && !selectedVariant) {
-      setSelectedVariant(defaultVariant);
-    }
-  }, [defaultVariant, selectedVariant]);
-
   const hasMultipleVariants = variants.length > 1;
 
-  // --- Units (from selected variant) ---
-  const units = useMemo(
-    () =>
-      selectedVariant && selectedVariant.units.length > 0
-        ? [...selectedVariant.units].sort((a, b) => a.sortOrder - b.sortOrder)
-        : null,
-    [selectedVariant],
-  );
-
-  const defaultUnit = useMemo(
-    () => units?.find((u) => u.isDefault) ?? units?.[0] ?? null,
-    [units],
-  );
-
+  // Selected unit (applies to all variants when choosing packaging type)
   const [selectedUnit, setSelectedUnit] = useState<ProductUnit | null>(null);
 
+  // Get all unique units across variants
+  const allUnits = useMemo(() => {
+    if (!variants || variants.length === 0) return [];
+    const unitsMap = new Map<string, ProductUnit>();
+    variants.forEach((v) => {
+      v.units.forEach((u) => {
+        if (!unitsMap.has(u.id)) {
+          unitsMap.set(u.id, u);
+        }
+      });
+    });
+    return Array.from(unitsMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [variants]);
+
+  const hasMultipleUnits = allUnits.length > 1;
+
+  // Set default unit on mount
   useEffect(() => {
-    if (defaultUnit && !selectedUnit) {
+    if (allUnits.length > 0 && !selectedUnit) {
+      const defaultUnit = allUnits.find((u) => u.isDefault) ?? allUnits[0];
       setSelectedUnit(defaultUnit);
     }
-  }, [defaultUnit, selectedUnit]);
-
-  // When variant changes, reset unit selection
-  const handleVariantChange = useCallback((variant: ProductVariant) => {
-    setSelectedVariant(variant);
-    const newUnits = [...variant.units].sort(
-      (a, b) => a.sortOrder - b.sortOrder,
-    );
-    const newDefault = newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
-    setSelectedUnit(newDefault);
-    setQuantity(variant.minOrderQuantity);
-    Haptics.selectionAsync();
-  }, []);
+  }, [allUnits, selectedUnit]);
 
   useEffect(() => {
     if (id) dispatch(fetchProductDetail(id));
@@ -127,85 +106,90 @@ export default function ProductDetailScreen() {
     };
   }, [dispatch, id]);
 
-  // Stock & min order from selected variant
-  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
-  const currentMinOrder =
-    selectedVariant?.minOrderQuantity ?? product?.minOrder ?? 1;
+  const isArabic = i18n.language === "ar";
+  const isRTL = I18nManager.isRTL;
+
+  const getUnitLabel = (unit: ProductUnit) =>
+    isArabic ? unit.label : unit.labelEn;
+
+  const getVariantLabel = (variant: ProductVariant) =>
+    isArabic ? variant.size : (variant.sizeEn ?? variant.size);
+
+  // Total selected quantity and price
+  const totalQuantity = useMemo(() => {
+    return Object.values(variantQuantities).reduce((sum, qty) => sum + qty, 0);
+  }, [variantQuantities]);
+
+  const totalPrice = useMemo(() => {
+    if (!selectedUnit) return 0;
+    return variants.reduce((sum, variant) => {
+      const qty = variantQuantities[variant.id] || 0;
+      const unit = variant.units.find((u) => u.id === selectedUnit.id);
+      if (!unit || qty === 0) return sum;
+      return sum + unit.price * qty;
+    }, 0);
+  }, [variants, variantQuantities, selectedUnit]);
+
+  const handleVariantQuantityChange = useCallback(
+    (variantId: string, delta: number) => {
+      const variant = variants.find((v) => v.id === variantId);
+      if (!variant) return;
+
+      setVariantQuantities((prev) => {
+        const currentQty = prev[variantId] || 0;
+        const newQty = Math.max(0, Math.min(currentQty + delta, variant.stock));
+        
+        // If newQty is 0, remove from object; otherwise update
+        if (newQty === 0) {
+          const { [variantId]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [variantId]: newQty };
+      });
+      Haptics.selectionAsync();
+    },
+    [variants],
+  );
 
   const handleAddToCart = useCallback(() => {
-    if (!product) return;
-    requireAuth(() => {
-      dispatch(
-        addToCartAsync({
-          product,
-          quantity,
-          selectedUnit: selectedUnit ?? undefined,
-          selectedVariant: selectedVariant ?? undefined,
-        }),
+    if (!product || totalQuantity === 0) return;
+    
+    requireAuth(async () => {
+      // Add each variant with qty > 0 to cart
+      const variantsToAdd = variants.filter(
+        (v) => (variantQuantities[v.id] || 0) > 0
       );
+
+      for (const variant of variantsToAdd) {
+        const qty = variantQuantities[variant.id];
+        await dispatch(
+          addToCartAsync({
+            product,
+            quantity: qty,
+            selectedUnit: selectedUnit ?? undefined,
+            selectedVariant: variant,
+          }),
+        );
+      }
+
+      // Reset quantities after adding
+      setVariantQuantities({});
     });
-  }, [dispatch, product, quantity, selectedUnit, selectedVariant, requireAuth]);
-
-  const incrementQty = useCallback(() => {
-    if (!product) return;
-    setQuantity((q) => Math.min(q + 1, currentStock));
-  }, [product, currentStock]);
-
-  const decrementQty = useCallback(() => {
-    if (!product) return;
-    setQuantity((q) => Math.max(q - 1, currentMinOrder));
-  }, [product, currentMinOrder]);
-
-  useEffect(() => {
-    if (product) {
-      setQuantity(currentMinOrder);
-    }
-  }, [product, currentMinOrder]);
+  }, [
+    dispatch,
+    product,
+    variants,
+    variantQuantities,
+    selectedUnit,
+    totalQuantity,
+    requireAuth,
+  ]);
 
   if (loadingDetail || !product) {
     return <Loader />;
   }
 
-  const hasDiscount = selectedUnit
-    ? selectedUnit.compareAtPrice != null &&
-      selectedUnit.compareAtPrice > selectedUnit.price
-    : product.discountPrice != null && product.discountPrice < product.price;
-  const discountPercent = hasDiscount
-    ? selectedUnit
-      ? Math.round(
-          ((selectedUnit.compareAtPrice! - selectedUnit.price) /
-            selectedUnit.compareAtPrice!) *
-            100,
-        )
-      : Math.round(
-          ((product.price - product.discountPrice!) / product.price) * 100,
-        )
-    : 0;
   const images = product.images?.length ? product.images : [null];
-  const unitPrice = selectedUnit
-    ? selectedUnit.price
-    : hasDiscount
-      ? product.discountPrice!
-      : product.price;
-  const originalPrice = selectedUnit
-    ? selectedUnit.compareAtPrice
-    : hasDiscount
-      ? product.price
-      : null;
-  const isArabic = i18n.language === "ar";
-  const isRTL = I18nManager.isRTL;
-  const getUnitLabel = (unit: ProductUnit) =>
-    isArabic ? unit.label : unit.labelEn;
-  const getVariantLabel = (variant: ProductVariant) =>
-    isArabic ? variant.size : (variant.sizeEn ?? variant.size);
-  const isOutOfStock = currentStock === 0;
-
-  const scrollVariants = (direction: "left" | "right") => {
-    variantScrollRef.current?.scrollTo({
-      x: direction === "right" ? 200 : 0,
-      animated: true,
-    });
-  };
 
   return (
     <>
@@ -242,15 +226,6 @@ export default function ProductDetailScreen() {
               )}
             />
 
-            {/* Discount badge overlay */}
-            {hasDiscount ? (
-              <View style={styles.discountOverlay}>
-                <Text style={styles.discountOverlayText}>
-                  -{discountPercent}%
-                </Text>
-              </View>
-            ) : null}
-
             {/* Favorite icon */}
             <View style={styles.favoriteButton}>
               <Ionicons
@@ -270,7 +245,7 @@ export default function ProductDetailScreen() {
             </Pressable>
 
             {/* Pagination dots */}
-            {images.length > 1 ? (
+            {images.length > 1 && (
               <View style={styles.dots}>
                 {images.map((_, i) => (
                   <View
@@ -282,7 +257,7 @@ export default function ProductDetailScreen() {
                   />
                 ))}
               </View>
-            ) : null}
+            )}
           </View>
 
           {/* Product Info Card */}
@@ -294,98 +269,18 @@ export default function ProductDetailScreen() {
             <Text style={styles.name}>{product.name}</Text>
 
             {/* Category */}
-            {product.categoryName ? (
+            {product.categoryName && (
               <Text style={styles.categoryText}>{product.categoryName}</Text>
-            ) : null}
+            )}
 
-            {/* Most Ordered Badge */}
-            {product.featured ? (
-              <View style={styles.mostOrderedBadge}>
-                <Text style={styles.mostOrderedText}>
-                  {t("products.mostOrdered")}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Variant (size) selector */}
-            {hasMultipleVariants ? (
-              <View style={styles.selectorSection}>
-                <Text style={styles.selectorLabel}>
-                  {t("products.selectSize")}
-                </Text>
-                <View style={styles.variantScrollContainer}>
-                  <Pressable
-                    style={styles.scrollArrow}
-                    onPress={() => scrollVariants(isRTL ? "right" : "left")}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={isRTL ? "chevron-forward" : "chevron-back"}
-                      size={20}
-                      color={Colors.textSecondary}
-                    />
-                  </Pressable>
-                  <ScrollView
-                    ref={variantScrollRef}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.variantChipsScroll}
-                  >
-                    {variants.map((variant) => {
-                      const isSelected = selectedVariant?.id === variant.id;
-                      const variantOutOfStock = variant.stock === 0;
-                      return (
-                        <Pressable
-                          key={variant.id}
-                          style={[
-                            styles.variantChip,
-                            isSelected && styles.variantChipSelected,
-                            variantOutOfStock && styles.variantChipDisabled,
-                          ]}
-                          onPress={() => {
-                            if (!variantOutOfStock) {
-                              handleVariantChange(variant);
-                            }
-                          }}
-                          disabled={variantOutOfStock}
-                        >
-                          <Text
-                            style={[
-                              styles.variantChipLabel,
-                              isSelected && styles.variantChipLabelSelected,
-                              variantOutOfStock &&
-                                styles.variantChipLabelDisabled,
-                            ]}
-                          >
-                            {getVariantLabel(variant)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
-                  <Pressable
-                    style={styles.scrollArrow}
-                    onPress={() => scrollVariants(isRTL ? "left" : "right")}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={isRTL ? "chevron-back" : "chevron-forward"}
-                      size={20}
-                      color={Colors.textSecondary}
-                    />
-                  </Pressable>
-                </View>
-              </View>
-            ) : null}
-
-            {/* Unit / Sale Type selector */}
-            {units && units.length > 1 ? (
+            {/* Unit / Packaging selector */}
+            {hasMultipleUnits && (
               <View style={styles.selectorSection}>
                 <Text style={styles.selectorLabel}>
                   {t("products.selectUnit")}
                 </Text>
                 <View style={styles.unitCardsRow}>
-                  {units.map((unit) => {
+                  {allUnits.map((unit) => {
                     const isSelected = selectedUnit?.id === unit.id;
                     return (
                       <Pressable
@@ -414,116 +309,198 @@ export default function ProductDetailScreen() {
                             {getUnitLabel(unit)}
                           </Text>
                         </View>
-                        <Text
-                          style={[
-                            styles.unitCardSub,
-                            isSelected && styles.unitCardSubSelected,
-                          ]}
-                        >
-                          {t("products.pricePerUnit", {
-                            unit: getUnitLabel(unit),
-                          })}
-                        </Text>
+                        {unit.piecesPerUnit > 1 && (
+                          <Text
+                            style={[
+                              styles.unitCardSub,
+                              isSelected && styles.unitCardSubSelected,
+                            ]}
+                          >
+                            {unit.piecesPerUnit} {t("products.piecesCount", { count: unit.piecesPerUnit })}
+                          </Text>
+                        )}
                       </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Variant / Flavor / Size selector with per-variant quantity steppers */}
+            {hasMultipleVariants ? (
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorLabel}>
+                  {t("products.selectFlavor")}
+                </Text>
+                <View style={styles.flavorSteppersContainer}>
+                  {variants.map((variant) => {
+                    const variantOutOfStock = variant.stock === 0;
+                    const quantity = variantQuantities[variant.id] || 0;
+                    const unit = variant.units.find((u) => u.id === selectedUnit?.id);
+                    const price = unit ? unit.price : 0;
+
+                    return (
+                      <View key={variant.id} style={styles.flavorRow}>
+                        <View style={styles.flavorInfo}>
+                          <Text style={styles.flavorLabel}>
+                            {getVariantLabel(variant)}
+                          </Text>
+                          {!variantOutOfStock && price > 0 && (
+                            <Text style={styles.flavorPrice}>
+                              {isArabic ? "د.أ" : "JOD"} {price.toFixed(2)}
+                            </Text>
+                          )}
+                          {variantOutOfStock && (
+                            <Text style={styles.outOfStockLabel}>
+                              {t("products.outOfStockOption")}
+                            </Text>
+                          )}
+                        </View>
+                        {!variantOutOfStock && (
+                          <View style={styles.quantityStepper}>
+                            <Pressable
+                              style={[
+                                styles.stepperBtn,
+                                quantity === 0 && styles.stepperBtnDisabled,
+                              ]}
+                              onPress={() =>
+                                handleVariantQuantityChange(variant.id, -1)
+                              }
+                              disabled={quantity === 0}
+                            >
+                              <Ionicons
+                                name="remove"
+                                size={18}
+                                color={quantity === 0 ? Colors.textLight : Colors.white}
+                              />
+                            </Pressable>
+                            <Text style={styles.stepperQty}>{quantity}</Text>
+                            <Pressable
+                              style={[
+                                styles.stepperBtn,
+                                quantity >= variant.stock && styles.stepperBtnDisabled,
+                              ]}
+                              onPress={() =>
+                                handleVariantQuantityChange(variant.id, 1)
+                              }
+                              disabled={quantity >= variant.stock}
+                            >
+                              <Ionicons
+                                name="add"
+                                size={18}
+                                color={
+                                  quantity >= variant.stock
+                                    ? Colors.textLight
+                                    : Colors.white
+                                }
+                              />
+                            </Pressable>
+                          </View>
+                        )}
+                      </View>
                     );
                   })}
                 </View>
               </View>
             ) : null}
 
-            {/* Price comparison card */}
-            {units && units.length > 1 ? (
-              <View style={styles.priceComparisonCard}>
-                {units.map((unit, idx) => (
-                  <React.Fragment key={unit.id}>
-                    {idx > 0 ? <View style={styles.priceDivider} /> : null}
-                    <View style={styles.priceComparisonCol}>
-                      <Text style={styles.priceComparisonLabel}>
-                        {unit.piecesPerUnit > 1
-                          ? t("products.pricePerUnitCount", {
-                              unit: getUnitLabel(unit),
-                              count: unit.piecesPerUnit,
-                            })
-                          : t("products.pricePerUnit", {
-                              unit: getUnitLabel(unit),
-                            })}
-                      </Text>
-                      <Text style={styles.priceComparisonValue}>
-                        {unit.price.toFixed(2)} {t("common.currency")}
-                      </Text>
-                    </View>
-                  </React.Fragment>
-                ))}
-              </View>
-            ) : (
-              /* Single unit price display */
-              <View style={styles.singlePriceSection}>
-                <Text style={styles.singlePrice}>
-                  {unitPrice.toFixed(2)} {t("common.currency")}
-                </Text>
-                {hasDiscount && originalPrice ? (
-                  <Text style={styles.originalPrice}>
-                    {originalPrice.toFixed(2)} {t("common.currency")}
+            {/* Single variant: simple quantity selector */}
+            {!hasMultipleVariants && variants.length === 1 && (
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorLabel}>{t("products.quantity")}</Text>
+                <View style={styles.quantityStepper}>
+                  <Pressable
+                    style={[
+                      styles.stepperBtn,
+                      (variantQuantities[variants[0].id] || 0) === 0 &&
+                        styles.stepperBtnDisabled,
+                    ]}
+                    onPress={() =>
+                      handleVariantQuantityChange(variants[0].id, -1)
+                    }
+                    disabled={(variantQuantities[variants[0].id] || 0) === 0}
+                  >
+                    <Ionicons
+                      name="remove"
+                      size={18}
+                      color={
+                        (variantQuantities[variants[0].id] || 0) === 0
+                          ? Colors.textLight
+                          : Colors.white
+                      }
+                    />
+                  </Pressable>
+                  <Text style={styles.stepperQty}>
+                    {variantQuantities[variants[0].id] || 0}
                   </Text>
-                ) : null}
+                  <Pressable
+                    style={[
+                      styles.stepperBtn,
+                      (variantQuantities[variants[0].id] || 0) >=
+                        variants[0].stock && styles.stepperBtnDisabled,
+                    ]}
+                    onPress={() =>
+                      handleVariantQuantityChange(variants[0].id, 1)
+                    }
+                    disabled={
+                      (variantQuantities[variants[0].id] || 0) >= variants[0].stock
+                    }
+                  >
+                    <Ionicons
+                      name="add"
+                      size={18}
+                      color={
+                        (variantQuantities[variants[0].id] || 0) >=
+                        variants[0].stock
+                          ? Colors.textLight
+                          : Colors.white
+                      }
+                    />
+                  </Pressable>
+                </View>
               </View>
             )}
 
-            {/* Quantity Selector */}
-            <View style={styles.quantitySection}>
-              <Text style={styles.selectorLabel}>{t("products.quantity")}</Text>
-              <View style={styles.quantityPill}>
-                <Pressable
-                  onPress={() => {
-                    decrementQty();
-                    Haptics.selectionAsync();
-                  }}
-                  style={[
-                    styles.qtyButton,
-                    quantity <= currentMinOrder && styles.qtyButtonDisabled,
-                  ]}
-                  disabled={quantity <= currentMinOrder}
-                >
-                  <Ionicons name="remove" size={22} color={Colors.white} />
-                </Pressable>
-                <Text style={styles.qtyText}>{quantity}</Text>
-                <Pressable
-                  onPress={() => {
-                    incrementQty();
-                    Haptics.selectionAsync();
-                  }}
-                  style={[
-                    styles.qtyButton,
-                    quantity >= currentStock && styles.qtyButtonDisabled,
-                  ]}
-                  disabled={quantity >= currentStock}
-                >
-                  <Ionicons name="add" size={22} color={Colors.white} />
-                </Pressable>
-              </View>
-            </View>
+            <View style={{ height: 120 }} />
           </Animated.View>
         </ScrollView>
 
-        {/* Bottom Add to Cart Button */}
-        <View
-          style={[
-            styles.bottomBar,
-            { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
-          ]}
-        >
-          <Pressable
+        {/* Sticky Bottom Cart Summary Bar */}
+        {totalQuantity > 0 && (
+          <Animated.View
+            entering={FadeInUp.duration(300)}
             style={[
-              styles.addToCartButton,
-              isOutOfStock && styles.addToCartDisabled,
+              styles.bottomBar,
+              { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
             ]}
-            onPress={handleAddToCart}
-            disabled={isOutOfStock}
           >
-            <Ionicons name="cart-outline" size={22} color={Colors.white} />
-            <Text style={styles.addToCartText}>{t("products.addToCart")}</Text>
-          </Pressable>
-        </View>
+            <View style={styles.summaryInfo}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  {t("products.totalItems")}
+                </Text>
+                <Text style={styles.summaryValue}>{totalQuantity}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  {t("products.totalPrice")}
+                </Text>
+                <Text style={styles.summaryPrice}>
+                  {isArabic ? "د.أ" : "JOD"} {totalPrice.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              style={styles.addToCartButton}
+              onPress={handleAddToCart}
+            >
+              <Ionicons name="cart-outline" size={22} color={Colors.white} />
+              <Text style={styles.addToCartText}>
+                {t("products.stickyAddToCart")}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
       </View>
       <LoginRequiredModal
         visible={showLoginModal}
@@ -559,7 +536,8 @@ const styles = StyleSheet.create({
   dots: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: Spacing.md,
+    alignItems: "center",
+    paddingTop: Spacing.md,
     gap: Spacing.sm,
   },
   dot: {
@@ -570,149 +548,68 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     backgroundColor: Colors.primary,
-    width: 22,
-  },
-  discountOverlay: {
-    position: "absolute",
-    top: Spacing.xxxl + Spacing.sm,
-    left: Spacing.lg,
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: BorderRadius.md,
-    minWidth: 56,
-    alignItems: "center",
-  },
-  discountOverlayText: {
-    color: Colors.white,
-    fontSize: FontSize.md,
-    fontWeight: "800",
+    width: 24,
   },
   favoriteButton: {
     position: "absolute",
-    top: Spacing.xxxl + Spacing.sm,
+    top: Spacing.xxxl + Spacing.md,
     right: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.full,
+    padding: Spacing.sm,
+    ...Shadows.md,
   },
   backButton: {
     position: "absolute",
-    top: Spacing.xxxl + Spacing.sm,
+    top: Spacing.xxxl + Spacing.md,
     left: Spacing.lg,
-    width: 38,
-    height: 38,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    justifyContent: "center",
-    alignItems: "center",
-    ...Shadows.sm,
+    padding: Spacing.sm,
+    ...Shadows.md,
   },
   infoCard: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.xl,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xxl,
-    padding: Spacing.xxl,
+    borderRadius: BorderRadius.xl,
+    marginHorizontal: Spacing.lg,
+    marginTop: -Spacing.xxl,
+    padding: Spacing.lg,
     ...Shadows.md,
   },
   name: {
-    fontSize: FontSize.xxl,
-    fontWeight: "800",
+    fontSize: FontSize.xl,
+    fontWeight: "700",
     color: Colors.text,
-    textAlign: "center",
-    lineHeight: 34,
+    marginBottom: Spacing.sm,
   },
   categoryText: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    textAlign: "center",
-    marginTop: Spacing.xs,
-  },
-  mostOrderedBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    marginTop: Spacing.md,
-  },
-  mostOrderedText: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: Colors.success,
+    marginBottom: Spacing.md,
   },
   selectorSection: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.lg,
   },
   selectorLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.text,
-    textAlign: "right",
-    marginBottom: Spacing.sm,
-  },
-  // Variant (size) horizontal scroll with arrows
-  variantScrollContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  scrollArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.inputBackground,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  variantChipsScroll: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-  },
-  variantChip: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    minWidth: 80,
-  },
-  variantChipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
-  variantChipDisabled: {
-    opacity: 0.35,
-  },
-  variantChipLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: "600",
-    color: Colors.textSecondary,
+    color: Colors.text,
+    marginBottom: Spacing.md,
   },
-  variantChipLabelSelected: {
-    color: Colors.white,
-    fontWeight: "700",
-  },
-  variantChipLabelDisabled: {
-    textDecorationLine: "line-through",
-    color: Colors.textLight,
-  },
-  // Unit selector cards
   unitCardsRow: {
     flexDirection: "row",
     gap: Spacing.md,
+    flexWrap: "wrap",
   },
   unitCard: {
     flex: 1,
-    backgroundColor: Colors.inputBackground,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    alignItems: "center",
-    borderWidth: 1.5,
+    minWidth: "45%",
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
     borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: "center",
   },
   unitCardSelected: {
     backgroundColor: Colors.primary,
@@ -722,11 +619,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   unitCardLabel: {
     fontSize: FontSize.md,
-    fontWeight: "800",
-    color: Colors.text,
+    fontWeight: "600",
+    color: Colors.primary,
   },
   unitCardLabelSelected: {
     color: Colors.white,
@@ -734,116 +632,113 @@ const styles = StyleSheet.create({
   unitCardSub: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
   },
   unitCardSubSelected: {
-    color: "rgba(255,255,255,0.8)",
+    color: Colors.white,
+    opacity: 0.9,
   },
-  // Price comparison card
-  priceComparisonCard: {
+  flavorSteppersContainer: {
+    gap: Spacing.md,
+  },
+  flavorRow: {
     flexDirection: "row",
-    marginTop: Spacing.xl,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.white,
-    overflow: "hidden",
-  },
-  priceComparisonCol: {
-    flex: 1,
-    paddingVertical: Spacing.lg,
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
   },
-  priceDivider: {
-    width: 1.5,
+  flavorInfo: {
+    flex: 1,
+  },
+  flavorLabel: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  flavorPrice: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: "500",
+  },
+  outOfStockLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    fontWeight: "600",
+  },
+  quantityStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  stepperBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperBtnDisabled: {
     backgroundColor: Colors.border,
   },
-  priceComparisonLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-  },
-  priceComparisonValue: {
-    fontSize: FontSize.xl,
-    fontWeight: "800",
-    color: Colors.primary,
-  },
-  // Single price display
-  singlePriceSection: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-    marginTop: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  singlePrice: {
-    fontSize: FontSize.xxl,
-    fontWeight: "800",
-    color: Colors.primary,
-  },
-  originalPrice: {
-    fontSize: FontSize.md,
-    color: Colors.textLight,
-    textDecorationLine: "line-through",
-  },
-  // Quantity selector
-  quantitySection: {
-    marginTop: Spacing.xxl,
-    alignItems: "center",
-  },
-  quantityPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.inputBackground,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.sm,
-    ...Shadows.sm,
-  },
-  qtyButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    ...Shadows.sm,
-  },
-  qtyButtonDisabled: {
-    backgroundColor: Colors.textLight,
-    opacity: 0.5,
-  },
-  qtyText: {
+  stepperQty: {
     fontSize: FontSize.lg,
     fontWeight: "700",
     color: Colors.text,
-    minWidth: 48,
+    minWidth: 32,
     textAlign: "center",
   },
-  // Bottom bar
   bottomBar: {
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     ...Shadows.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+  },
+  summaryInfo: {
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  summaryLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
+  summaryValue: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  summaryPrice: {
+    fontSize: FontSize.xl,
+    fontWeight: "700",
+    color: Colors.primary,
   },
   addToCartButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.lg + 2,
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.md,
     gap: Spacing.sm,
-    ...Shadows.md,
-  },
-  addToCartDisabled: {
-    backgroundColor: Colors.textLight,
   },
   addToCartText: {
-    color: Colors.white,
-    fontSize: FontSize.lg,
+    fontSize: FontSize.md,
     fontWeight: "700",
+    color: Colors.white,
   },
 });
