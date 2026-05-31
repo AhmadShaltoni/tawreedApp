@@ -1,10 +1,9 @@
 import { orderService } from "@/src/services/order.service";
 import type {
-    CartValidationResponse,
     CreateOrderPayload,
     EditOrderPayload,
     Order,
-    OrderDetail,
+    OrderDetail
 } from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
@@ -181,7 +180,10 @@ const ordersSlice = createSlice({
         state.error = null;
       })
       .addCase(validateCartBeforeCheckout.fulfilled, (state, action) => {
-        console.log("🟢 Redux: validateCartBeforeCheckout.fulfilled", action.payload);
+        console.log(
+          "🟢 Redux: validateCartBeforeCheckout.fulfilled",
+          action.payload,
+        );
         state.loading = false;
         // No state update needed - component will handle the response
       })

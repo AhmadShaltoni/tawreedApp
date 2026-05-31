@@ -40,9 +40,9 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  FadeIn,
   FadeInDown,
   FadeInUp,
-  FadeIn,
   FadeOut,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -83,8 +83,9 @@ export default function ProductDetailScreen() {
     [variants],
   );
 
-  const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null,
+  );
 
   useEffect(() => {
     if (defaultVariant && !selectedVariant) {
@@ -107,8 +108,9 @@ export default function ProductDetailScreen() {
 
   const hasOptions = options.length > 0;
 
-  const [selectedOption, setSelectedOption] =
-    useState<VariantOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<VariantOption | null>(
+    null,
+  );
 
   // Auto-select first available option when variant changes
   useEffect(() => {
@@ -137,7 +139,10 @@ export default function ProductDetailScreen() {
   const [selectedUnit, setSelectedUnit] = useState<ProductUnit | null>(null);
 
   useEffect(() => {
-    if (defaultUnit && (!selectedUnit || !units.find((u) => u.id === selectedUnit.id))) {
+    if (
+      defaultUnit &&
+      (!selectedUnit || !units.find((u) => u.id === selectedUnit.id))
+    ) {
       setSelectedUnit(defaultUnit);
     }
   }, [defaultUnit, units, selectedUnit]);
@@ -145,20 +150,16 @@ export default function ProductDetailScreen() {
   const hasMultipleUnits = units.length > 1;
 
   // When variant changes, reset unit, option, and quantity
-  const handleVariantChange = useCallback(
-    (variant: ProductVariant) => {
-      setSelectedVariant(variant);
-      const newUnits = [...variant.units].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
-      const newDefault =
-        newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
-      setSelectedUnit(newDefault);
-      setQuantity(variant.minOrderQuantity || 1);
-      Haptics.selectionAsync();
-    },
-    [],
-  );
+  const handleVariantChange = useCallback((variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    const newUnits = [...variant.units].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    const newDefault = newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
+    setSelectedUnit(newDefault);
+    setQuantity(variant.minOrderQuantity || 1);
+    Haptics.selectionAsync();
+  }, []);
 
   // When option changes
   const handleOptionChange = useCallback((option: VariantOption) => {
@@ -188,7 +189,8 @@ export default function ProductDetailScreen() {
       .filter((item) => {
         if (item.product.id !== product.id) return false;
         if (item.variant?.id !== selectedVariant.id) return false;
-        if (selectedOption && item.selectedOption?.id !== selectedOption.id) return false;
+        if (selectedOption && item.selectedOption?.id !== selectedOption.id)
+          return false;
         if (!selectedOption && item.selectedOption) return false;
         return true;
       })
@@ -406,8 +408,6 @@ export default function ProductDetailScreen() {
               <Text style={styles.categoryText}>{product.categoryName}</Text>
             )}
 
-           
-
             {/* Variant / Size selector */}
             {hasMultipleVariants && (
               <View style={styles.selectorSection}>
@@ -426,7 +426,9 @@ export default function ProductDetailScreen() {
                           isSelected && styles.chipSelected,
                           variantOutOfStock && styles.chipDisabled,
                         ]}
-                        onPress={() => !variantOutOfStock && handleVariantChange(variant)}
+                        onPress={() =>
+                          !variantOutOfStock && handleVariantChange(variant)
+                        }
                         disabled={variantOutOfStock}
                       >
                         <Text
@@ -496,15 +498,17 @@ export default function ProductDetailScreen() {
                               {t("products.optionOutOfStock")}
                             </Text>
                           )}
-                          {!optOutOfStock && option.priceOverride != null && option.priceOverride > 0 && (
-                            <Text style={styles.optionPrice}>
-                              {isArabic ? "\u062f.\u0623" : "JOD"}{" "}
-                              {option.priceOverride.toFixed(2)}{" "}
-                              <Text style={styles.optionPriceLabel}>
-                                ({t("products.specialPrice")})
+                          {!optOutOfStock &&
+                            option.priceOverride != null &&
+                            option.priceOverride > 0 && (
+                              <Text style={styles.optionPrice}>
+                                {isArabic ? "\u062f.\u0623" : "JOD"}{" "}
+                                {option.priceOverride.toFixed(2)}{" "}
+                                <Text style={styles.optionPriceLabel}>
+                                  ({t("products.specialPrice")})
+                                </Text>
                               </Text>
-                            </Text>
-                          )}
+                            )}
                         </View>
                       </Pressable>
                     );
@@ -568,7 +572,6 @@ export default function ProductDetailScreen() {
                 </View>
               </View>
             )}
-            
 
             {/* Quantity selector */}
             <View style={styles.selectorSection}>
@@ -613,7 +616,7 @@ export default function ProductDetailScreen() {
                 </Pressable>
               </View>
             </View>
- {/* Low stock warning */}
+            {/* Low stock warning */}
             {isLowStock && (
               <View style={styles.lowStockBadge}>
                 <Ionicons name="alert-circle" size={16} color={Colors.error} />
@@ -624,9 +627,7 @@ export default function ProductDetailScreen() {
             )}
             {/* Per-product note */}
             <View style={styles.selectorSection}>
-              <Text style={styles.selectorLabel}>
-                {t("products.itemNote")}
-              </Text>
+              <Text style={styles.selectorLabel}>{t("products.itemNote")}</Text>
               <TextInput
                 style={styles.noteInput}
                 placeholder={t("products.itemNotePlaceholder")}
@@ -673,7 +674,8 @@ export default function ProductDetailScreen() {
               <View style={styles.priceRow}>
                 {originalPrice != null && (
                   <Text style={styles.originalPrice}>
-                    {isArabic ? "\u062f.\u0623" : "JOD"} {originalPrice.toFixed(2)}
+                    {isArabic ? "\u062f.\u0623" : "JOD"}{" "}
+                    {originalPrice.toFixed(2)}
                   </Text>
                 )}
                 <Text style={styles.summaryPrice}>

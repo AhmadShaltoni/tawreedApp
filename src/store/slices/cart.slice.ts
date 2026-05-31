@@ -1,10 +1,17 @@
 import { cartService } from "@/src/services/cart.service";
-import type { CartItem, CartItemAPI, Product, ProductUnit, ProductVariant, VariantOption } from "@/src/types";
+import type {
+    CartItem,
+    CartItemAPI,
+    Product,
+    ProductUnit,
+    ProductVariant,
+    VariantOption,
+} from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import {
-  createAsyncThunk,
-  createSlice,
-  type PayloadAction,
+    createAsyncThunk,
+    createSlice,
+    type PayloadAction,
 } from "@reduxjs/toolkit";
 import { logout } from "./auth.slice";
 

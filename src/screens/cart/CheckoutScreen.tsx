@@ -13,7 +13,10 @@ import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
-import { createOrder, validateCartBeforeCheckout } from "@/src/store/slices/orders.slice";
+import {
+    createOrder,
+    validateCartBeforeCheckout,
+} from "@/src/store/slices/orders.slice";
 import type { City, CouponValidateSuccess, InvalidCartItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -224,11 +227,15 @@ export default function CheckoutScreen() {
     setInvalidItems([]);
 
     const validationResult = await dispatch(validateCartBeforeCheckout());
-    
+
     if (validateCartBeforeCheckout.fulfilled.match(validationResult)) {
       const response = validationResult.payload;
-      
-      if (!response.valid && response.invalidItems && response.invalidItems.length > 0) {
+
+      if (
+        !response.valid &&
+        response.invalidItems &&
+        response.invalidItems.length > 0
+      ) {
         // ❌ Stock validation failed - show error modal
         console.error("❌ Cart validation failed:", response.invalidItems);
         setInvalidItems(response.invalidItems);
@@ -385,7 +392,8 @@ export default function CheckoutScreen() {
                       {t("cart.flavor", {
                         flavor: isArabic
                           ? item.selectedOption.name
-                          : (item.selectedOption.nameEn ?? item.selectedOption.name),
+                          : (item.selectedOption.nameEn ??
+                            item.selectedOption.name),
                       })}
                     </Text>
                   ) : null}
@@ -406,7 +414,9 @@ export default function CheckoutScreen() {
                   <Text
                     style={[
                       styles.summaryItemOption,
-                      availableStock < item.quantity ? styles.stockWarning : styles.stockOk,
+                      availableStock < item.quantity
+                        ? styles.stockWarning
+                        : styles.stockOk,
                     ]}
                   >
                     ✓ {t("checkout.availableStock", { count: availableStock })}

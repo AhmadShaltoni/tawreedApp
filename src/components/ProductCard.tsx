@@ -86,19 +86,15 @@ function ProductCard({
     defaultUnit,
   );
 
-  const handleVariantChange = useCallback(
-    (variant: ProductVariant) => {
-      setSelectedVariant(variant);
-      const newUnits = [...variant.units].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
-      const newDefault =
-        newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
-      setSelectedUnit(newDefault);
-      Haptics.selectionAsync();
-    },
-    [],
-  );
+  const handleVariantChange = useCallback((variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    const newUnits = [...variant.units].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    const newDefault = newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
+    setSelectedUnit(newDefault);
+    Haptics.selectionAsync();
+  }, []);
 
   const hasUnits = (units?.length ?? 0) >= 1;
   const hasMultipleUnits = (units?.length ?? 0) > 1;
@@ -189,7 +185,19 @@ function ProductCard({
         dispatch(fetchCart());
       });
     });
-  }, [dispatch, product, quantity, selectedUnit, selectedVariant, requireAuth, isOutOfStock, availableStock, currentStock, quantityInCart, t]);
+  }, [
+    dispatch,
+    product,
+    quantity,
+    selectedUnit,
+    selectedVariant,
+    requireAuth,
+    isOutOfStock,
+    availableStock,
+    currentStock,
+    quantityInCart,
+    t,
+  ]);
 
   const currency = isArabic ? "د.أ" : "JOD";
 
@@ -416,7 +424,11 @@ function ProductCard({
             <View style={styles.qtyControl}>
               <Pressable
                 style={styles.qtyBtn}
-                onPress={() => setQuantity((q) => Math.min(q + 1, Math.max(1, availableStock)))}
+                onPress={() =>
+                  setQuantity((q) =>
+                    Math.min(q + 1, Math.max(1, availableStock)),
+                  )
+                }
               >
                 <Ionicons name="add" size={14} color={Colors.text} />
               </Pressable>

@@ -83,7 +83,11 @@ export default function CartScreen() {
           .filter((ci) => {
             if (ci.product.id !== item.product.id) return false;
             if (ci.variant?.id !== item.variant?.id) return false;
-            if (item.selectedOption && ci.selectedOption?.id !== item.selectedOption.id) return false;
+            if (
+              item.selectedOption &&
+              ci.selectedOption?.id !== item.selectedOption.id
+            )
+              return false;
             if (!item.selectedOption && ci.selectedOption) return false;
             return true;
           })
@@ -192,7 +196,11 @@ export default function CartScreen() {
         .filter((ci) => {
           if (ci.product.id !== item.product.id) return false;
           if (ci.variant?.id !== item.variant?.id) return false;
-          if (item.selectedOption && ci.selectedOption?.id !== item.selectedOption.id) return false;
+          if (
+            item.selectedOption &&
+            ci.selectedOption?.id !== item.selectedOption.id
+          )
+            return false;
           if (!item.selectedOption && ci.selectedOption) return false;
           return true;
         })
@@ -223,9 +231,11 @@ export default function CartScreen() {
             {item.selectedOption ? (
               <Text style={styles.itemVariant}>
                 {t("cart.flavor", {
-                  flavor: i18n.language === "ar"
-                    ? item.selectedOption.name
-                    : (item.selectedOption.nameEn ?? item.selectedOption.name),
+                  flavor:
+                    i18n.language === "ar"
+                      ? item.selectedOption.name
+                      : (item.selectedOption.nameEn ??
+                        item.selectedOption.name),
                 })}
               </Text>
             ) : null}
@@ -268,11 +278,7 @@ export default function CartScreen() {
                   <Ionicons
                     name="add"
                     size={16}
-                    color={
-                      atStockLimit
-                        ? Colors.textLight
-                        : Colors.primary
-                    }
+                    color={atStockLimit ? Colors.textLight : Colors.primary}
                   />
                 </Pressable>
               </View>

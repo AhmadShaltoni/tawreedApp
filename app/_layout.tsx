@@ -8,7 +8,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
-import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import { Config } from "@/src/config/env";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";

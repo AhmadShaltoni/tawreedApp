@@ -10,13 +10,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FlatList,
-  I18nManager,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View
+    FlatList,
+    I18nManager,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 const NUM_COLUMNS = 4;
