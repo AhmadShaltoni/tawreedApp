@@ -10,6 +10,7 @@ import {
     Shadows,
     Spacing,
 } from "@/src/constants/theme";
+import { categoryService } from "@/src/services/category.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
 import {
@@ -17,10 +18,10 @@ import {
     fetchProducts,
     setFilters,
 } from "@/src/store/slices/products.slice";
-import type { Product } from "@/src/types";
+import type { Category, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
@@ -29,12 +30,17 @@ import {
     RefreshControl,
     ScrollView,
     StyleSheet,
-    Switch,
     Text,
     View,
 } from "react-native";
 
 const NUM_COLUMNS = 2;
+
+/** Represents one level of chip filtering */
+interface ChipLevel {
+  categories: Category[];
+  selectedId: string | null; // null means "الكل"
+}
 
 export default function ProductsListScreen() {
   const { t } = useTranslation();
@@ -59,11 +65,35 @@ export default function ProductsListScreen() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(
     params.brandId ?? null,
   );
-  const [includeDescendants, setIncludeDescendants] = useState(
-    params.includeDescendants === "true",
-  );
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Multi-level hierarchical chip rows (used when entering from a specific category)
+  const [chipLevels, setChipLevels] = useState<ChipLevel[]>([]);
+  const chipLevelsInitialized = useRef(false);
+
+  // Determine the effective categoryId for product fetching
+  const effectiveCategoryId = useMemo(() => {
+    if (params.categoryId && chipLevels.length > 0) {
+      // Find the deepest selected chip
+      for (let i = chipLevels.length - 1; i >= 0; i--) {
+        if (chipLevels[i].selectedId !== null) {
+          return chipLevels[i].selectedId;
+        }
+      }
+      // All levels have "الكل" selected — use root parent
+      return params.categoryId;
+    }
+    return selectedCategory ?? undefined;
+  }, [params.categoryId, chipLevels, selectedCategory]);
+
+  const effectiveIncludeDescendants = useMemo(() => {
+    if (params.categoryId) {
+      // Always include descendants when browsing from a category
+      return true;
+    }
+    return false;
+  }, [params.categoryId]);
 
   // Find the selected category object to check hasChildren
   const selectedCategoryObj = useMemo(
@@ -74,33 +104,89 @@ export default function ProductsListScreen() {
     () => brands.find((b) => b.id === selectedBrand),
     [brands, selectedBrand],
   );
-  const showDescendantsToggle = selectedCategoryObj?.hasChildren === true;
 
   // Load initial data — root categories for filter chips
   useEffect(() => {
     dispatch(fetchCategories(undefined));
   }, [dispatch]);
 
+  // Fetch first level of children when entering from a specific category
+  useEffect(() => {
+    if (params.categoryId && !chipLevelsInitialized.current) {
+      chipLevelsInitialized.current = true;
+      categoryService
+        .getCategories(params.categoryId)
+        .then((result) => {
+          if (result.categories.length > 0) {
+            setChipLevels([{ categories: result.categories, selectedId: null }]);
+          }
+        })
+        .catch(() => {
+          setChipLevels([]);
+        });
+    }
+  }, [params.categoryId]);
+
+  // Fetch children when a chip is selected (to build next level)
+  const handleChipSelect = useCallback(
+    (levelIndex: number, categoryId: string | null) => {
+      setChipLevels((prev) => {
+        // Update the selected chip at this level and remove all levels below
+        const updated = prev.slice(0, levelIndex + 1);
+        updated[levelIndex] = { ...updated[levelIndex], selectedId: categoryId };
+        return updated;
+      });
+
+      // If "الكل" is selected, we're done (no child level to show)
+      if (categoryId === null) return;
+
+      // Check if the selected category has children
+      const level = chipLevels[levelIndex];
+      const selectedCat = level?.categories.find((c) => c.id === categoryId);
+      if (selectedCat?.hasChildren) {
+        // Fetch children of the selected category
+        categoryService
+          .getCategories(categoryId)
+          .then((result) => {
+            if (result.categories.length > 0) {
+              setChipLevels((prev) => {
+                // Only add if we haven't already changed the selection
+                if (prev[levelIndex]?.selectedId === categoryId) {
+                  const newLevels = prev.slice(0, levelIndex + 1);
+                  newLevels.push({ categories: result.categories, selectedId: null });
+                  return newLevels;
+                }
+                return prev;
+              });
+            }
+          })
+          .catch(() => {
+            // Ignore — just don't show child level
+          });
+      }
+    },
+    [chipLevels],
+  );
+
   useEffect(() => {
     dispatch(
       fetchProducts({
         ...filters,
         search: search || undefined,
-        categoryId: selectedCategory ?? undefined,
+        categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
-        includeDescendants:
-          selectedCategory && includeDescendants ? true : undefined,
+        includeDescendants: effectiveIncludeDescendants || undefined,
         page: 1,
       }),
     );
   }, [
     dispatch,
     search,
-    selectedCategory,
+    effectiveCategoryId,
     selectedBrand,
     selectedTag,
-    includeDescendants,
+    effectiveIncludeDescendants,
   ]);
 
   const onRefresh = useCallback(async () => {
@@ -109,11 +195,10 @@ export default function ProductsListScreen() {
       fetchProducts({
         ...filters,
         search: search || undefined,
-        categoryId: selectedCategory ?? undefined,
+        categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
-        includeDescendants:
-          selectedCategory && includeDescendants ? true : undefined,
+        includeDescendants: effectiveIncludeDescendants || undefined,
         page: 1,
       }),
     );
@@ -122,10 +207,10 @@ export default function ProductsListScreen() {
     dispatch,
     filters,
     search,
-    selectedCategory,
+    effectiveCategoryId,
     selectedBrand,
     selectedTag,
-    includeDescendants,
+    effectiveIncludeDescendants,
   ]);
 
   const loadMore = useCallback(() => {
@@ -134,11 +219,10 @@ export default function ProductsListScreen() {
       fetchMoreProducts({
         ...filters,
         search: search || undefined,
-        categoryId: selectedCategory ?? undefined,
+        categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
-        includeDescendants:
-          selectedCategory && includeDescendants ? true : undefined,
+        includeDescendants: effectiveIncludeDescendants || undefined,
         page: page + 1,
       }),
     );
@@ -146,10 +230,10 @@ export default function ProductsListScreen() {
     dispatch,
     filters,
     search,
-    selectedCategory,
+    effectiveCategoryId,
     selectedBrand,
     selectedTag,
-    includeDescendants,
+    effectiveIncludeDescendants,
     page,
     loadingMore,
     items.length,
@@ -169,8 +253,7 @@ export default function ProductsListScreen() {
 
   const handleCategoryFilter = useCallback((categoryId: string | null) => {
     setSelectedCategory(categoryId);
-    setIncludeDescendants(false);
-    setSelectedTag(null); // Reset tag when category changes
+    setSelectedTag(null);
   }, []);
 
   const renderProduct = useCallback(
@@ -217,51 +300,105 @@ export default function ProductsListScreen() {
           </View>
         ) : null}
 
-        {/* Category filters */}
-        {categories.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryFilters}
-          >
-            <Pressable
-              style={[
-                styles.categoryChip,
-                !selectedCategory && styles.categoryChipActive,
-              ]}
-              onPress={() => handleCategoryFilter(null)}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  !selectedCategory && styles.categoryChipTextActive,
+        {/* Multi-level hierarchical chip rows (when entering from a specific category) */}
+        {params.categoryId && chipLevels.length > 0
+          ? chipLevels.map((level, levelIndex) => (
+              <ScrollView
+                key={`chip-level-${levelIndex}`}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[
+                  styles.categoryFilters,
+                  levelIndex > 0 && styles.subLevelFilters,
                 ]}
               >
-                {t("categories.all")}
-              </Text>
-            </Pressable>
-            {categories.map((cat) => (
+                <Pressable
+                  style={[
+                    styles.categoryChip,
+                    levelIndex > 0 && styles.subLevelChip,
+                    level.selectedId === null && (levelIndex === 0 ? styles.categoryChipActive : styles.subLevelChipActive),
+                  ]}
+                  onPress={() => handleChipSelect(levelIndex, null)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      level.selectedId === null &&
+                        styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {t("products.allFilter")}
+                  </Text>
+                </Pressable>
+                {level.categories.map((cat) => (
+                  <Pressable
+                    key={cat.id}
+                    style={[
+                      styles.categoryChip,
+                      levelIndex > 0 && styles.subLevelChip,
+                      level.selectedId === cat.id && (levelIndex === 0 ? styles.categoryChipActive : styles.subLevelChipActive),
+                    ]}
+                    onPress={() => handleChipSelect(levelIndex, cat.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        level.selectedId === cat.id &&
+                          styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ))
+          : !params.categoryId && categories.length > 0 ? (
+            /* Category filters (when browsing all products) */
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryFilters}
+            >
               <Pressable
-                key={cat.id}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === cat.id && styles.categoryChipActive,
+                  !selectedCategory && styles.categoryChipActive,
                 ]}
-                onPress={() => handleCategoryFilter(cat.id)}
+                onPress={() => handleCategoryFilter(null)}
               >
                 <Text
                   style={[
                     styles.categoryChipText,
-                    selectedCategory === cat.id &&
-                      styles.categoryChipTextActive,
+                    !selectedCategory && styles.categoryChipTextActive,
                   ]}
                 >
-                  {cat.name}
+                  {t("categories.all")}
                 </Text>
               </Pressable>
-            ))}
-          </ScrollView>
-        ) : null}
+              {categories.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === cat.id && styles.categoryChipActive,
+                  ]}
+                  onPress={() => handleCategoryFilter(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategory === cat.id &&
+                        styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : null
+        }
 
         {/* Tag filters - shown when a category is selected */}
         {selectedCategoryObj &&
@@ -275,24 +412,6 @@ export default function ProductsListScreen() {
           />
         ) : null}
 
-        {/* Include descendants toggle */}
-        {showDescendantsToggle ? (
-          <View style={styles.descendantsRow}>
-            <Ionicons name="layers-outline" size={16} color={Colors.primary} />
-            <Text style={styles.descendantsLabel}>
-              {t("products.showAllDescendants")}
-            </Text>
-            <Switch
-              value={includeDescendants}
-              onValueChange={setIncludeDescendants}
-              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-              thumbColor={
-                includeDescendants ? Colors.primary : Colors.textLight
-              }
-            />
-          </View>
-        ) : null}
-
         {/* Results count */}
         <View style={styles.resultsRow}>
           <Text style={styles.resultsCount}>
@@ -304,12 +423,16 @@ export default function ProductsListScreen() {
     [
       search,
       categories,
+      chipLevels,
       selectedCategory,
-      showDescendantsToggle,
-      includeDescendants,
       total,
       handleSearchSubmit,
       handleCategoryFilter,
+      handleChipSelect,
+      selectedBrandObj,
+      selectedCategoryObj,
+      selectedTag,
+      params.categoryId,
       t,
     ],
   );
@@ -404,6 +527,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
   },
+  subLevelFilters: {
+    paddingBottom: Spacing.sm,
+    paddingTop: 0,
+  },
   categoryChip: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
@@ -411,8 +538,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     ...Shadows.sm,
   },
+  subLevelChip: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   categoryChipActive: {
     backgroundColor: Colors.primary,
+  },
+  subLevelChipActive: {
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
   },
   categoryChipText: {
     fontSize: FontSize.xs,
@@ -429,19 +565,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-  },
-  descendantsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.xxl,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  descendantsLabel: {
-    flex: 1,
-    fontSize: FontSize.xs,
-    color: Colors.text,
-    fontWeight: "500",
   },
   listContent: {
     paddingBottom: Spacing.xxxl,

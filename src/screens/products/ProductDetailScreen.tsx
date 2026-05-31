@@ -9,12 +9,12 @@ import {
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { addToCartAsync } from "@/src/store/slices/cart.slice";
+import { addToCartAsync, fetchCart } from "@/src/store/slices/cart.slice";
 import {
   clearSelectedProduct,
   fetchProductDetail,
 } from "@/src/store/slices/products.slice";
-import type { ProductUnit, ProductVariant } from "@/src/types";
+import type { ProductUnit, ProductVariant, VariantOption } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -28,6 +28,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Dimensions,
   FlatList,
   I18nManager,
@@ -35,9 +36,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeIn,
+  FadeOut,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -53,13 +60,14 @@ export default function ProductDetailScreen() {
   const { selectedProduct: product, loadingDetail } = useAppSelector(
     (state) => state.products,
   );
+  const cartItems = useAppSelector((state) => state.cart.items);
   const galleryRef = useRef<FlatList>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [itemNote, setItemNote] = useState("");
+  const [showAddedToCart, setShowAddedToCart] = useState(false);
 
-  // Per-variant quantity state (variantId -> quantity)
-  const [variantQuantities, setVariantQuantities] = useState<Record<string, number>>({});
-
-  // --- Variants ---
+  // --- Variants (Sizes) ---
   const variants = useMemo(
     () =>
       product?.variants && product.variants.length > 0
@@ -70,34 +78,94 @@ export default function ProductDetailScreen() {
     [product?.variants],
   );
 
+  const defaultVariant = useMemo(
+    () => variants.find((v) => v.isDefault) ?? variants[0] ?? null,
+    [variants],
+  );
+
+  const [selectedVariant, setSelectedVariant] =
+    useState<ProductVariant | null>(null);
+
+  useEffect(() => {
+    if (defaultVariant && !selectedVariant) {
+      setSelectedVariant(defaultVariant);
+    }
+  }, [defaultVariant, selectedVariant]);
+
   const hasMultipleVariants = variants.length > 1;
 
-  // Selected unit (applies to all variants when choosing packaging type)
+  // --- Options (Flavors) for selected variant ---
+  const options = useMemo(
+    () =>
+      selectedVariant?.options && selectedVariant.options.length > 0
+        ? [...selectedVariant.options]
+            .filter((o) => o.isActive !== false)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+        : [],
+    [selectedVariant?.options],
+  );
+
+  const hasOptions = options.length > 0;
+
+  const [selectedOption, setSelectedOption] =
+    useState<VariantOption | null>(null);
+
+  // Auto-select first available option when variant changes
+  useEffect(() => {
+    if (hasOptions) {
+      const availableOpt = options.find((o) => o.stock > 0) ?? options[0];
+      setSelectedOption(availableOpt);
+    } else {
+      setSelectedOption(null);
+    }
+  }, [hasOptions, options]);
+
+  // --- Units from selected variant ---
+  const units = useMemo(
+    () =>
+      selectedVariant && selectedVariant.units.length > 0
+        ? [...selectedVariant.units].sort((a, b) => a.sortOrder - b.sortOrder)
+        : [],
+    [selectedVariant],
+  );
+
+  const defaultUnit = useMemo(
+    () => units.find((u) => u.isDefault) ?? units[0] ?? null,
+    [units],
+  );
+
   const [selectedUnit, setSelectedUnit] = useState<ProductUnit | null>(null);
 
-  // Get all unique units across variants
-  const allUnits = useMemo(() => {
-    if (!variants || variants.length === 0) return [];
-    const unitsMap = new Map<string, ProductUnit>();
-    variants.forEach((v) => {
-      v.units.forEach((u) => {
-        if (!unitsMap.has(u.id)) {
-          unitsMap.set(u.id, u);
-        }
-      });
-    });
-    return Array.from(unitsMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [variants]);
-
-  const hasMultipleUnits = allUnits.length > 1;
-
-  // Set default unit on mount
   useEffect(() => {
-    if (allUnits.length > 0 && !selectedUnit) {
-      const defaultUnit = allUnits.find((u) => u.isDefault) ?? allUnits[0];
+    if (defaultUnit && (!selectedUnit || !units.find((u) => u.id === selectedUnit.id))) {
       setSelectedUnit(defaultUnit);
     }
-  }, [allUnits, selectedUnit]);
+  }, [defaultUnit, units, selectedUnit]);
+
+  const hasMultipleUnits = units.length > 1;
+
+  // When variant changes, reset unit, option, and quantity
+  const handleVariantChange = useCallback(
+    (variant: ProductVariant) => {
+      setSelectedVariant(variant);
+      const newUnits = [...variant.units].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+      const newDefault =
+        newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
+      setSelectedUnit(newDefault);
+      setQuantity(variant.minOrderQuantity || 1);
+      Haptics.selectionAsync();
+    },
+    [],
+  );
+
+  // When option changes
+  const handleOptionChange = useCallback((option: VariantOption) => {
+    if (option.stock === 0) return;
+    setSelectedOption(option);
+    Haptics.selectionAsync();
+  }, []);
 
   useEffect(() => {
     if (id) dispatch(fetchProductDetail(id));
@@ -105,6 +173,37 @@ export default function ProductDetailScreen() {
       dispatch(clearSelectedProduct());
     };
   }, [dispatch, id]);
+
+  // Stock & min order
+  const currentStock = selectedOption
+    ? selectedOption.stock
+    : (selectedVariant?.stock ?? product?.stock ?? 0);
+  const currentMinOrder =
+    selectedVariant?.minOrderQuantity ?? product?.minOrder ?? 1;
+
+  // Calculate how many of this exact product/variant/option are already in cart
+  const quantityInCart = useMemo(() => {
+    if (!product || !selectedVariant) return 0;
+    return cartItems
+      .filter((item) => {
+        if (item.product.id !== product.id) return false;
+        if (item.variant?.id !== selectedVariant.id) return false;
+        if (selectedOption && item.selectedOption?.id !== selectedOption.id) return false;
+        if (!selectedOption && item.selectedOption) return false;
+        return true;
+      })
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }, [cartItems, product, selectedVariant, selectedOption]);
+
+  // Available stock considering what's already in cart
+  const availableStock = Math.max(0, currentStock - quantityInCart);
+  const isLowStock = currentStock > 0 && currentStock < 5;
+
+  useEffect(() => {
+    if (product) {
+      setQuantity(Math.min(currentMinOrder, availableStock || currentMinOrder));
+    }
+  }, [product, currentMinOrder, availableStock]);
 
   const isArabic = i18n.language === "ar";
   const isRTL = I18nManager.isRTL;
@@ -115,74 +214,108 @@ export default function ProductDetailScreen() {
   const getVariantLabel = (variant: ProductVariant) =>
     isArabic ? variant.size : (variant.sizeEn ?? variant.size);
 
-  // Total selected quantity and price
-  const totalQuantity = useMemo(() => {
-    return Object.values(variantQuantities).reduce((sum, qty) => sum + qty, 0);
-  }, [variantQuantities]);
+  const getOptionLabel = (option: VariantOption) =>
+    isArabic ? option.name : (option.nameEn ?? option.name);
 
-  const totalPrice = useMemo(() => {
+  // Price calculation considering option.priceOverride
+  const unitPrice = useMemo(() => {
     if (!selectedUnit) return 0;
-    return variants.reduce((sum, variant) => {
-      const qty = variantQuantities[variant.id] || 0;
-      const unit = variant.units.find((u) => u.id === selectedUnit.id);
-      if (!unit || qty === 0) return sum;
-      return sum + unit.price * qty;
-    }, 0);
-  }, [variants, variantQuantities, selectedUnit]);
+    if (selectedOption?.priceOverride) {
+      return selectedOption.priceOverride;
+    }
+    return selectedUnit.price;
+  }, [selectedUnit, selectedOption]);
 
-  const handleVariantQuantityChange = useCallback(
-    (variantId: string, delta: number) => {
-      const variant = variants.find((v) => v.id === variantId);
-      if (!variant) return;
+  const totalPrice = unitPrice * quantity;
 
-      setVariantQuantities((prev) => {
-        const currentQty = prev[variantId] || 0;
-        const newQty = Math.max(0, Math.min(currentQty + delta, variant.stock));
-        
-        // If newQty is 0, remove from object; otherwise update
-        if (newQty === 0) {
-          const { [variantId]: _, ...rest } = prev;
-          return rest;
-        }
-        return { ...prev, [variantId]: newQty };
-      });
-      Haptics.selectionAsync();
-    },
-    [variants],
-  );
+  const hasDiscount = selectedUnit
+    ? selectedUnit.compareAtPrice != null &&
+      selectedUnit.compareAtPrice > selectedUnit.price
+    : false;
+  const originalPrice =
+    hasDiscount && selectedUnit ? selectedUnit.compareAtPrice : null;
+
+  const isOutOfStock = currentStock === 0;
+  const cannotAddToCart = isOutOfStock || availableStock <= 0;
+
+  const incrementQty = useCallback(() => {
+    setQuantity((q) => Math.min(q + 1, availableStock));
+    Haptics.selectionAsync();
+  }, [availableStock]);
+
+  const decrementQty = useCallback(() => {
+    setQuantity((q) => Math.max(q - 1, currentMinOrder));
+    Haptics.selectionAsync();
+  }, [currentMinOrder]);
 
   const handleAddToCart = useCallback(() => {
-    if (!product || totalQuantity === 0) return;
-    
-    requireAuth(async () => {
-      // Add each variant with qty > 0 to cart
-      const variantsToAdd = variants.filter(
-        (v) => (variantQuantities[v.id] || 0) > 0
+    if (!product || isOutOfStock) return;
+
+    if (availableStock <= 0) {
+      Alert.alert(
+        "",
+        t("products.stockExceeded", {
+          requested: quantity,
+          available: currentStock,
+          inCart: quantityInCart,
+        }),
       );
+      return;
+    }
 
-      for (const variant of variantsToAdd) {
-        const qty = variantQuantities[variant.id];
-        await dispatch(
-          addToCartAsync({
-            product,
-            quantity: qty,
-            selectedUnit: selectedUnit ?? undefined,
-            selectedVariant: variant,
-          }),
-        );
-      }
+    // Check if adding this quantity would exceed available stock
+    if (quantity > availableStock) {
+      Alert.alert(
+        "",
+        t("products.stockExceeded", {
+          requested: quantity,
+          available: currentStock,
+          inCart: quantityInCart,
+        }),
+      );
+      return;
+    }
 
-      // Reset quantities after adding
-      setVariantQuantities({});
+    requireAuth(() => {
+      dispatch(
+        addToCartAsync({
+          product,
+          quantity,
+          selectedUnit: selectedUnit ?? undefined,
+          selectedVariant: selectedVariant ?? undefined,
+          selectedOption: selectedOption ?? undefined,
+          note: itemNote.trim() || undefined,
+        }),
+      ).then((result) => {
+        if (result.meta.requestStatus === "fulfilled") {
+          setShowAddedToCart(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setTimeout(() => setShowAddedToCart(false), 1800);
+        } else {
+          const message =
+            typeof result.payload === "string"
+              ? result.payload
+              : t("cart.validationError");
+          Alert.alert("", message);
+          dispatch(fetchCart());
+        }
+      });
+      setItemNote("");
     });
   }, [
     dispatch,
     product,
-    variants,
-    variantQuantities,
+    quantity,
     selectedUnit,
-    totalQuantity,
+    selectedVariant,
+    selectedOption,
+    itemNote,
+    isOutOfStock,
     requireAuth,
+    availableStock,
+    currentStock,
+    quantityInCart,
+    t,
   ]);
 
   if (loadingDetail || !product) {
@@ -273,6 +406,113 @@ export default function ProductDetailScreen() {
               <Text style={styles.categoryText}>{product.categoryName}</Text>
             )}
 
+           
+
+            {/* Variant / Size selector */}
+            {hasMultipleVariants && (
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorLabel}>
+                  {t("products.selectVariant")}
+                </Text>
+                <View style={styles.chipRow}>
+                  {variants.map((variant) => {
+                    const isSelected = selectedVariant?.id === variant.id;
+                    const variantOutOfStock = variant.stock === 0;
+                    return (
+                      <Pressable
+                        key={variant.id}
+                        style={[
+                          styles.chip,
+                          isSelected && styles.chipSelected,
+                          variantOutOfStock && styles.chipDisabled,
+                        ]}
+                        onPress={() => !variantOutOfStock && handleVariantChange(variant)}
+                        disabled={variantOutOfStock}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            isSelected && styles.chipTextSelected,
+                            variantOutOfStock && styles.chipTextDisabled,
+                          ]}
+                        >
+                          {getVariantLabel(variant)}
+                        </Text>
+                        {variantOutOfStock && (
+                          <Text style={styles.chipSubDisabled}>
+                            {t("products.outOfStockOption")}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Options / Flavor selector */}
+            {hasOptions && (
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorLabel}>
+                  {t("products.selectFlavor")}
+                </Text>
+                <View style={styles.optionsContainer}>
+                  {options.map((option) => {
+                    const isSelected = selectedOption?.id === option.id;
+                    const optOutOfStock = option.stock === 0;
+                    return (
+                      <Pressable
+                        key={option.id}
+                        style={[
+                          styles.optionRow,
+                          isSelected && styles.optionRowSelected,
+                          optOutOfStock && styles.optionRowDisabled,
+                        ]}
+                        onPress={() => handleOptionChange(option)}
+                        disabled={optOutOfStock}
+                      >
+                        <View style={styles.optionInfo}>
+                          <View style={styles.optionNameRow}>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={18}
+                                color={Colors.primary}
+                                style={{ marginEnd: Spacing.xs }}
+                              />
+                            )}
+                            <Text
+                              style={[
+                                styles.optionLabel,
+                                isSelected && styles.optionLabelSelected,
+                                optOutOfStock && styles.optionLabelDisabled,
+                              ]}
+                            >
+                              {getOptionLabel(option)}
+                            </Text>
+                          </View>
+                          {optOutOfStock && (
+                            <Text style={styles.optionOutOfStock}>
+                              {t("products.optionOutOfStock")}
+                            </Text>
+                          )}
+                          {!optOutOfStock && option.priceOverride != null && option.priceOverride > 0 && (
+                            <Text style={styles.optionPrice}>
+                              {isArabic ? "\u062f.\u0623" : "JOD"}{" "}
+                              {option.priceOverride.toFixed(2)}{" "}
+                              <Text style={styles.optionPriceLabel}>
+                                ({t("products.specialPrice")})
+                              </Text>
+                            </Text>
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {/* Unit / Packaging selector */}
             {hasMultipleUnits && (
               <View style={styles.selectorSection}>
@@ -280,7 +520,7 @@ export default function ProductDetailScreen() {
                   {t("products.selectUnit")}
                 </Text>
                 <View style={styles.unitCardsRow}>
-                  {allUnits.map((unit) => {
+                  {units.map((unit) => {
                     const isSelected = selectedUnit?.id === unit.id;
                     return (
                       <Pressable
@@ -316,7 +556,10 @@ export default function ProductDetailScreen() {
                               isSelected && styles.unitCardSubSelected,
                             ]}
                           >
-                            {unit.piecesPerUnit} {t("products.piecesCount", { count: unit.piecesPerUnit })}
+                            {unit.piecesPerUnit}{" "}
+                            {t("products.piecesCount", {
+                              count: unit.piecesPerUnit,
+                            })}
                           </Text>
                         )}
                       </Pressable>
@@ -325,180 +568,148 @@ export default function ProductDetailScreen() {
                 </View>
               </View>
             )}
+            
 
-            {/* Variant / Flavor / Size selector with per-variant quantity steppers */}
-            {hasMultipleVariants ? (
+            {/* Quantity selector */}
+            <View style={styles.selectorSection}>
+              <Text style={styles.selectorLabel}>{t("products.quantity")}</Text>
+              <View style={styles.quantityStepper}>
+                <Pressable
+                  style={[
+                    styles.stepperBtn,
+                    quantity <= currentMinOrder && styles.stepperBtnDisabled,
+                  ]}
+                  onPress={decrementQty}
+                  disabled={quantity <= currentMinOrder}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={18}
+                    color={
+                      quantity <= currentMinOrder
+                        ? Colors.textLight
+                        : Colors.white
+                    }
+                  />
+                </Pressable>
+                <Text style={styles.stepperQty}>{quantity}</Text>
+                <Pressable
+                  style={[
+                    styles.stepperBtn,
+                    quantity >= availableStock && styles.stepperBtnDisabled,
+                  ]}
+                  onPress={incrementQty}
+                  disabled={quantity >= availableStock || isOutOfStock}
+                >
+                  <Ionicons
+                    name="add"
+                    size={18}
+                    color={
+                      quantity >= availableStock
+                        ? Colors.textLight
+                        : Colors.white
+                    }
+                  />
+                </Pressable>
+              </View>
+            </View>
+ {/* Low stock warning */}
+            {isLowStock && (
+              <View style={styles.lowStockBadge}>
+                <Ionicons name="alert-circle" size={16} color={Colors.error} />
+                <Text style={styles.lowStockText}>
+                  {t("products.lowStockWarning", { count: currentStock })}
+                </Text>
+              </View>
+            )}
+            {/* Per-product note */}
+            <View style={styles.selectorSection}>
+              <Text style={styles.selectorLabel}>
+                {t("products.itemNote")}
+              </Text>
+              <TextInput
+                style={styles.noteInput}
+                placeholder={t("products.itemNotePlaceholder")}
+                placeholderTextColor={Colors.textLight}
+                value={itemNote}
+                onChangeText={setItemNote}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                maxLength={500}
+              />
+            </View>
+
+            {/* Product Description */}
+            {product.description ? (
               <View style={styles.selectorSection}>
                 <Text style={styles.selectorLabel}>
-                  {t("products.selectFlavor")}
+                  {t("products.description")}
                 </Text>
-                <View style={styles.flavorSteppersContainer}>
-                  {variants.map((variant) => {
-                    const variantOutOfStock = variant.stock === 0;
-                    const quantity = variantQuantities[variant.id] || 0;
-                    const unit = variant.units.find((u) => u.id === selectedUnit?.id);
-                    const price = unit ? unit.price : 0;
-
-                    return (
-                      <View key={variant.id} style={styles.flavorRow}>
-                        <View style={styles.flavorInfo}>
-                          <Text style={styles.flavorLabel}>
-                            {getVariantLabel(variant)}
-                          </Text>
-                          {!variantOutOfStock && price > 0 && (
-                            <Text style={styles.flavorPrice}>
-                              {isArabic ? "د.أ" : "JOD"} {price.toFixed(2)}
-                            </Text>
-                          )}
-                          {variantOutOfStock && (
-                            <Text style={styles.outOfStockLabel}>
-                              {t("products.outOfStockOption")}
-                            </Text>
-                          )}
-                        </View>
-                        {!variantOutOfStock && (
-                          <View style={styles.quantityStepper}>
-                            <Pressable
-                              style={[
-                                styles.stepperBtn,
-                                quantity === 0 && styles.stepperBtnDisabled,
-                              ]}
-                              onPress={() =>
-                                handleVariantQuantityChange(variant.id, -1)
-                              }
-                              disabled={quantity === 0}
-                            >
-                              <Ionicons
-                                name="remove"
-                                size={18}
-                                color={quantity === 0 ? Colors.textLight : Colors.white}
-                              />
-                            </Pressable>
-                            <Text style={styles.stepperQty}>{quantity}</Text>
-                            <Pressable
-                              style={[
-                                styles.stepperBtn,
-                                quantity >= variant.stock && styles.stepperBtnDisabled,
-                              ]}
-                              onPress={() =>
-                                handleVariantQuantityChange(variant.id, 1)
-                              }
-                              disabled={quantity >= variant.stock}
-                            >
-                              <Ionicons
-                                name="add"
-                                size={18}
-                                color={
-                                  quantity >= variant.stock
-                                    ? Colors.textLight
-                                    : Colors.white
-                                }
-                              />
-                            </Pressable>
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
+                <Text style={styles.descriptionText}>
+                  {product.description}
+                </Text>
               </View>
             ) : null}
 
-            {/* Single variant: simple quantity selector */}
-            {!hasMultipleVariants && variants.length === 1 && (
-              <View style={styles.selectorSection}>
-                <Text style={styles.selectorLabel}>{t("products.quantity")}</Text>
-                <View style={styles.quantityStepper}>
-                  <Pressable
-                    style={[
-                      styles.stepperBtn,
-                      (variantQuantities[variants[0].id] || 0) === 0 &&
-                        styles.stepperBtnDisabled,
-                    ]}
-                    onPress={() =>
-                      handleVariantQuantityChange(variants[0].id, -1)
-                    }
-                    disabled={(variantQuantities[variants[0].id] || 0) === 0}
-                  >
-                    <Ionicons
-                      name="remove"
-                      size={18}
-                      color={
-                        (variantQuantities[variants[0].id] || 0) === 0
-                          ? Colors.textLight
-                          : Colors.white
-                      }
-                    />
-                  </Pressable>
-                  <Text style={styles.stepperQty}>
-                    {variantQuantities[variants[0].id] || 0}
-                  </Text>
-                  <Pressable
-                    style={[
-                      styles.stepperBtn,
-                      (variantQuantities[variants[0].id] || 0) >=
-                        variants[0].stock && styles.stepperBtnDisabled,
-                    ]}
-                    onPress={() =>
-                      handleVariantQuantityChange(variants[0].id, 1)
-                    }
-                    disabled={
-                      (variantQuantities[variants[0].id] || 0) >= variants[0].stock
-                    }
-                  >
-                    <Ionicons
-                      name="add"
-                      size={18}
-                      color={
-                        (variantQuantities[variants[0].id] || 0) >=
-                        variants[0].stock
-                          ? Colors.textLight
-                          : Colors.white
-                      }
-                    />
-                  </Pressable>
-                </View>
-              </View>
-            )}
-
-            <View style={{ height: 120 }} />
+            <View style={{ height: 140 }} />
           </Animated.View>
         </ScrollView>
 
-        {/* Sticky Bottom Cart Summary Bar */}
-        {totalQuantity > 0 && (
-          <Animated.View
-            entering={FadeInUp.duration(300)}
-            style={[
-              styles.bottomBar,
-              { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
-            ]}
-          >
-            <View style={styles.summaryInfo}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
-                  {t("products.totalItems")}
-                </Text>
-                <Text style={styles.summaryValue}>{totalQuantity}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
-                  {t("products.totalPrice")}
-                </Text>
+        {/* Sticky Bottom Cart Bar */}
+        <Animated.View
+          entering={FadeInUp.duration(300)}
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
+          ]}
+        >
+          <View style={styles.summaryInfo}>
+            {/* Price row */}
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>
+                {t("products.totalPrice")}
+              </Text>
+              <View style={styles.priceRow}>
+                {originalPrice != null && (
+                  <Text style={styles.originalPrice}>
+                    {isArabic ? "\u062f.\u0623" : "JOD"} {originalPrice.toFixed(2)}
+                  </Text>
+                )}
                 <Text style={styles.summaryPrice}>
-                  {isArabic ? "د.أ" : "JOD"} {totalPrice.toFixed(2)}
+                  {isArabic ? "\u062f.\u0623" : "JOD"} {totalPrice.toFixed(2)}
                 </Text>
               </View>
             </View>
-            <Pressable
-              style={styles.addToCartButton}
-              onPress={handleAddToCart}
-            >
-              <Ionicons name="cart-outline" size={22} color={Colors.white} />
-              <Text style={styles.addToCartText}>
-                {t("products.stickyAddToCart")}
-              </Text>
-            </Pressable>
+          </View>
+          <Pressable
+            style={[
+              styles.addToCartButton,
+              cannotAddToCart && styles.addToCartButtonDisabled,
+            ]}
+            onPress={handleAddToCart}
+            disabled={cannotAddToCart}
+          >
+            <Ionicons name="cart-outline" size={22} color={Colors.white} />
+            <Text style={styles.addToCartText}>
+              {cannotAddToCart
+                ? t("products.outOfStock")
+                : t("products.stickyAddToCart")}
+            </Text>
+          </Pressable>
+        </Animated.View>
+
+        {/* Added to Cart Toast */}
+        {showAddedToCart && (
+          <Animated.View
+            entering={FadeIn.duration(250)}
+            exiting={FadeOut.duration(250)}
+            style={styles.addedToCartToast}
+          >
+            <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+            <Text style={styles.addedToCartToastText}>
+              {t("products.addedToCartAnim")}
+            </Text>
           </Animated.View>
         )}
       </View>
@@ -587,6 +798,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
   },
+  lowStockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: Colors.error + "12",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
+    alignSelf: "flex-start",
+  },
+  lowStockText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.error,
+  },
   selectorSection: {
     marginTop: Spacing.lg,
   },
@@ -595,7 +823,110 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.text,
     marginBottom: Spacing.md,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
   },
+  descriptionText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+  },
+  // Chips (for variants/sizes)
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+  },
+  chipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + "10",
+  },
+  chipDisabled: {
+    opacity: 0.5,
+  },
+  chipText: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  chipTextSelected: {
+    color: Colors.primary,
+  },
+  chipTextDisabled: {
+    color: Colors.textLight,
+  },
+  chipSubDisabled: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    marginTop: 2,
+  },
+  // Options (flavors)
+  optionsContainer: {
+    gap: Spacing.sm,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.border,
+  },
+  optionRowSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + "08",
+  },
+  optionRowDisabled: {
+    opacity: 0.5,
+  },
+  optionInfo: {
+    flex: 1,
+  },
+  optionNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  optionLabel: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  optionLabelSelected: {
+    color: Colors.primary,
+  },
+  optionLabelDisabled: {
+    color: Colors.textLight,
+  },
+  optionOutOfStock: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  optionPrice: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  optionPriceLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "400",
+  },
+  // Units
   unitCardsRow: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -637,37 +968,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     opacity: 0.9,
   },
-  flavorSteppersContainer: {
-    gap: Spacing.md,
-  },
-  flavorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-  },
-  flavorInfo: {
-    flex: 1,
-  },
-  flavorLabel: {
-    fontSize: FontSize.md,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  flavorPrice: {
-    fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontWeight: "500",
-  },
-  outOfStockLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.error,
-    fontWeight: "600",
-  },
+  // Quantity
   quantityStepper: {
     flexDirection: "row",
     alignItems: "center",
@@ -691,6 +992,20 @@ const styles = StyleSheet.create({
     minWidth: 32,
     textAlign: "center",
   },
+  // Note input
+  noteInput: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    minHeight: 80,
+    textAlignVertical: "top",
+    writingDirection: I18nManager.isRTL ? "rtl" : "ltr",
+  },
+  // Bottom bar
   bottomBar: {
     position: "absolute",
     bottom: 0,
@@ -717,10 +1032,15 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: "500",
   },
-  summaryValue: {
-    fontSize: FontSize.md,
-    fontWeight: "600",
-    color: Colors.text,
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  originalPrice: {
+    fontSize: FontSize.sm,
+    color: Colors.textLight,
+    textDecorationLine: "line-through",
   },
   summaryPrice: {
     fontSize: FontSize.xl,
@@ -736,9 +1056,30 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
   },
+  addToCartButtonDisabled: {
+    backgroundColor: Colors.border,
+  },
   addToCartText: {
     fontSize: FontSize.md,
     fontWeight: "700",
+    color: Colors.white,
+  },
+  addedToCartToast: {
+    position: "absolute",
+    top: "45%",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: "rgba(34,197,94,0.92)",
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    ...Shadows.md,
+  },
+  addedToCartToastText: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
     color: Colors.white,
   },
 });

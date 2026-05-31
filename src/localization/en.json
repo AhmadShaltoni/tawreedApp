@@ -107,7 +107,17 @@
     "stickyAddToCart": "Add to Cart",
     "outOfStockOption": "Out of Stock",
     "perFlavor": "Per Flavor",
-    "selectFlavor": "Select Flavor"
+    "selectFlavor": "Select Flavor",
+    "selectVariant": "Select Size",
+    "flavor": "Flavor",
+    "specialPrice": "Special Price",
+    "itemNote": "Product Note",
+    "itemNotePlaceholder": "Add a note for this product (optional)",
+    "noOptions": "No additional options",
+    "optionOutOfStock": "Out of Stock",
+    "lowStockWarning": "Only {{count}} left",
+    "addedToCartAnim": "Added to cart ✓",
+    "stockExceeded": "Cannot add {{requested}} items. Only {{available}} available ({{inCart}} already in cart)"
   },
   "categories": {
     "title": "Categories",
@@ -137,7 +147,10 @@
     "subtotal": "Subtotal",
     "checkout": "Checkout",
     "proceedToCheckout": "Proceed to Checkout",
-    "size": "Size: {{size}}"
+    "size": "Size: {{size}}",
+    "flavor": "Flavor: {{flavor}}",
+    "unit": "Unit: {{unit}}",
+    "itemNote": "Note: {{note}}"
   },
   "checkout": {
     "title": "Checkout",
@@ -174,7 +187,16 @@
     "successTitle": "Order Placed Successfully",
     "successMessage": "You can track your shipment through the order history",
     "goToOrders": "Go to Order History",
-    "goToHome": "Return to Home"
+    "goToHome": "Return to Home",
+    "productNote": "Note: {{note}}",
+    "validationError": "Error validating cart. Please try again",
+    "outOfStockTitle": "Out of Stock",
+    "outOfStockMessage": "Insufficient stock. Please update your cart and try again",
+    "insufficientStockTitle": "Insufficient Stock",
+    "insufficientStockMessage": "Some products are not available in the requested quantity. Please update your cart.",
+    "requestedVsAvailable": "Requested: {{requested}} | Available: {{available}}",
+    "backToCart": "Back to Cart",
+    "availableStock": "✓ Available: {{count}} items"
   },
   "orders": {
     "title": "Order History",

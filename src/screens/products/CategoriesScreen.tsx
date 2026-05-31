@@ -83,18 +83,16 @@ export default function CategoriesScreen() {
 
   const handleCategoryPress = useCallback(
     (category: Category) => {
-      if (category.hasChildren) {
-        // Drill into children
-        setSearch("");
-        setCurrentParentId(category.id);
-        setCurrentCategory(category);
-        loadCategories(category.id);
-      } else {
-        // Leaf category → show products
-        router.push(`/products?categoryId=${category.id}`);
-      }
+      // Always navigate to products — chip filters will handle sub-navigation
+      router.push({
+        pathname: "/products",
+        params: {
+          categoryId: category.id,
+          includeDescendants: "true",
+        },
+      });
     },
-    [router, loadCategories],
+    [router],
   );
 
   const handleBreadcrumbPress = useCallback(

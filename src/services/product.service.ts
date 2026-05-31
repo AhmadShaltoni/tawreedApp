@@ -7,6 +7,7 @@ import type {
     ProductsResponse,
     ProductUnit,
     ProductVariant,
+    VariantOption,
 } from "@/src/types";
 import apiClient from "./api";
 
@@ -25,6 +26,20 @@ function mapUnit(u: ProductUnit): ProductUnit {
     compareAtPrice: u.compareAtPrice ?? null,
     isDefault: u.isDefault,
     sortOrder: u.sortOrder,
+  };
+}
+
+function mapOption(o: any): VariantOption {
+  return {
+    id: o.id,
+    name: o.name,
+    nameEn: o.nameEn ?? null,
+    stock: o.stock ?? 0,
+    sku: o.sku ?? null,
+    barcode: o.barcode ?? null,
+    priceOverride: o.priceOverride ?? null,
+    isActive: o.isActive !== false,
+    sortOrder: o.sortOrder ?? 0,
   };
 }
 
@@ -54,6 +69,7 @@ export function mapProduct(raw: ApiProduct): Product {
     isActive: v.isActive,
     sortOrder: v.sortOrder,
     units: (v.units ?? []).map(mapUnit),
+    options: (v.options ?? []).map(mapOption),
   }));
 
   // If API still sends flat structure (no variants), create a single variant for backward compat
@@ -73,6 +89,7 @@ export function mapProduct(raw: ApiProduct): Product {
       isActive: true,
       sortOrder: 0,
       units: fallbackUnits,
+      options: [],
     });
   }
 

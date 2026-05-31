@@ -48,13 +48,13 @@ function CategoryCard({ category, onPress }: CategoryCardProps) {
           transition={200}
         />
         {/* Gradient overlay for readability */}
-        <View style={styles.overlay} />
+        {/* <View style={styles.overlay} /> */}
         {/* Products count badge */}
-        {category.productsCount > 0 && (
+        {/* {category.productsCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{category.productsCount}</Text>
           </View>
-        )}
+        )} */}
       </View>
       <Text style={styles.name} numberOfLines={1}>
         {category.name}
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: 0,
-    right: 0,
+    top: 3,
+    right: 12,
     backgroundColor: Colors.secondary,
     borderRadius: 10,
     minWidth: 20,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: "700",
     color: Colors.white,
   },

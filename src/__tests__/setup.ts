@@ -1,3 +1,5 @@
+(global as any).__DEV__ = false;
+
 // Mock React Native modules
 jest.mock("react-native", () => ({
   Platform: { OS: "ios", select: (obj: any) => obj.ios },
@@ -63,6 +65,28 @@ jest.mock("expo-notifications", () => ({
   addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
   AndroidImportance: { MAX: 5 },
+}));
+
+jest.mock("expo-device", () => ({
+  isDevice: true,
+  modelName: "Jest Device",
+  osName: "iOS",
+  osVersion: "17.0",
+}));
+
+jest.mock("@react-native-firebase/messaging", () => ({
+  AuthorizationStatus: {
+    AUTHORIZED: 1,
+    DENIED: 0,
+    NOT_DETERMINED: -1,
+    PROVISIONAL: 2,
+  },
+  getMessaging: jest.fn(() => ({})),
+  getToken: jest.fn(() => Promise.resolve("fcm-token")),
+  requestPermission: jest.fn(() => Promise.resolve(1)),
+  onMessage: jest.fn(() => jest.fn()),
+  onTokenRefresh: jest.fn(() => jest.fn()),
+  setBackgroundMessageHandler: jest.fn(),
 }));
 
 // Mock i18next

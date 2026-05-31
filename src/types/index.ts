@@ -10,6 +10,18 @@ export interface ProductUnit {
   sortOrder: number;
 }
 
+export interface VariantOption {
+  id: string;
+  name: string;
+  nameEn?: string;
+  stock: number;
+  sku?: string;
+  barcode?: string;
+  priceOverride?: number | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export interface ProductVariant {
   id: string;
   size: string;
@@ -22,6 +34,7 @@ export interface ProductVariant {
   isActive: boolean;
   sortOrder: number;
   units: ProductUnit[];
+  options: VariantOption[];
 }
 
 export interface Product {
@@ -62,6 +75,7 @@ export interface ApiProductVariant {
   isActive: boolean;
   sortOrder: number;
   units: ProductUnit[];
+  options?: VariantOption[];
 }
 
 /** Raw product shape from the API */
@@ -204,6 +218,8 @@ export interface OrderItem {
   productImage?: string;
   variantSize?: string;
   variantSizeEn?: string;
+  optionName?: string;
+  optionNameEn?: string;
   price: number;
   quantity: number;
   unit: string;
@@ -211,6 +227,7 @@ export interface OrderItem {
   unitLabel?: string;
   unitLabelEn?: string;
   piecesPerUnit?: number;
+  note?: string;
 }
 
 export interface OrderDetail extends Order {
@@ -233,6 +250,7 @@ export interface CreateOrderPayload {
   deliveryCity: string;
   buyerNotes?: string;
   couponCode?: string;
+  itemNotes?: { cartItemId: string; note: string }[];
 }
 
 export interface EditOrderPayload {
@@ -253,10 +271,20 @@ export interface CartItemAPI {
     isDefault: boolean;
     product: ApiProduct;
     units: ProductUnit[];
+    options?: VariantOption[];
   };
+  variantOptionId?: string | null;
+  variantOption?: {
+    id: string;
+    name: string;
+    nameEn?: string;
+    stock?: number;
+    priceOverride?: number | null;
+  } | null;
   productUnitId?: string | null;
   productUnit?: ProductUnit | null;
   quantity: number;
+  note?: string;
   /** @deprecated Use variant.product */
   product?: Product;
   /** @deprecated Use variantId */
@@ -275,10 +303,20 @@ export interface RawCartItemAPI {
     isDefault: boolean;
     product: ApiProduct;
     units: ProductUnit[];
+    options?: VariantOption[];
   };
+  variantOptionId?: string | null;
+  variantOption?: {
+    id: string;
+    name: string;
+    nameEn?: string;
+    stock?: number;
+    priceOverride?: number | null;
+  } | null;
   productUnitId?: string | null;
   productUnit?: ProductUnit | null;
   quantity: number;
+  note?: string;
   /** @deprecated backward compat */
   productId?: string;
   /** @deprecated backward compat */
@@ -299,14 +337,18 @@ export interface CartItem {
   cartItemId: string;
   product: Product;
   variant?: ProductVariant;
+  selectedOption?: VariantOption;
   quantity: number;
   selectedUnit?: ProductUnit;
+  note?: string;
 }
 
 export interface AddToCartPayload {
   variantId: string;
+  variantOptionId?: string;
   productUnitId?: string;
   quantity: number;
+  note?: string;
 }
 
 export interface UpdateCartPayload {
@@ -408,6 +450,24 @@ export interface CouponConfirmResponse {
   success: boolean;
   discountAmount: number;
   usageId: string;
+}
+
+// ============================================
+// Stock Validation
+// ============================================
+export interface InvalidCartItem {
+  cartItemId: string;
+  productName: string;
+  variantSize?: string;
+  optionName?: string;
+  requestedQty: number;
+  availableQty: number;
+}
+
+export interface CartValidationResponse {
+  valid: boolean;
+  invalidItems?: InvalidCartItem[];
+  message?: string;
 }
 
 // ============================================

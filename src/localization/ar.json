@@ -107,7 +107,17 @@
     "stickyAddToCart": "أضف إلى السلة",
     "outOfStockOption": "غير متوفر",
     "perFlavor": "لكل نكهة",
-    "selectFlavor": "اختر النكهة"
+    "selectFlavor": "اختر النكهة",
+    "selectVariant": "اختر الحجم",
+    "flavor": "النكهة",
+    "specialPrice": "سعر خاص",
+    "itemNote": "ملاحظة على المنتج",
+    "itemNotePlaceholder": "أضف ملاحظة خاصة بهذا المنتج (اختياري)",
+    "noOptions": "لا توجد خيارات إضافية",
+    "optionOutOfStock": "غير متوفر",
+    "lowStockWarning": "باقي فقط {{count}} قطع",
+    "addedToCartAnim": "تمت الإضافة إلى السلة ✓",
+    "stockExceeded": "لا يمكن إضافة {{requested}} قطع. يوجد {{available}} قطع متاحة فقط ({{inCart}} في السلة حالياً)"
   },
   "categories": {
     "title": "الأقسام",
@@ -137,7 +147,10 @@
     "subtotal": "المجموع الفرعي",
     "checkout": "إتمام الطلب",
     "proceedToCheckout": "المتابعة إلى الدفع",
-    "size": "الحجم: {{size}}"
+    "size": "الحجم: {{size}}",
+    "flavor": "النكهة: {{flavor}}",
+    "unit": "الوحدة: {{unit}}",
+    "itemNote": "ملاحظة: {{note}}"
   },
   "checkout": {
     "title": "إتمام الطلب",
@@ -174,7 +187,16 @@
     "successTitle": "تمت عملية الشراء بنجاح",
     "successMessage": "يمكنك متابعة الشحنة من خلال سجل الطلبات",
     "goToOrders": "متابعة سجل الطلبات",
-    "goToHome": "العودة إلى القائمة الرئيسية"
+    "goToHome": "العودة إلى القائمة الرئيسية",
+    "productNote": "ملاحظة: {{note}}",
+    "validationError": "خطأ في التحقق من السلة. يرجى المحاولة مرة أخرى",
+    "outOfStockTitle": "المخزون غير متاح",
+    "outOfStockMessage": "المخزون غير كافي. يرجى تحديث السلة والمحاولة مرة أخرى",
+    "insufficientStockTitle": "المخزون غير كافي",
+    "insufficientStockMessage": "بعض المنتجات غير متاحة بالكمية المطلوبة. يرجى تحديث السلة.",
+    "requestedVsAvailable": "المطلوب: {{requested}} | المتاح: {{available}}",
+    "backToCart": "العودة للسلة",
+    "availableStock": "✓ المتاح: {{count}} قطعة"
   },
   "orders": {
     "title": "سجل الطلبات",

@@ -1,5 +1,6 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import type {
+    CartValidationResponse,
     CreateOrderPayload,
     EditOrderPayload,
     Order,
@@ -26,6 +27,8 @@ function mapItem(raw: any): OrderItem {
     productId: raw.productId ?? "",
     productName: raw.productName ?? raw.product?.name ?? "",
     productImage: fullImageUrl(raw.productImage ?? raw.product?.image),
+    variantSize: raw.variantSize,
+    variantSizeEn: raw.variantSizeEn,
     price: raw.pricePerUnit ?? raw.price ?? 0,
     quantity: raw.quantity ?? 0,
     unit: raw.unit ?? "",
@@ -33,6 +36,9 @@ function mapItem(raw: any): OrderItem {
     unitLabel: raw.unitLabel,
     unitLabelEn: raw.unitLabelEn,
     piecesPerUnit: raw.piecesPerUnit,
+    optionName: raw.optionName,
+    optionNameEn: raw.optionNameEn,
+    note: raw.note ?? raw.itemNote,
   };
 }
 
@@ -116,5 +122,30 @@ export const orderService = {
       payload,
     );
     return mapOrderDetail(data);
+  },
+
+  validateCart: async (): Promise<CartValidationResponse> => {
+    console.log(`🌐 API: GET ${API_ENDPOINTS.CART.VALIDATE}`);
+    try {
+      const { data } = await apiClient.get<CartValidationResponse>(
+        API_ENDPOINTS.CART.VALIDATE,
+      );
+      console.log("🌐 API: Cart validation response:", data);
+      return data;
+    } catch (error: any) {
+      const status = error.response?.status;
+      console.error(
+        "🌐 API: Cart validation error:",
+        status,
+        error.response?.data || error.message,
+      );
+
+      // If backend doesn't support pre-checkout validation yet, do not block
+      // order creation. The create-order endpoint should remain authoritative.
+      if (status === 404 || status === 405) {
+        return { valid: true };
+      }
+      throw error;
+    }
   },
 };

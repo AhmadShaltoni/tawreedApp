@@ -12,9 +12,9 @@ import { couponService } from "@/src/services/coupon.service";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
-import { clearCart } from "@/src/store/slices/cart.slice";
-import { createOrder } from "@/src/store/slices/orders.slice";
-import type { City, CouponValidateSuccess } from "@/src/types";
+import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
+import { createOrder, validateCartBeforeCheckout } from "@/src/store/slices/orders.slice";
+import type { City, CouponValidateSuccess, InvalidCartItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -25,6 +25,7 @@ import {
     Keyboard,
     Modal,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -42,9 +43,14 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { items } = useAppSelector((state) => state.cart);
-  const { creating, error } = useAppSelector((state) => state.orders);
+  const { creating, error, loading } = useAppSelector((state) => state.orders);
   const { user } = useAppSelector((state) => state.auth);
   const isArabic = i18n.language === "ar";
+
+  // Stock validation state
+  const [validatingCart, setValidatingCart] = useState(false);
+  const [invalidItems, setInvalidItems] = useState<InvalidCartItem[]>([]);
+  const [showStockErrorModal, setShowStockErrorModal] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -129,9 +135,11 @@ export default function CheckoutScreen() {
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
       // Use selected unit price if available (for dozen/box/carton), otherwise use product price
-      const price = item.selectedUnit
-        ? item.selectedUnit.price
-        : (item.product.discountPrice ?? item.product.price);
+      const price = item.selectedOption?.priceOverride
+        ? item.selectedOption.priceOverride
+        : item.selectedUnit
+          ? item.selectedUnit.price
+          : (item.product.discountPrice ?? item.product.price);
       return sum + price * item.quantity;
     }, 0);
     return {
@@ -203,8 +211,6 @@ export default function CheckoutScreen() {
 
     if (Object.keys(errors).length > 0) {
       console.log("⚠️ Form validation failed, showing errors to user");
-
-      // Show a user-friendly alert
       const errorMessages = Object.values(errors).join("\n");
       Alert.alert(t("common.error"), errorMessages);
       return;
@@ -212,11 +218,50 @@ export default function CheckoutScreen() {
 
     console.log("✅ Form validation passed");
 
+    // ===== NEW: Validate cart stock before creating order =====
+    console.log("🔍 Starting cart stock validation...");
+    setValidatingCart(true);
+    setInvalidItems([]);
+
+    const validationResult = await dispatch(validateCartBeforeCheckout());
+    
+    if (validateCartBeforeCheckout.fulfilled.match(validationResult)) {
+      const response = validationResult.payload;
+      
+      if (!response.valid && response.invalidItems && response.invalidItems.length > 0) {
+        // ❌ Stock validation failed - show error modal
+        console.error("❌ Cart validation failed:", response.invalidItems);
+        setInvalidItems(response.invalidItems);
+        setShowStockErrorModal(true);
+        setValidatingCart(false);
+        return;
+      }
+    } else if (validateCartBeforeCheckout.rejected.match(validationResult)) {
+      // Backend validation failed
+      console.error("❌ Validation request failed:", validationResult.payload);
+      setValidatingCart(false);
+      Alert.alert(
+        t("common.error"),
+        t("checkout.validationError") || (validationResult.payload as string),
+      );
+      return;
+    }
+
+    setValidatingCart(false);
+    console.log("✅ Cart validation passed, proceeding with order creation");
+
+    // ===== Proceed with order creation =====
     const orderPayload = {
       deliveryAddress: address.trim() || "No address provided",
       deliveryCity: cityDisplayText,
       buyerNotes: notes.trim() || undefined,
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+      itemNotes: items
+        .filter((item) => item.note)
+        .map((item) => ({
+          cartItemId: item.cartItemId,
+          note: item.note!,
+        })),
     };
 
     console.log("📤 Dispatching createOrder with payload:", orderPayload);
@@ -247,12 +292,30 @@ export default function CheckoutScreen() {
       console.log("🗑️ Clearing cart...");
       dispatch(clearCart());
 
-      console.log("� Showing success modal");
+      console.log("✅ Showing success modal");
       setShowSuccessModal(true);
     } else if (createOrder.rejected.match(result)) {
       console.error("❌ FAILED: Order creation rejected!");
       console.error("❌ Error payload:", result.payload);
-      Alert.alert(t("common.error"), result.payload as string);
+
+      // Check if error is about stock (409 Conflict)
+      const errorMsg = result.payload as string;
+      if (errorMsg && errorMsg.toLowerCase().includes("stock")) {
+        // Stock issue during order creation (race condition)
+        Alert.alert(
+          t("checkout.outOfStockTitle") || t("common.error"),
+          t("checkout.outOfStockMessage") ||
+            "المخزون غير كافي. يرجى تحديث السلة والمحاولة مرة أخرى.",
+          [
+            {
+              text: t("common.close"),
+              onPress: () => dispatch(fetchCart()),
+            },
+          ],
+        );
+      } else {
+        Alert.alert(t("common.error"), errorMsg);
+      }
     } else {
       console.warn("⚠️ Unknown result status");
     }
@@ -266,8 +329,7 @@ export default function CheckoutScreen() {
     selectedCityId,
     selectedAreaId,
     appliedCoupon,
-    totals.subtotal,
-    items.length,
+    items,
   ]);
 
   return (
@@ -285,10 +347,12 @@ export default function CheckoutScreen() {
         </View>
         <View style={styles.summaryCard}>
           {items.map((item) => {
-            // Use selected unit price if available (for dozen/box/carton), otherwise use product price
-            const price = item.selectedUnit
-              ? item.selectedUnit.price
-              : (item.product.discountPrice ?? item.product.price);
+            // Use option priceOverride if available, then unit price, then product price
+            const price = item.selectedOption?.priceOverride
+              ? item.selectedOption.priceOverride
+              : item.selectedUnit
+                ? item.selectedUnit.price
+                : (item.product.discountPrice ?? item.product.price);
             // Use selected unit label if available, otherwise use product unit
             const unitLabel = item.selectedUnit
               ? isArabic
@@ -301,15 +365,51 @@ export default function CheckoutScreen() {
                 ? variantSize
                 : (item.variant?.sizeEn ?? variantSize)
               : null;
+            // Get available stock
+            const availableStock = item.selectedOption
+              ? item.selectedOption.stock
+              : (item.variant?.stock ?? item.product.stock);
             return (
               <View key={item.cartItemId} style={styles.summaryItem}>
                 <View style={styles.summaryItemDetails}>
                   <Text style={styles.summaryItemName} numberOfLines={1}>
                     {item.product.name}
-                    {variantLabel ? ` (${variantLabel})` : ""}
                   </Text>
+                  {variantLabel ? (
+                    <Text style={styles.summaryItemOption}>
+                      {t("cart.size", { size: variantLabel })}
+                    </Text>
+                  ) : null}
+                  {item.selectedOption ? (
+                    <Text style={styles.summaryItemOption}>
+                      {t("cart.flavor", {
+                        flavor: isArabic
+                          ? item.selectedOption.name
+                          : (item.selectedOption.nameEn ?? item.selectedOption.name),
+                      })}
+                    </Text>
+                  ) : null}
+                  {unitLabel ? (
+                    <Text style={styles.summaryItemOption}>
+                      {t("cart.unit", { unit: unitLabel })}
+                    </Text>
+                  ) : null}
                   <Text style={styles.summaryItemQty}>
                     x{item.quantity} {unitLabel}
+                  </Text>
+                  {item.note ? (
+                    <Text style={styles.summaryItemNote} numberOfLines={2}>
+                      {t("checkout.productNote", { note: item.note })}
+                    </Text>
+                  ) : null}
+                  {/* Stock Info */}
+                  <Text
+                    style={[
+                      styles.summaryItemOption,
+                      availableStock < item.quantity ? styles.stockWarning : styles.stockOk,
+                    ]}
+                  >
+                    ✓ {t("checkout.availableStock", { count: availableStock })}
                   </Text>
                 </View>
                 <Text style={styles.summaryItemPrice}>
@@ -643,6 +743,83 @@ export default function CheckoutScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Stock Error Modal */}
+      <Modal
+        visible={showStockErrorModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStockErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.stockErrorModal]}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="alert-circle" size={48} color={Colors.error} />
+            </View>
+            <Text style={styles.modalTitle}>
+              {t("checkout.insufficientStockTitle") || "المخزون غير كافي"}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {t("checkout.insufficientStockMessage") ||
+                "بعض المنتجات غير متاحة بالكمية المطلوبة. يرجى تحديث السلة."}
+            </Text>
+
+            {/* List of invalid items */}
+            {invalidItems.length > 0 && (
+              <ScrollView
+                style={styles.invalidItemsList}
+                scrollEnabled={invalidItems.length > 2}
+              >
+                {invalidItems.map((item) => (
+                  <View key={item.cartItemId} style={styles.invalidItemCard}>
+                    <Ionicons
+                      name="warning"
+                      size={16}
+                      color={Colors.error}
+                      style={styles.invalidItemIcon}
+                    />
+                    <View style={styles.invalidItemDetails}>
+                      <Text style={styles.invalidItemName} numberOfLines={2}>
+                        {item.productName}
+                        {item.variantSize ? ` - ${item.variantSize}` : ""}
+                        {item.optionName ? ` (${item.optionName})` : ""}
+                      </Text>
+                      <Text style={styles.invalidItemStock}>
+                        {t("checkout.requestedVsAvailable", {
+                          requested: item.requestedQty,
+                          available: item.availableQty,
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <View style={styles.modalButtons}>
+              <Button
+                title={t("checkout.backToCart") || "العودة للسلة"}
+                onPress={() => {
+                  setShowStockErrorModal(false);
+                  setInvalidItems([]);
+                  router.back();
+                }}
+                variant="primary"
+                style={styles.modalButton}
+              />
+              <Button
+                title={t("common.close")}
+                onPress={() => {
+                  setShowStockErrorModal(false);
+                  setInvalidItems([]);
+                }}
+                variant="outline"
+                style={styles.modalButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -687,6 +864,18 @@ const styles = StyleSheet.create({
   summaryItemQty: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  summaryItemOption: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+  summaryItemNote: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontStyle: "italic",
     marginTop: 2,
   },
   summaryItemPrice: {
@@ -903,5 +1092,45 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     width: "100%",
+  },
+  // Stock validation styles
+  stockOk: {
+    color: Colors.success,
+  },
+  stockWarning: {
+    color: Colors.error,
+  },
+  stockErrorModal: {
+    maxHeight: "80%",
+  },
+  invalidItemsList: {
+    maxHeight: 200,
+    marginVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "#fef2f2",
+  },
+  invalidItemCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  invalidItemIcon: {
+    marginRight: Spacing.sm,
+    marginTop: 2,
+  },
+  invalidItemDetails: {
+    flex: 1,
+  },
+  invalidItemName: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  invalidItemStock: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    marginTop: Spacing.xs,
   },
 });

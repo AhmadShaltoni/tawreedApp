@@ -38,13 +38,22 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error("📥 HTTP Error:", {
+    const status = error.response?.status;
+    const logError = status == null || status >= 500;
+    const logPayload = {
       status: error.response?.status,
       url: error.response?.config?.url,
       data: error.response?.data,
       message: error.message,
-    });
-    if (error.response?.status === 401) {
+    };
+
+    if (logError) {
+      console.error("📥 HTTP Error:", logPayload);
+    } else {
+      console.warn("📥 HTTP Error:", logPayload);
+    }
+
+    if (status === 401) {
       removeToken();
     }
     return Promise.reject(error);

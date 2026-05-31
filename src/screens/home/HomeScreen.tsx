@@ -170,11 +170,13 @@ export default function HomeScreen() {
 
   const handleCategoryPress = useCallback(
     (category: Category) => {
-      if (category.hasChildren) {
-        router.push(`/categories?parentId=${category.id}`);
-      } else {
-        router.push(`/products?categoryId=${category.id}`);
-      }
+      router.push({
+        pathname: "/products",
+        params: {
+          categoryId: category.id,
+          includeDescendants: "true",
+        },
+      });
     },
     [router],
   );

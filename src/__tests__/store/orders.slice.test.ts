@@ -9,6 +9,7 @@ import ordersReducer, {
     fetchOrderDetail,
     fetchOrders,
     updateOrder,
+    validateCartBeforeCheckout,
 } from "@/src/store/slices/orders.slice";
 import { configureStore } from "@reduxjs/toolkit";
 
@@ -17,6 +18,7 @@ jest.mock("@/src/services/order.service", () => ({
     getOrders: jest.fn(),
     getOrderDetail: jest.fn(),
     createOrder: jest.fn(),
+    validateCart: jest.fn(),
     updateOrder: jest.fn(),
   },
 }));
@@ -242,6 +244,32 @@ describe("Orders Slice", () => {
         deliveryCity: "عمان",
         couponCode: "SAVE10",
       });
+    });
+  });
+
+  // ─── Validate Cart ───
+  describe("Validate Cart", () => {
+    it("should validate cart before checkout", async () => {
+      mockOrderService.validateCart.mockResolvedValueOnce({ valid: true });
+
+      const result = await store.dispatch(validateCartBeforeCheckout());
+
+      expect(validateCartBeforeCheckout.fulfilled.match(result)).toBe(true);
+      expect(result.payload).toEqual({ valid: true });
+      expect(store.getState().orders.loading).toBe(false);
+      expect(store.getState().orders.error).toBeNull();
+    });
+
+    it("should store validation errors", async () => {
+      mockOrderService.validateCart.mockRejectedValueOnce(
+        new Error("فشل التحقق من السلة"),
+      );
+
+      const result = await store.dispatch(validateCartBeforeCheckout());
+
+      expect(validateCartBeforeCheckout.rejected.match(result)).toBe(true);
+      expect(store.getState().orders.loading).toBe(false);
+      expect(store.getState().orders.error).toBe("فشل التحقق من السلة");
     });
   });
 

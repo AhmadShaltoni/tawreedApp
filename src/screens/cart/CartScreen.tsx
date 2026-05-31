@@ -12,7 +12,7 @@ import {
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  clearCart,
+  clearCartAsync,
   fetchCart,
   removeFromCartAsync,
   updateCartItemAsync,
@@ -60,9 +60,11 @@ export default function CartScreen() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
-      const price = item.selectedUnit
-        ? item.selectedUnit.price
-        : (item.product.discountPrice ?? item.product.price);
+      const price = item.selectedOption?.priceOverride
+        ? item.selectedOption.priceOverride
+        : item.selectedUnit
+          ? item.selectedUnit.price
+          : (item.product.discountPrice ?? item.product.price);
       return sum + price * item.quantity;
     }, 0);
     return { subtotal, itemCount: items.length };
@@ -71,18 +73,42 @@ export default function CartScreen() {
   const handleIncrement = useCallback(
     (item: CartItem) => {
       requireAuth(() => {
-        const maxStock = item.variant?.stock ?? item.product.stock;
-        if (item.quantity < maxStock) {
+        // Use option stock if option is selected, otherwise variant/product stock
+        const stockSource = item.selectedOption
+          ? item.selectedOption.stock
+          : (item.variant?.stock ?? item.product.stock);
+
+        // Sum quantities of all cart items sharing the same product+variant+option
+        const totalInCart = items
+          .filter((ci) => {
+            if (ci.product.id !== item.product.id) return false;
+            if (ci.variant?.id !== item.variant?.id) return false;
+            if (item.selectedOption && ci.selectedOption?.id !== item.selectedOption.id) return false;
+            if (!item.selectedOption && ci.selectedOption) return false;
+            return true;
+          })
+          .reduce((sum, ci) => sum + ci.quantity, 0);
+
+        if (totalInCart < stockSource) {
           dispatch(
             updateCartItemAsync({
               cartItemId: item.cartItemId,
               quantity: item.quantity + 1,
             }),
           );
+        } else {
+          Alert.alert(
+            "",
+            t("products.stockExceeded", {
+              requested: item.quantity + 1,
+              available: stockSource,
+              inCart: totalInCart,
+            }),
+          );
         }
       });
     },
-    [dispatch, requireAuth],
+    [dispatch, requireAuth, items, t],
   );
 
   const handleDecrement = useCallback(
@@ -129,7 +155,7 @@ export default function CartScreen() {
         {
           text: t("common.clear"),
           style: "destructive",
-          onPress: () => dispatch(clearCart()),
+          onPress: () => dispatch(clearCartAsync()),
         },
       ]);
     });
@@ -137,9 +163,11 @@ export default function CartScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: CartItem }) => {
-      const unitPrice = item.selectedUnit
-        ? item.selectedUnit.price
-        : (item.product.discountPrice ?? item.product.price);
+      const unitPrice = item.selectedOption?.priceOverride
+        ? item.selectedOption.priceOverride
+        : item.selectedUnit
+          ? item.selectedUnit.price
+          : (item.product.discountPrice ?? item.product.price);
       const lineTotal = unitPrice * item.quantity;
       const isUpdating = updating[item.cartItemId];
       const isArabic = i18n.language === "ar";
@@ -154,8 +182,22 @@ export default function CartScreen() {
           ? variantSize
           : (item.variant?.sizeEn ?? variantSize)
         : null;
-      const maxStock = item.variant?.stock ?? item.product.stock;
+      const maxStock = item.selectedOption
+        ? item.selectedOption.stock
+        : (item.variant?.stock ?? item.product.stock);
       const minQty = item.variant?.minOrderQuantity ?? item.product.minOrder;
+
+      // Calculate total quantity in cart for same product+variant+option
+      const totalInCart = items
+        .filter((ci) => {
+          if (ci.product.id !== item.product.id) return false;
+          if (ci.variant?.id !== item.variant?.id) return false;
+          if (item.selectedOption && ci.selectedOption?.id !== item.selectedOption.id) return false;
+          if (!item.selectedOption && ci.selectedOption) return false;
+          return true;
+        })
+        .reduce((sum, ci) => sum + ci.quantity, 0);
+      const atStockLimit = totalInCart >= maxStock;
 
       return (
         <View style={[styles.cartItem, isUpdating && styles.itemUpdating]}>
@@ -176,6 +218,25 @@ export default function CartScreen() {
             {variantLabel ? (
               <Text style={styles.itemVariant}>
                 {t("cart.size", { size: variantLabel })}
+              </Text>
+            ) : null}
+            {item.selectedOption ? (
+              <Text style={styles.itemVariant}>
+                {t("cart.flavor", {
+                  flavor: i18n.language === "ar"
+                    ? item.selectedOption.name
+                    : (item.selectedOption.nameEn ?? item.selectedOption.name),
+                })}
+              </Text>
+            ) : null}
+            {unitLabel ? (
+              <Text style={styles.itemVariant}>
+                {t("cart.unit", { unit: unitLabel })}
+              </Text>
+            ) : null}
+            {item.note ? (
+              <Text style={styles.itemNote} numberOfLines={2}>
+                {t("cart.itemNote", { note: item.note })}
               </Text>
             ) : null}
             <Text style={styles.itemPrice}>
@@ -202,13 +263,13 @@ export default function CartScreen() {
                 <Pressable
                   onPress={() => handleIncrement(item)}
                   style={styles.qtyBtn}
-                  disabled={item.quantity >= maxStock || isUpdating}
+                  disabled={atStockLimit || isUpdating}
                 >
                   <Ionicons
                     name="add"
                     size={16}
                     color={
-                      item.quantity >= maxStock
+                      atStockLimit
                         ? Colors.textLight
                         : Colors.primary
                     }
@@ -236,6 +297,7 @@ export default function CartScreen() {
       handleIncrement,
       handleDecrement,
       handleRemove,
+      items,
       t,
       i18n.language,
     ],
@@ -407,6 +469,12 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "500",
     marginTop: 1,
+  },
+  itemNote: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 2,
   },
   itemPrice: {
     fontSize: FontSize.xs,

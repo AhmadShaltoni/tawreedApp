@@ -6,6 +6,7 @@ import authReducer, { logout } from "@/src/store/slices/auth.slice";
 import cartReducer, {
     addToCartAsync,
     clearCart,
+    clearCartAsync,
     clearCartError,
     fetchCart,
     removeFromCart,
@@ -62,7 +63,22 @@ const mockProduct = {
   featured: false,
   createdAt: "2026-01-01",
   isActive: true,
-  variants: [],
+  variants: [
+    {
+      id: "var-default",
+      size: "",
+      sizeEn: null,
+      sku: null,
+      barcode: null,
+      stock: 100,
+      minOrderQuantity: 1,
+      isDefault: true,
+      isActive: true,
+      sortOrder: 0,
+      units: [],
+      options: [],
+    },
+  ],
 };
 
 /** Helper to create a mock cart API item with required variant fields */
@@ -319,6 +335,17 @@ describe("Cart Slice", () => {
 
     it("should clear entire cart", () => {
       store.dispatch(clearCart());
+      expect(store.getState().cart.items).toEqual([]);
+      expect(store.getState().cart.error).toBeNull();
+    });
+
+    it("should clear cart from backend", async () => {
+      mockCartService.removeCartItem.mockResolvedValue(undefined);
+
+      const result = await store.dispatch(clearCartAsync());
+
+      expect(clearCartAsync.fulfilled.match(result)).toBe(true);
+      expect(mockCartService.removeCartItem).toHaveBeenCalledWith("cart-1");
       expect(store.getState().cart.items).toEqual([]);
       expect(store.getState().cart.error).toBeNull();
     });

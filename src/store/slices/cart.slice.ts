@@ -1,5 +1,5 @@
 import { cartService } from "@/src/services/cart.service";
-import type { CartItem, CartItemAPI, Product, ProductUnit, ProductVariant } from "@/src/types";
+import type { CartItem, CartItemAPI, Product, ProductUnit, ProductVariant, VariantOption } from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import {
   createAsyncThunk,
@@ -23,6 +23,7 @@ function mapApiItemToCartItem(item: CartItemAPI): CartItem {
         isActive: true,
         sortOrder: 0,
         units: item.variant.units ?? [],
+        options: item.variant.options ?? [],
       }
     : undefined;
 
@@ -34,12 +35,27 @@ function mapApiItemToCartItem(item: CartItemAPI): CartItem {
       : undefined) ??
     undefined;
 
+  // Map selected option from API response
+  const selectedOption: VariantOption | undefined = item.variantOption
+    ? {
+        id: item.variantOption.id,
+        name: item.variantOption.name,
+        nameEn: item.variantOption.nameEn ?? undefined,
+        stock: item.variantOption.stock ?? 0,
+        priceOverride: item.variantOption.priceOverride ?? null,
+        isActive: true,
+        sortOrder: 0,
+      }
+    : undefined;
+
   return {
     cartItemId: item.id,
     product,
     variant,
+    selectedOption,
     quantity: item.quantity,
     selectedUnit: selectedUnit ?? undefined,
+    note: item.note,
   };
 }
 
@@ -77,11 +93,15 @@ export const addToCartAsync = createAsyncThunk(
       quantity,
       selectedUnit,
       selectedVariant,
+      selectedOption,
+      note,
     }: {
       product: Product;
       quantity: number;
       selectedUnit?: ProductUnit;
       selectedVariant?: ProductVariant;
+      selectedOption?: VariantOption;
+      note?: string;
     },
     { rejectWithValue },
   ) => {
@@ -92,8 +112,10 @@ export const addToCartAsync = createAsyncThunk(
         product.variants[0];
       const apiItem = await cartService.addToCart({
         variantId: variant.id,
+        variantOptionId: selectedOption?.id,
         productUnitId: selectedUnit?.id,
         quantity,
+        note: note?.trim() || undefined,
       });
       return mapApiItemToCartItem(apiItem);
     } catch (error: any) {
@@ -123,6 +145,22 @@ export const removeFromCartAsync = createAsyncThunk(
     try {
       await cartService.removeCartItem(cartItemId);
       return cartItemId;
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const clearCartAsync = createAsyncThunk(
+  "cart/clearAsync",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { cart: CartState };
+      const itemIds = state.cart.items.map((item) => item.cartItemId);
+
+      await Promise.all(itemIds.map((id) => cartService.removeCartItem(id)));
+
+      return itemIds;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -224,6 +262,24 @@ const cartSlice = createSlice({
       })
       .addCase(removeFromCartAsync.rejected, (state, action) => {
         delete state.updating[action.meta.arg];
+        state.error = action.payload as string;
+      });
+
+    // Clear cart
+    builder
+      .addCase(clearCartAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(clearCartAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        action.payload.forEach((id) => {
+          delete state.updating[id];
+        });
+        state.items = [];
+      })
+      .addCase(clearCartAsync.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       });
 

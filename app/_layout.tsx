@@ -223,7 +223,6 @@ function AuthGate() {
         />
       </Stack>
       <StatusBar style="dark" />
-      <WhatsAppFAB />
       <NotificationPermissionModal
         visible={displayModal}
         onOpenSettings={handleModalEnable}

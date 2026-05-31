@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
     ADD: "/api/v1/cart",
     UPDATE: (id: string) => `/api/v1/cart/${id}`,
     REMOVE: (id: string) => `/api/v1/cart/${id}`,
+    VALIDATE: "/api/v1/cart/validate",
   },
   ORDERS: {
     LIST: "/api/v1/orders",

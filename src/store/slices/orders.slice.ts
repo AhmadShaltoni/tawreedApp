@@ -1,5 +1,6 @@
 import { orderService } from "@/src/services/order.service";
 import type {
+    CartValidationResponse,
     CreateOrderPayload,
     EditOrderPayload,
     Order,
@@ -60,6 +61,23 @@ export const createOrder = createAsyncThunk(
       return result;
     } catch (error: any) {
       console.error("🔴 Redux: createOrder error:", error);
+      const errorMessage = getErrorMessage(error);
+      console.error("🔴 Redux: Error message:", errorMessage);
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
+export const validateCartBeforeCheckout = createAsyncThunk(
+  "orders/validateCart",
+  async (_, { rejectWithValue }) => {
+    console.log("🔵 Redux: validateCartBeforeCheckout thunk started");
+    try {
+      const result = await orderService.validateCart();
+      console.log("🟢 Redux: Cart validation result:", result);
+      return result;
+    } catch (error: any) {
+      console.error("🔴 Redux: Cart validation error:", error);
       const errorMessage = getErrorMessage(error);
       console.error("🔴 Redux: Error message:", errorMessage);
       return rejectWithValue(errorMessage);
@@ -152,6 +170,27 @@ const ordersSlice = createSlice({
           action.payload,
         );
         state.creating = false;
+        state.error = action.payload as string;
+      });
+
+    // Validate cart before checkout
+    builder
+      .addCase(validateCartBeforeCheckout.pending, (state) => {
+        console.log("🟡 Redux: validateCartBeforeCheckout.pending");
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(validateCartBeforeCheckout.fulfilled, (state, action) => {
+        console.log("🟢 Redux: validateCartBeforeCheckout.fulfilled", action.payload);
+        state.loading = false;
+        // No state update needed - component will handle the response
+      })
+      .addCase(validateCartBeforeCheckout.rejected, (state, action) => {
+        console.log(
+          "🔴 Redux: validateCartBeforeCheckout.rejected with error:",
+          action.payload,
+        );
+        state.loading = false;
         state.error = action.payload as string;
       });
 

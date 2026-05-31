@@ -25,6 +25,9 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
   const variantSize = isAr
     ? item.variantSize
     : (item.variantSizeEn ?? item.variantSize);
+  const optionName = isAr
+    ? item.optionName
+    : (item.optionNameEn ?? item.optionName);
 
   return (
     <View style={styles.container}>
@@ -48,10 +51,18 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
         {variantSize ? (
           <Text style={styles.variantSize}>{variantSize}</Text>
         ) : null}
+        {optionName ? (
+          <Text style={styles.optionName}>{optionName}</Text>
+        ) : null}
         <Text style={styles.meta}>
           {(item.price ?? 0).toFixed(2)} {t("common.currency")} ×{" "}
           {item.quantity} {unitLabel}
         </Text>
+        {item.note ? (
+          <Text style={styles.note} numberOfLines={2}>
+            {item.note}
+          </Text>
+        ) : null}
       </View>
 
       <Text style={styles.subtotal}>
@@ -97,10 +108,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 1,
   },
+  optionName: {
+    fontSize: FontSize.xs,
+    color: Colors.secondary,
+    fontWeight: "500",
+    marginTop: 1,
+  },
   meta: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 3,
+  },
+  note: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 2,
   },
   subtotal: {
     fontSize: FontSize.sm,
