@@ -1,23 +1,28 @@
 /**
  * PointsBalanceHero Component
  * Large hero card displaying loyalty points balance with gradient
- * 
+ *
  * VISUAL: Premium gradient card, animated counter, floating particles effect
  */
 
-import AnimatedCounter from "./AnimatedCounter";
+import {
+    LoyaltyGradients,
+    LoyaltyShadows,
+    LoyaltySpacing,
+    LoyaltyTypography,
+} from "@/src/constants/loyaltyTheme";
+import {
+    BorderRadius,
+    Colors,
+    FontSize,
+    Spacing
+} from "@/src/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { BorderRadius, Colors, FontSize, Shadows, Spacing } from "@/src/constants/theme";
-import {
-  LoyaltyGradients,
-  LoyaltyShadows,
-  LoyaltySpacing,
-  LoyaltyTypography,
-} from "@/src/constants/loyaltyTheme";
-import { Ionicons } from "@expo/vector-icons";
+import AnimatedCounter from "./AnimatedCounter";
 
 interface PointsBalanceHeroProps {
   currentBalance: number | undefined;
@@ -37,10 +42,7 @@ export default function PointsBalanceHero({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
       <LinearGradient
         colors={LoyaltyGradients.gold}

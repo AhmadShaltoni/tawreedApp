@@ -1,43 +1,42 @@
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { addToCartAsync, fetchCart } from "@/src/store/slices/cart.slice";
 import type {
-  Product,
-  ProductUnit,
-  ProductVariant,
-  VariantOption,
+    Product,
+    ProductUnit,
+    ProductVariant,
+    VariantOption,
 } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  I18nManager,
-  Modal,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Animated,
+    Dimensions,
+    I18nManager,
+    Modal,
+    PanResponder,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LoginRequiredModal from "./LoginRequiredModal";
@@ -301,7 +300,8 @@ export default function ProductOptionsBottomSheet({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+      onMoveShouldSetPanResponder: (_, g) =>
+        g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) {
           slideAnim.setValue(g.dy);
@@ -424,13 +424,8 @@ export default function ProductOptionsBottomSheet({
       >
         <View style={styles.container}>
           {/* Backdrop */}
-          <Animated.View
-            style={[styles.backdrop, { opacity: backdropAnim }]}
-          >
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={handleClose}
-            />
+          <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
           </Animated.View>
 
           {/* Sheet */}
@@ -532,7 +527,8 @@ export default function ProductOptionsBottomSheet({
                             variantOutOfStock && styles.optionChipDisabled,
                           ]}
                           onPress={() => {
-                            if (!variantOutOfStock) handleVariantChange(variant);
+                            if (!variantOutOfStock)
+                              handleVariantChange(variant);
                           }}
                           disabled={variantOutOfStock}
                         >
@@ -687,8 +683,7 @@ export default function ProductOptionsBottomSheet({
                                 isSelected && styles.optionChipSubSelected,
                               ]}
                             >
-                              ({unit.piecesPerUnit}{" "}
-                              {isArabic ? "قطعة" : "pcs"})
+                              ({unit.piecesPerUnit} {isArabic ? "قطعة" : "pcs"})
                             </Text>
                           )}
                           {isSelected && (

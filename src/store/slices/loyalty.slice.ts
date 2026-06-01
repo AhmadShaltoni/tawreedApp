@@ -4,20 +4,20 @@
  */
 
 import { loyaltyService } from "@/src/services/loyalty.service";
-import { RewardRarity } from "@/src/types/loyalty"; // Regular import for enum
 import type {
-  ApplyReferralPayload,
-  Campaign,
-  Coupon,
-  LoyaltyBalance,
-  LoyaltyTransaction,
-  PointsEarnedAnimation,
-  RedeemRewardPayload,
-  RedemptionState,
-  ReferralInfo,
-  Reward,
-  ValidateCouponPayload,
+    ApplyReferralPayload,
+    Campaign,
+    Coupon,
+    LoyaltyBalance,
+    LoyaltyTransaction,
+    PointsEarnedAnimation,
+    RedeemRewardPayload,
+    RedemptionState,
+    ReferralInfo,
+    Reward,
+    ValidateCouponPayload,
 } from "@/src/types/loyalty";
+import { RewardRarity } from "@/src/types/loyalty"; // Regular import for enum
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -167,11 +167,11 @@ export const fetchRewards = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     try {
       const data = await loyaltyService.getRewards();
-      
+
       // Enhance rewards with UI state (affordable/locked)
       const state = getState() as { loyalty: LoyaltyState };
       const currentBalance = state.loyalty.balance?.currentBalance ?? 0;
-      
+
       const enhancedRewards = data.rewards.map((reward) => ({
         ...reward,
         isAffordable: currentBalance >= reward.pointsCost,
@@ -246,13 +246,13 @@ export const fetchCampaigns = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const data = await loyaltyService.getCampaigns();
-      
+
       // Enhance campaigns with UI state
       const enhancedCampaigns = data.campaigns.map((campaign) => {
         const progressPct = campaign.progress
           ? (campaign.progress.currentValue / campaign.targetValue) * 100
           : 0;
-        
+
         return {
           ...campaign,
           progressPercentage: Math.min(progressPct, 100),

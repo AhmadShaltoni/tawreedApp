@@ -87,7 +87,7 @@ export interface Reward {
   isActive: boolean;
   expiryDays?: number; // Days until redeemed coupon expires
   minOrderAmount?: number; // Minimum order total to use coupon
-  
+
   // UI state helpers
   isAffordable?: boolean; // Frontend-computed: currentBalance >= pointsCost
   isLocked?: boolean; // Frontend: not affordable or not active
@@ -125,10 +125,10 @@ export interface Campaign {
   endDate: string;
   targetValue: number; // e.g., 5 orders, 500 JOD spent
   rewardPoints: number;
-  
+
   // User progress
   progress?: CampaignProgress;
-  
+
   // UI helpers
   progressPercentage?: number; // Frontend-computed
   isNearCompletion?: boolean; // Frontend: > 70%

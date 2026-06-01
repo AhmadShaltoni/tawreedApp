@@ -4,56 +4,51 @@
  * All data is fetched from the backend — no hardcoded values.
  */
 
-import PointsBalanceHero from "@/src/components/loyalty/PointsBalanceHero";
 import AnimatedProgressBar from "@/src/components/loyalty/AnimatedProgressBar";
+import PointsBalanceHero from "@/src/components/loyalty/PointsBalanceHero";
 import EmptyState from "@/src/components/ui/EmptyState";
+import { RarityColors } from "@/src/constants/loyaltyTheme";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
-import { LoyaltyShadows, RarityColors } from "@/src/constants/loyaltyTheme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  fetchBalance,
-  fetchRewards,
-  fetchCoupons,
-  fetchCampaigns,
-  fetchReferral,
-  fetchTransactions,
-  redeemReward,
-  resetRedemption,
+    fetchBalance,
+    fetchCampaigns,
+    fetchCoupons,
+    fetchReferral,
+    fetchRewards,
+    fetchTransactions,
+    redeemReward,
+    resetRedemption,
 } from "@/src/store/slices/loyalty.slice";
 import type {
-  Campaign,
-  Coupon,
-  LoyaltyTransaction,
-  Reward,
+    Campaign,
+    Coupon,
+    LoyaltyTransaction,
+    Reward,
 } from "@/src/types/loyalty";
-import {
-  CouponStatus,
-  RewardType,
-  TransactionType,
-} from "@/src/types/loyalty";
+import { CouponStatus, RewardType, TransactionType } from "@/src/types/loyalty";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,7 +73,9 @@ export default function LoyaltyScreen() {
   } = useAppSelector((state) => state.loyalty);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"rewards" | "coupons" | "campaigns" | "referral" | "transactions">("rewards");
+  const [activeTab, setActiveTab] = useState<
+    "rewards" | "coupons" | "campaigns" | "referral" | "transactions"
+  >("rewards");
 
   // Initial data fetch
   useEffect(() => {
@@ -143,10 +140,13 @@ export default function LoyaltyScreen() {
     dispatch(resetRedemption());
   }, [dispatch]);
 
-  const handleCopyCode = useCallback(async (code: string) => {
-    await Clipboard.setStringAsync(code);
-    Alert.alert(t("loyalty.codeCopied"));
-  }, [t]);
+  const handleCopyCode = useCallback(
+    async (code: string) => {
+      await Clipboard.setStringAsync(code);
+      Alert.alert(t("loyalty.codeCopied"));
+    },
+    [t],
+  );
 
   // ========================================
   // Referral Share
@@ -174,7 +174,9 @@ export default function LoyaltyScreen() {
   // ========================================
   // Helpers
   // ========================================
-  const getTransactionIcon = (type: TransactionType): keyof typeof Ionicons.glyphMap => {
+  const getTransactionIcon = (
+    type: TransactionType,
+  ): keyof typeof Ionicons.glyphMap => {
     switch (type) {
       case TransactionType.EARN_ORDER:
         return "cart-outline";
@@ -233,11 +235,14 @@ export default function LoyaltyScreen() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString(isArabic ? "ar-JO" : "en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      return new Date(dateStr).toLocaleDateString(
+        isArabic ? "ar-JO" : "en-US",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        },
+      );
     } catch {
       return dateStr;
     }
@@ -259,8 +264,7 @@ export default function LoyaltyScreen() {
   // ========================================
   // Global loading state for first load
   // ========================================
-  const isFirstLoad =
-    balanceLoading && !balance && rewards.items.length === 0;
+  const isFirstLoad = balanceLoading && !balance && rewards.items.length === 0;
 
   if (isFirstLoad) {
     return (
@@ -306,7 +310,10 @@ export default function LoyaltyScreen() {
             <ActivityIndicator color={Colors.white} />
           </View>
         ) : error ? (
-          <Pressable style={styles.errorCard} onPress={() => dispatch(fetchBalance())}>
+          <Pressable
+            style={styles.errorCard}
+            onPress={() => dispatch(fetchBalance())}
+          >
             <Ionicons name="refresh-outline" size={20} color={Colors.error} />
             <Text style={styles.errorText}>{t("common.retry")}</Text>
           </Pressable>
@@ -321,13 +328,33 @@ export default function LoyaltyScreen() {
           style={styles.tabBar}
           contentContainerStyle={styles.tabBarContent}
         >
-          {([
-            { key: "rewards" as const, label: t("loyalty.rewards"), icon: "gift-outline" as const },
-            { key: "coupons" as const, label: t("loyalty.coupons"), icon: "pricetag-outline" as const },
-            { key: "campaigns" as const, label: t("loyalty.campaigns"), icon: "ribbon-outline" as const },
-            { key: "referral" as const, label: t("loyalty.referral"), icon: "people-outline" as const },
-            { key: "transactions" as const, label: t("loyalty.transactions"), icon: "time-outline" as const },
-          ]).map((tab) => (
+          {[
+            {
+              key: "rewards" as const,
+              label: t("loyalty.rewards"),
+              icon: "gift-outline" as const,
+            },
+            {
+              key: "coupons" as const,
+              label: t("loyalty.coupons"),
+              icon: "pricetag-outline" as const,
+            },
+            {
+              key: "campaigns" as const,
+              label: t("loyalty.campaigns"),
+              icon: "ribbon-outline" as const,
+            },
+            {
+              key: "referral" as const,
+              label: t("loyalty.referral"),
+              icon: "people-outline" as const,
+            },
+            {
+              key: "transactions" as const,
+              label: t("loyalty.transactions"),
+              icon: "time-outline" as const,
+            },
+          ].map((tab) => (
             <Pressable
               key={tab.key}
               style={[styles.tab, activeTab === tab.key && styles.tabActive]}
@@ -336,7 +363,9 @@ export default function LoyaltyScreen() {
               <Ionicons
                 name={tab.icon}
                 size={16}
-                color={activeTab === tab.key ? Colors.white : Colors.textSecondary}
+                color={
+                  activeTab === tab.key ? Colors.white : Colors.textSecondary
+                }
               />
               <Text
                 style={[
@@ -536,24 +565,41 @@ export default function LoyaltyScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconContainer}>
-              <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+              <Ionicons
+                name="checkmark-circle"
+                size={64}
+                color={Colors.success}
+              />
             </View>
             <Text style={styles.modalTitle}>{t("loyalty.redeemSuccess")}</Text>
             {redemption.couponCode && (
               <View style={styles.couponCodeBox}>
-                <Text style={styles.couponCodeLabel}>{t("loyalty.couponCode")}</Text>
-                <Text style={styles.couponCodeValue}>{redemption.couponCode}</Text>
+                <Text style={styles.couponCodeLabel}>
+                  {t("loyalty.couponCode")}
+                </Text>
+                <Text style={styles.couponCodeValue}>
+                  {redemption.couponCode}
+                </Text>
                 <Pressable
                   style={styles.copyButton}
                   onPress={() => handleCopyCode(redemption.couponCode!)}
                 >
-                  <Ionicons name="copy-outline" size={18} color={Colors.white} />
-                  <Text style={styles.copyButtonText}>{t("loyalty.copyCode")}</Text>
+                  <Ionicons
+                    name="copy-outline"
+                    size={18}
+                    color={Colors.white}
+                  />
+                  <Text style={styles.copyButtonText}>
+                    {t("loyalty.copyCode")}
+                  </Text>
                 </Pressable>
               </View>
             )}
             <Text style={styles.modalHint}>{t("loyalty.useAtCheckout")}</Text>
-            <Pressable style={styles.modalDismiss} onPress={handleDismissRedemption}>
+            <Pressable
+              style={styles.modalDismiss}
+              onPress={handleDismissRedemption}
+            >
               <Text style={styles.modalDismissText}>{t("common.confirm")}</Text>
             </Pressable>
           </View>
@@ -573,8 +619,13 @@ export default function LoyaltyScreen() {
               <Ionicons name="alert-circle" size={48} color={Colors.error} />
               <Text style={styles.modalTitle}>{t("loyalty.redeemError")}</Text>
               <Text style={styles.modalHint}>{redemption.error}</Text>
-              <Pressable style={styles.modalDismiss} onPress={handleDismissRedemption}>
-                <Text style={styles.modalDismissText}>{t("common.confirm")}</Text>
+              <Pressable
+                style={styles.modalDismiss}
+                onPress={handleDismissRedemption}
+              >
+                <Text style={styles.modalDismissText}>
+                  {t("common.confirm")}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -601,22 +652,31 @@ function RewardCard({
   isArabic: boolean;
   t: (key: string, opts?: any) => string;
 }) {
-  const name = isArabic ? (reward.nameAr ?? reward.name) : (reward.nameEn ?? reward.name);
+  const name = isArabic
+    ? (reward.nameAr ?? reward.name)
+    : (reward.nameEn ?? reward.name);
   const description = isArabic
     ? (reward.descriptionAr ?? reward.description)
     : (reward.descriptionEn ?? reward.description);
   const canAfford = currentBalance >= reward.pointsCost;
-  const rarityColor = RarityColors[reward.rarity]?.primary ?? Colors.textSecondary;
+  const rarityColor =
+    RarityColors[reward.rarity]?.primary ?? Colors.textSecondary;
 
   return (
     <View style={[styles.rewardCard, !canAfford && styles.rewardCardLocked]}>
-      <View style={[styles.rarityBadge, { backgroundColor: rarityColor + "15" }]}>
+      <View
+        style={[styles.rarityBadge, { backgroundColor: rarityColor + "15" }]}
+      >
         <Text style={[styles.rarityText, { color: rarityColor }]}>
           {t(`loyalty.${reward.rarity?.toLowerCase() ?? "common"}`)}
         </Text>
       </View>
-      <Text style={styles.rewardName} numberOfLines={2}>{name}</Text>
-      <Text style={styles.rewardDescription} numberOfLines={2}>{description}</Text>
+      <Text style={styles.rewardName} numberOfLines={2}>
+        {name}
+      </Text>
+      <Text style={styles.rewardDescription} numberOfLines={2}>
+        {description}
+      </Text>
 
       {/* Reward value */}
       {reward.discountValue != null && (
@@ -631,15 +691,25 @@ function RewardCard({
       )}
 
       <View style={styles.rewardFooter}>
-        <Text style={[styles.pointsCost, !canAfford && styles.pointsCostLocked]}>
+        <Text
+          style={[styles.pointsCost, !canAfford && styles.pointsCostLocked]}
+        >
           {t("loyalty.pointsCost", { points: reward.pointsCost })}
         </Text>
         <Pressable
-          style={[styles.redeemButton, !canAfford && styles.redeemButtonDisabled]}
+          style={[
+            styles.redeemButton,
+            !canAfford && styles.redeemButtonDisabled,
+          ]}
           onPress={onRedeem}
           disabled={!canAfford || !reward.isActive}
         >
-          <Text style={[styles.redeemButtonText, !canAfford && styles.redeemButtonTextDisabled]}>
+          <Text
+            style={[
+              styles.redeemButtonText,
+              !canAfford && styles.redeemButtonTextDisabled,
+            ]}
+          >
             {canAfford ? t("loyalty.redeem") : t("loyalty.insufficientPoints")}
           </Text>
         </Pressable>
@@ -673,7 +743,12 @@ function CouponCard({
       <View style={styles.couponHeader}>
         <View>
           <Text style={styles.couponRewardName}>{rewardName}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + "15" }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusColor + "15" },
+            ]}
+          >
             <Text style={[styles.statusText, { color: statusColor }]}>
               {coupon.status}
             </Text>
@@ -727,7 +802,9 @@ function CampaignCard({
   isArabic: boolean;
   t: (key: string, opts?: any) => string;
 }) {
-  const name = isArabic ? (campaign.nameAr ?? campaign.name) : (campaign.nameEn ?? campaign.name);
+  const name = isArabic
+    ? (campaign.nameAr ?? campaign.name)
+    : (campaign.nameEn ?? campaign.name);
   const description = isArabic
     ? (campaign.descriptionAr ?? campaign.description)
     : (campaign.descriptionEn ?? campaign.description);
@@ -769,9 +846,7 @@ function CampaignCard({
       </Text>
 
       {isCompleted && (
-        <Text style={styles.campaignCompleted}>
-          {t("loyalty.completed")} ✓
-        </Text>
+        <Text style={styles.campaignCompleted}>{t("loyalty.completed")} ✓</Text>
       )}
     </View>
   );
@@ -785,7 +860,12 @@ function ReferralSection({
   isArabic,
   t,
 }: {
-  info: { referralCode: string; referralLink: string; totalInvited: number; totalEarned: number };
+  info: {
+    referralCode: string;
+    referralLink: string;
+    totalInvited: number;
+    totalEarned: number;
+  };
   onShare: () => void;
   onCopyCode: () => void;
   onCopyLink: () => void;
@@ -796,16 +876,23 @@ function ReferralSection({
     <View style={styles.referralSection}>
       {/* Referral Code Card */}
       <View style={styles.referralCodeCard}>
-        <Text style={styles.referralLabel}>{t("loyalty.yourReferralCode")}</Text>
+        <Text style={styles.referralLabel}>
+          {t("loyalty.yourReferralCode")}
+        </Text>
         <Text style={styles.referralCode}>{info.referralCode}</Text>
         <View style={styles.referralActions}>
           <Pressable style={styles.referralBtn} onPress={onCopyCode}>
             <Ionicons name="copy-outline" size={18} color={Colors.white} />
             <Text style={styles.referralBtnText}>{t("loyalty.copyCode")}</Text>
           </Pressable>
-          <Pressable style={[styles.referralBtn, styles.referralBtnSecondary]} onPress={onShare}>
+          <Pressable
+            style={[styles.referralBtn, styles.referralBtnSecondary]}
+            onPress={onShare}
+          >
             <Ionicons name="share-outline" size={18} color={Colors.primary} />
-            <Text style={[styles.referralBtnText, styles.referralBtnTextSecondary]}>
+            <Text
+              style={[styles.referralBtnText, styles.referralBtnTextSecondary]}
+            >
               {t("loyalty.shareCode")}
             </Text>
           </Pressable>
@@ -816,12 +903,16 @@ function ReferralSection({
       <View style={styles.referralStats}>
         <View style={styles.referralStat}>
           <Text style={styles.referralStatValue}>{info.totalInvited}</Text>
-          <Text style={styles.referralStatLabel}>{t("loyalty.totalInvited")}</Text>
+          <Text style={styles.referralStatLabel}>
+            {t("loyalty.totalInvited")}
+          </Text>
         </View>
         <View style={styles.referralStatDivider} />
         <View style={styles.referralStat}>
           <Text style={styles.referralStatValue}>{info.totalEarned}</Text>
-          <Text style={styles.referralStatLabel}>{t("loyalty.totalReferralEarned")}</Text>
+          <Text style={styles.referralStatLabel}>
+            {t("loyalty.totalReferralEarned")}
+          </Text>
         </View>
       </View>
     </View>
@@ -850,7 +941,16 @@ function TransactionRow({
 
   return (
     <View style={styles.transactionRow}>
-      <View style={[styles.transactionIcon, { backgroundColor: isPositive ? Colors.success + "15" : Colors.error + "15" }]}>
+      <View
+        style={[
+          styles.transactionIcon,
+          {
+            backgroundColor: isPositive
+              ? Colors.success + "15"
+              : Colors.error + "15",
+          },
+        ]}
+      >
         <Ionicons
           name={getIcon(transaction.type)}
           size={18}
@@ -858,16 +958,26 @@ function TransactionRow({
         />
       </View>
       <View style={styles.transactionDetails}>
-        <Text style={styles.transactionLabel}>{getLabel(transaction.type)}</Text>
+        <Text style={styles.transactionLabel}>
+          {getLabel(transaction.type)}
+        </Text>
         {description ? (
           <Text style={styles.transactionDescription} numberOfLines={1}>
             {description}
           </Text>
         ) : null}
-        <Text style={styles.transactionDate}>{formatDate(transaction.createdAt)}</Text>
+        <Text style={styles.transactionDate}>
+          {formatDate(transaction.createdAt)}
+        </Text>
       </View>
-      <Text style={[styles.transactionAmount, isPositive ? styles.amountPositive : styles.amountNegative]}>
-        {isPositive ? "+" : ""}{transaction.amount}
+      <Text
+        style={[
+          styles.transactionAmount,
+          isPositive ? styles.amountPositive : styles.amountNegative,
+        ]}
+      >
+        {isPositive ? "+" : ""}
+        {transaction.amount}
       </Text>
     </View>
   );

@@ -15,12 +15,13 @@ export default function OrderPricingCard({ order }: OrderPricingCardProps) {
   const subtotal =
     order.items?.reduce((sum, item) => {
       // Use item.subtotal if available, otherwise calculate from price × quantity
-      const itemTotal = item.subtotal && item.subtotal > 0 
-        ? item.subtotal 
-        : ((item.price ?? 0) * (item.quantity ?? 0));
+      const itemTotal =
+        item.subtotal && item.subtotal > 0
+          ? item.subtotal
+          : (item.price ?? 0) * (item.quantity ?? 0);
       return sum + itemTotal;
     }, 0) ?? 0;
-  
+
   const total = order.total ?? subtotal;
 
   return (

@@ -1,7 +1,7 @@
 /**
  * AnimatedCounter Component
  * Displays numbers with smooth counting animation
- * 
+ *
  * PERFORMANCE: Uses Reanimated Text with native driver
  */
 
@@ -34,7 +34,9 @@ export default function AnimatedCounter({
       // @ts-ignore - animatedProps text is supported
       animatedProps={animatedProps}
     >
-      {prefix}{/* Value animates here */}{suffix}
+      {prefix}
+      {/* Value animates here */}
+      {suffix}
     </AnimatedText>
   );
 }

@@ -1,7 +1,7 @@
 /**
  * CelebrationOverlay
  * Fullscreen confetti/celebration overlay
- * 
+ *
  * USAGE: Mounted ONCE in root layout, triggered via Redux state
  * PERFORMANCE: Conditionally rendered only when needed
  */
@@ -10,14 +10,14 @@ import { ParticleConfig } from "@/src/constants/loyaltyTheme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { resetRedemption } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 // import LottieView from "lottie-react-native"; // Uncomment when Lottie asset is ready
 
 export default function CelebrationOverlay() {
   const dispatch = useAppDispatch();
   const { success } = useAppSelector((state) => state.loyalty.redemption);
-  
+
   // const lottieRef = useRef<LottieView>(null);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function CelebrationOverlay() {
           style={styles.lottie}
         />
         */}
-        
+
         {/* Placeholder: Simple celebration feedback */}
         <View style={styles.placeholder}>
           {/* Confetti will render here */}

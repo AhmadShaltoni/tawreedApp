@@ -1,13 +1,17 @@
 # Order Prices Display Fix
 
 ## المشكلة (Problem)
+
 الأسعار الفردية للعناصر تظهر **0** في شاشة تفاصيل الطلب:
+
 - سعر كل عنصر: 0
 - المجموع الفرعي (Subtotal): 0
 - المجموع الكلي (Total): قد يكون 0 أيضاً
 
 ## السبب الرئيسي (Root Cause)
+
 دالة تعيين البيانات (`mapItem`) في `order.service.ts` كانت تبحث عن حقول أسعار محددة جداً:
+
 - `raw.pricePerUnit ?? raw.price ?? 0`
 - `raw.totalPrice ?? raw.subtotal ?? 0`
 
@@ -21,23 +25,23 @@
 
 ```typescript
 // السعر الفردي
-const price = 
-  raw.pricePerUnit ??     // الخيار الأول
-  raw.unitPrice ??        // الخيار البديل 1
-  raw.itemPrice ??        // الخيار البديل 2
-  raw.price ??            // الخيار البديل 3
-  raw.unit?.price ??      // الخيار البديل 4
-  raw.product?.price ??   // الخيار البديل 5
-  0;                      // القيمة الافتراضية
+const price =
+  raw.pricePerUnit ?? // الخيار الأول
+  raw.unitPrice ?? // الخيار البديل 1
+  raw.itemPrice ?? // الخيار البديل 2
+  raw.price ?? // الخيار البديل 3
+  raw.unit?.price ?? // الخيار البديل 4
+  raw.product?.price ?? // الخيار البديل 5
+  0; // القيمة الافتراضية
 
 // المجموع الفرعي
-const subtotal = 
-  raw.totalPrice ??                    // الخيار الأول
-  raw.subtotal ??                      // الخيار البديل 1
-  raw.lineTotal ??                     // الخيار البديل 2
-  raw.itemTotal ??                     // الخيار البديل 3
-  (price * (raw.quantity ?? 0)) ??     // الخيار البديل 4 (حساب يدوي)
-  0;                                   // القيمة الافتراضية
+const subtotal =
+  raw.totalPrice ?? // الخيار الأول
+  raw.subtotal ?? // الخيار البديل 1
+  raw.lineTotal ?? // الخيار البديل 2
+  raw.itemTotal ?? // الخيار البديل 3
+  price * (raw.quantity ?? 0) ?? // الخيار البديل 4 (حساب يدوي)
+  0; // القيمة الافتراضية
 ```
 
 ### 2️⃣ إضافة Logging في order.service.ts
@@ -68,9 +72,10 @@ const subtotal =
   order.items?.reduce((sum, item) => {
     // استخدم item.subtotal إذا كان متوفراً وأكبر من 0
     // وإلا فاحسبه من السعر × الكمية
-    const itemTotal = item.subtotal && item.subtotal > 0 
-      ? item.subtotal 
-      : ((item.price ?? 0) * (item.quantity ?? 0));
+    const itemTotal =
+      item.subtotal && item.subtotal > 0
+        ? item.subtotal
+        : (item.price ?? 0) * (item.quantity ?? 0);
     return sum + itemTotal;
   }, 0) ?? 0;
 ```
@@ -83,6 +88,7 @@ const subtotal =
 ## خطوات التحقق (How to Verify)
 
 1. **شغّل التطبيق:**
+
    ```bash
    npx expo start
    ```
@@ -93,6 +99,7 @@ const subtotal =
 
 3. **افتح Expo console (شاشة الإخراج):**
    ابحث عن السجلات التالية:
+
    ```
    🔍 Order Detail Raw Data: {...}     // استجابة الـ API الكاملة
    🔍 First item raw data: {...}       // البيانات الخام للعنصر الأول
@@ -114,9 +121,9 @@ const subtotal =
 
 ```typescript
 // أضف هذا في dالة mapItem:
-const price = 
-  raw.unitCost ??         // ← أضف هنا
-  raw.pricePerUnit ?? 
+const price =
+  raw.unitCost ?? // ← أضف هنا
+  raw.pricePerUnit ??
   // ... باقي الخيارات
   0;
 ```

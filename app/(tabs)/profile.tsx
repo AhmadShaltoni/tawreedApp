@@ -164,7 +164,8 @@ export default function ProfileScreen() {
                   <ActivityIndicator size="small" color={Colors.primary} />
                 ) : balance && balance.currentBalance != null ? (
                   <Text style={styles.loyaltyBalance}>
-                    {balance.currentBalance.toLocaleString()} {t("loyalty.points")}
+                    {balance.currentBalance.toLocaleString()}{" "}
+                    {t("loyalty.points")}
                   </Text>
                 ) : (
                   <Text style={styles.loyaltyBalance}>
@@ -173,7 +174,11 @@ export default function ProfileScreen() {
                 )}
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={Colors.textLight}
+            />
           </View>
         </Pressable>
       )}

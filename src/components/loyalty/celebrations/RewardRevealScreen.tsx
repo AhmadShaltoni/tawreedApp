@@ -1,40 +1,39 @@
 /**
  * RewardRevealScreen
  * FULLSCREEN reward reveal experience
- * 
+ *
  * This is NOT a modal - it's a dedicated moment
  * Sequence: dim background → card flies in → glow → code reveal → copy button
  */
 
+import {
+    LoyaltyGradients,
+    LoyaltyShadows,
+    LoyaltyTypography,
+} from "@/src/constants/loyaltyTheme";
+import { BorderRadius, Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { resetRedemption } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    Dimensions,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInUp,
-  ZoomIn,
+    FadeIn,
+    FadeOut,
+    SlideInUp,
+    ZoomIn,
 } from "react-native-reanimated";
-import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Spacing,
-} from "@/src/constants/theme";
-import { LoyaltyGradients, LoyaltyShadows, LoyaltyTypography } from "@/src/constants/loyaltyTheme";
-import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 
@@ -118,11 +117,10 @@ export default function RewardRevealScreen() {
               style={styles.couponGradient}
             >
               <Text style={styles.couponLabel}>{t("loyalty.couponCode")}</Text>
-              
+
               <View style={styles.codeContainer}>
                 <Text style={styles.code}>{couponCode}</Text>
               </View>
-
             </LinearGradient>
           </Animated.View>
 

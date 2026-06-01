@@ -3,6 +3,7 @@
 ## 📋 نظرة عامة
 
 نظام الولاء موجود بشكل كامل في الكود لكن **لم يتم دمجه بعد في التطبيق الرئيسي**. النظام معد للعمل لكنه حالياً في صيغة prototype ويمكن الوصول إليه عبر:
+
 - الرابط المباشر: `/loyalty-prototype`
 - أو من خلال إضافة tab جديد في التطبيق
 
@@ -13,15 +14,18 @@
 ### 1. **ملفات النظام الأساسية**
 
 #### أ) ملفات النوع (Types) - `src/types/loyalty.ts`
+
 يحتوي على جميع واجهات البيانات والـ Enums:
 
 **الـ Enums:**
+
 - `TransactionType` - أنواع المعاملات (اكسب من طلب، اكسب من الترحيب، اكسب من إحالة، استبدال، إلخ)
 - `RewardType` - أنواع المكافآت (خصم ثابت، خصم نسبي، توصيل مجاني، مخصص)
 - `RewardRarity` - درجات ندرة المكافآت (عادي، نادر، ملحمي، أسطوري)
 - `CouponStatus` - حالات الكوبون (نشط، مستخدم، منتهي الصلاحية)
 
 **الواجهات الرئيسية:**
+
 ```typescript
 // رصيد الولاء
 LoyaltyBalance {
@@ -96,62 +100,65 @@ ReferralInfo {
 #### ب) خدمة API - `src/services/loyalty.service.ts`
 
 **الوظائف الرئيسية:**
+
 ```typescript
-getBalance()                      // الحصول على الرصيد الحالي
-getTransactions(page, limit)      // سجل المعاملات (مع pagination)
-getRewards()                      // دليل المكافآت
-redeemReward(payload)             // استبدال المكافآت بكوبونات
-getCoupons()                      // كوبونات المستخدم
-validateCoupon(payload)           // التحقق من صحة الكوبون
-getCampaigns()                    // الحملات النشطة
-getReferralInfo()                 // معلومات الإحالة
-applyReferralCode(code)           // تطبيق كود إحالة
+getBalance(); // الحصول على الرصيد الحالي
+getTransactions(page, limit); // سجل المعاملات (مع pagination)
+getRewards(); // دليل المكافآت
+redeemReward(payload); // استبدال المكافآت بكوبونات
+getCoupons(); // كوبونات المستخدم
+validateCoupon(payload); // التحقق من صحة الكوبون
+getCampaigns(); // الحملات النشطة
+getReferralInfo(); // معلومات الإحالة
+applyReferralCode(code); // تطبيق كود إحالة
 ```
 
 #### ج) Redux State Management - `src/store/slices/loyalty.slice.ts`
 
 **حالة Redux:**
+
 ```typescript
 LoyaltyState {
   balance: LoyaltyBalance | null
   balanceLoading: boolean
-  
+
   transactions: {
     items: LoyaltyTransaction[]
     page: number
     hasMore: boolean
     loading: boolean
   }
-  
+
   rewards: {
     items: Reward[]
     loading: boolean
   }
-  
+
   coupons: {
     items: Coupon[]
     loading: boolean
   }
-  
+
   campaigns: {
     items: Campaign[]
     loading: boolean
   }
-  
+
   referral: {
     info: ReferralInfo | null
     loading: boolean
   }
-  
+
   redemption: RedemptionState
   pointsEarned: PointsEarnedAnimation
-  
+
   loading: boolean
   error: string | null
 }
 ```
 
 **الـ Async Thunks:**
+
 - `fetchBalance` - جلب الرصيد
 - `fetchTransactions` - جلب المعاملات
 - `fetchRewards` - جلب المكافآت
@@ -165,6 +172,7 @@ LoyaltyState {
 #### د) نظام الثيم والألوان - `src/constants/loyaltyTheme.ts`
 
 **نظام ندرة المكافآت بالألوان:**
+
 ```typescript
 COMMON      → رمادي (#6b7280)
 RARE        → أزرق (#3b82f6)
@@ -173,11 +181,13 @@ LEGENDARY   → ذهبي (#f59e0b)
 ```
 
 **التدرجات اللونية (Gradients):**
+
 - ذهبي للبطاقة الرئيسية
 - أزرق للتقدم والنجاح
 - أخضر للحالات الناجحة
 
 **الظلال والارتفاعات (Shadows):**
+
 - مخصصة للأداء العالي على أجهزة Android ذات الموارد المحدودة
 
 ---
@@ -187,27 +197,32 @@ LEGENDARY   → ذهبي (#f59e0b)
 #### المكونات المتقدمة:
 
 **PointsBalanceHero.tsx** - بطاقة الرصيد الرئيسية
+
 - تدرج لوني ذهبي متحرك
 - عداد مضحك للنقاط
 - عرض إحصائيات (مكتسب، مستبدل)
 - تأثيرات فيزيائية (haptics)
 
 **AnimatedCounter.tsx** - عداد مضحك للأرقام
+
 - حركة سلسة للأرقام
 - دعم الأرقام الكبيرة
 - تجربة بصرية متقدمة
 
 **AnimatedProgressBar.tsx** - شريط التقدم المتحرك
+
 - تدرج لوني ديناميكي
 - تأثير نبض عند القرب من الاكتمال (near-completion)
 - دعم الحركات المخصصة
 
 **RewardRevealScreen.tsx** - شاشة الكشف عن المكافآت
+
 - تأثيرات احتفالية عند استبدال المكافآت
 - عرض الكوبون الجديد
 - نسخ كود الكوبون بسهولة
 
 **FeatureGate.tsx** - بوابة التحكم في الميزات
+
 - إظهار/إخفاء أجزاء من النظام
 - مفيد للاختبار والتطوير
 
@@ -218,12 +233,14 @@ LEGENDARY   → ذهبي (#f59e0b)
 #### LoyaltyPrototypeScreen - `src/screens/loyalty/LoyaltyPrototypeScreen.tsx`
 
 **الوظيفة:** شاشة اختبار شاملة لجميع المكونات
+
 - عرض بطاقة الرصيد
 - تجربة أشرطة التقدم
 - محاكاة الأحداث والحركات
 - اختبار الاحتفالات والتنبيهات
 
 **الاستخدام:**
+
 ```
 يمكن الوصول إلى الشاشة عبر: /loyalty-prototype
 ```
@@ -236,15 +253,15 @@ LEGENDARY   → ذهبي (#f59e0b)
 
 ```typescript
 LOYALTY: {
-  BALANCE: "/api/v1/loyalty/balance"
-  TRANSACTIONS: "/api/v1/loyalty/transactions"
-  REWARDS: "/api/v1/loyalty/rewards"
-  REDEEM: "/api/v1/loyalty/rewards/redeem"
-  COUPONS: "/api/v1/loyalty/coupons"
-  VALIDATE_COUPON: "/api/v1/loyalty/coupons/validate"
-  CAMPAIGNS: "/api/v1/loyalty/campaigns"
-  REFERRAL: "/api/v1/loyalty/referral"
-  REFERRAL_APPLY: "/api/v1/loyalty/referral/apply"
+  BALANCE: "/api/v1/loyalty/balance";
+  TRANSACTIONS: "/api/v1/loyalty/transactions";
+  REWARDS: "/api/v1/loyalty/rewards";
+  REDEEM: "/api/v1/loyalty/rewards/redeem";
+  COUPONS: "/api/v1/loyalty/coupons";
+  VALIDATE_COUPON: "/api/v1/loyalty/coupons/validate";
+  CAMPAIGNS: "/api/v1/loyalty/campaigns";
+  REFERRAL: "/api/v1/loyalty/referral";
+  REFERRAL_APPLY: "/api/v1/loyalty/referral/apply";
 }
 ```
 
@@ -253,10 +270,12 @@ LOYALTY: {
 ## 🌍 الترجمات المتعددة اللغات
 
 **الملفات:**
+
 - `src/localization/ar.json` - العربية (الافتراضية)
 - `src/localization/en.json` - الإنجليزية
 
 **شاملة لـ:**
+
 - عناوين وتسميات
 - رسائل النجاح والخطأ
 - وصفات المكافآت والحملات
@@ -264,6 +283,7 @@ LOYALTY: {
 - أسماء أنواع المعاملات
 
 **الترجمات الرئيسية (ar.json):**
+
 ```json
 {
   "loyalty": {
@@ -288,6 +308,7 @@ LOYALTY: {
 ## 🎯 الميزات الرئيسية للنظام
 
 ### 1. **نظام النقاط (Points System)**
+
 - اكتساب النقاط من الطلبات
 - اكتساب مكافآت الترحيب للمستخدمين الجدد
 - إحالات الأصدقاء
@@ -295,6 +316,7 @@ LOYALTY: {
 - صلاحية انتهاء النقاط
 
 ### 2. **المكافآت (Rewards)**
+
 - خصومات ثابتة (مثل: 50 دينار)
 - خصومات نسبية (مثل: 10%)
 - توصيل مجاني
@@ -302,6 +324,7 @@ LOYALTY: {
 - نظام ندرة بـ 4 مستويات مع ألوان مختلفة
 
 ### 3. **الكوبونات (Coupons)**
+
 - إنشاء كوبونات عند استبدال النقاط
 - حد أدنى للطلب
 - صلاحية محددة
@@ -309,6 +332,7 @@ LOYALTY: {
 - استخدام عند الدفع
 
 ### 4. **الحملات (Campaigns)**
+
 - حملات مبنية على عدد الطلبات
 - حملات مبنية على إجمالي الإنفاق
 - حملات مبنية على شراء منتجات محددة
@@ -316,6 +340,7 @@ LOYALTY: {
 - متابعة التقدم بصرياً
 
 ### 5. **نظام الإحالات (Referral System)**
+
 - كود إحالة فريد لكل مستخدم
 - مكافآت للمحيل والمحال
 - تتبع الإحالات الناجحة
@@ -323,6 +348,7 @@ LOYALTY: {
 - مشاركة الرابط بسهولة
 
 ### 6. **سجل المعاملات (Transaction History)**
+
 - تاريخ كامل للنقاط
 - مرشحات حسب النوع
 - معلومات تفصيلية لكل معاملة
@@ -333,6 +359,7 @@ LOYALTY: {
 ## 🚀 الحالة الحالية
 
 ### ✅ مما تم إكماله:
+
 - ✓ Redux state management كامل
 - ✓ جميع خدمات API
 - ✓ نوع TypeScript شامل
@@ -343,6 +370,7 @@ LOYALTY: {
 - ✓ نظام الألوان ونظام ندرة المكافآت
 
 ### ❌ ما لم يتم إكماله:
+
 - ❌ **عدم دمج النظام في التطبيق الرئيسي**
   - لا يوجد tab للولاء في القائمة السفلية
   - لا يوجد رابط من الشاشات الأخرى
@@ -407,18 +435,22 @@ tawreedApp/
 ## 🎓 كيفية الاستفادة من النظام
 
 ### 1. **الوصول للشاشة الحالية:**
+
 ```
 انتقل إلى: /loyalty-prototype
 ```
 
 ### 2. **دمج النظام في التطبيق:**
+
 ستحتاج إلى:
+
 - إضافة tab جديد في `app/(tabs)/_layout.tsx`
 - إنشاء شاشات منتجة (غير prototype)
 - دمج نقاط الولاء في شاشة الطلب (عند النجاح)
 - إضافة شارة نقاط في الشاشة الرئيسية
 
 ### 3. **التعديل والتطوير:**
+
 - استخدم `@/src/store/useAppDispatch` و `useAppSelector` للوصول للبيانات
 - استخدم `@/src/store/slices/loyalty.slice` للـ actions
 - استخدم `@/src/services/loyalty.service` لاستدعاءات API

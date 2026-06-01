@@ -1,14 +1,14 @@
 /**
  * Loyalty Visual Prototype
  * Demonstrates the premium engagement experience
- * 
+ *
  * This screen showcases:
  * - Animated points counter
  * - Premium gradient hero card
  * - Progress bars with near-completion pulse
  * - Celebration animations
  * - Smooth micro-interactions
- * 
+ *
  * USAGE: Temporary prototype for visual testing
  */
 
@@ -17,22 +17,19 @@ import PointsBalanceHero from "@/src/components/loyalty/PointsBalanceHero";
 import RewardRevealScreen from "@/src/components/loyalty/celebrations/RewardRevealScreen";
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { useAppDispatch } from "@/src/store";
-import {
-  showPointsEarned,
-} from "@/src/store/slices/loyalty.slice";
+import { showPointsEarned } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import type { CouponStatus, RewardType } from "@/src/types/loyalty";
 
 export default function LoyaltyPrototypeScreen() {
   const { t } = useTranslation();
@@ -45,7 +42,7 @@ export default function LoyaltyPrototypeScreen() {
   const handleAddPoints = () => {
     const newPoints = pointsBalance + 50;
     setPointsBalance(newPoints);
-    
+
     // Trigger floating points animation
     dispatch(showPointsEarned({ amount: 50 }));
     haptics.light();
@@ -55,7 +52,7 @@ export default function LoyaltyPrototypeScreen() {
     const newProgress = Math.min(100, campaignProgress + 10);
     setCampaignProgress(newProgress);
     haptics.selection();
-    
+
     if (newProgress >= 100) {
       haptics.success();
     }
@@ -75,9 +72,7 @@ export default function LoyaltyPrototypeScreen() {
       >
         {/* Header */}
         <Text style={styles.title}>Loyalty System Prototype</Text>
-        <Text style={styles.subtitle}>
-          Premium Engagement Experience Demo
-        </Text>
+        <Text style={styles.subtitle}>Premium Engagement Experience Demo</Text>
 
         {/* Points Balance Hero */}
         <Animated.View entering={FadeInDown.delay(100)}>
@@ -98,10 +93,7 @@ export default function LoyaltyPrototypeScreen() {
             </Text>
           </Pressable>
 
-          <Pressable
-            style={styles.demoButton}
-            onPress={handleShowRewardReveal}
-          >
+          <Pressable style={styles.demoButton} onPress={handleShowRewardReveal}>
             <Text style={styles.demoButtonText}>
               Show Reward Reveal (Fullscreen)
             </Text>
@@ -109,10 +101,7 @@ export default function LoyaltyPrototypeScreen() {
         </View>
 
         {/* Progress Bars Demo */}
-        <Animated.View
-          entering={FadeInDown.delay(300)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
           <Text style={styles.sectionTitle}>Campaign Progress Demo</Text>
 
           <View style={styles.progressDemo}>
@@ -176,21 +165,27 @@ export default function LoyaltyPrototypeScreen() {
         </Animated.View>
 
         {/* Feature Highlights */}
-        <Animated.View
-          entering={FadeInDown.delay(500)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeInDown.delay(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Key Features</Text>
           <View style={styles.featureList}>
-            <FeatureItem icon="✅" text="60fps native animations (Reanimated)" />
+            <FeatureItem
+              icon="✅"
+              text="60fps native animations (Reanimated)"
+            />
             <FeatureItem icon="🎨" text="Premium gradient hero cards" />
-            <FeatureItem icon="📊" text="Animated progress with pulse near completion" />
+            <FeatureItem
+              icon="📊"
+              text="Animated progress with pulse near completion"
+            />
             <FeatureItem icon="🎉" text="Fullscreen reward reveal experience" />
             <FeatureItem icon="✨" text="Floating points earned toast" />
             <FeatureItem icon="📱" text="Haptic feedback on all interactions" />
             <FeatureItem icon="🔄" text="Smooth spring-based counters" />
             <FeatureItem icon="🏆" text="Rarity-based visual treatment" />
-            <FeatureItem icon="🎯" text="Near-completion psychological triggers" />
+            <FeatureItem
+              icon="🎯"
+              text="Near-completion psychological triggers"
+            />
             <FeatureItem icon="⚡" text="Android-optimized performance" />
           </View>
         </Animated.View>
