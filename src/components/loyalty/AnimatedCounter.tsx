@@ -7,7 +7,7 @@
 
 import { useAnimatedCounter } from "@/src/animations/useAnimatedCounter";
 import { LoyaltyTypography } from "@/src/constants/loyaltyTheme";
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleSheet, TextStyle } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -16,7 +16,6 @@ interface AnimatedCounterProps {
   style?: TextStyle;
   prefix?: string;
   suffix?: string;
-  formatValue?: (value: number) => string;
 }
 
 const AnimatedText = Animated.createAnimatedComponent(Animated.Text);
@@ -26,11 +25,8 @@ export default function AnimatedCounter({
   style,
   prefix = "",
   suffix = "",
-  formatValue,
 }: AnimatedCounterProps) {
-  const { animatedProps } = useAnimatedCounter(value, {
-    formatValue: formatValue || ((val) => Math.round(val).toLocaleString()),
-  });
+  const { animatedProps } = useAnimatedCounter(value);
 
   return (
     <AnimatedText

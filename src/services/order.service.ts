@@ -22,22 +22,47 @@ function fullImageUrl(path: string | null | undefined): string | undefined {
 
 /** Map a single order item from backend shape to frontend OrderItem */
 function mapItem(raw: any): OrderItem {
+  // Get pricing from the correct structure: raw.pricing.pricePerUnit
+  const price = 
+    raw.pricing?.pricePerUnit ?? 
+    raw.pricePerUnit ?? 
+    raw.unitPrice ?? 
+    raw.itemPrice ?? 
+    raw.price ?? 
+    raw.product?.price ??
+    0;
+
+  // Get subtotal from the correct structure: raw.pricing.subtotal
+  const subtotal = 
+    (raw.pricing?.subtotal ?? 
+    raw.totalPrice ?? 
+    raw.subtotal ?? 
+    raw.lineTotal ?? 
+    raw.itemTotal) ||
+    (price * (raw.quantity ?? 0)) ||
+    0;
+
+  // Get product info from raw.product object
+  const productName = raw.product?.name ?? raw.productName ?? "";
+  const productId = raw.product?.id ?? raw.productId ?? "";
+  const productImage = fullImageUrl(raw.product?.image ?? raw.productImage);
+
   return {
     id: raw.id,
-    productId: raw.productId ?? "",
-    productName: raw.productName ?? raw.product?.name ?? "",
-    productImage: fullImageUrl(raw.productImage ?? raw.product?.image),
-    variantSize: raw.variantSize,
-    variantSizeEn: raw.variantSizeEn,
-    price: raw.pricePerUnit ?? raw.price ?? 0,
+    productId,
+    productName,
+    productImage,
+    variantSize: raw.variantSize ?? raw.variant?.size,
+    variantSizeEn: raw.variantSizeEn ?? raw.variant?.sizeEn,
+    price,
     quantity: raw.quantity ?? 0,
-    unit: raw.unit ?? "",
-    subtotal: raw.totalPrice ?? raw.subtotal ?? 0,
-    unitLabel: raw.unitLabel,
-    unitLabelEn: raw.unitLabelEn,
-    piecesPerUnit: raw.piecesPerUnit,
-    optionName: raw.optionName,
-    optionNameEn: raw.optionNameEn,
+    unit: raw.unit?.unit ?? raw.unit ?? raw.product?.unit ?? "",
+    subtotal,
+    unitLabel: raw.unitLabel ?? raw.unit?.label,
+    unitLabelEn: raw.unitLabelEn ?? raw.unit?.labelEn ?? raw.product?.unitLabelEn,
+    piecesPerUnit: raw.piecesPerUnit ?? raw.unit?.piecesPerUnit,
+    optionName: raw.optionName ?? raw.variantOption?.name,
+    optionNameEn: raw.optionNameEn ?? raw.variantOption?.nameEn,
     note: raw.note ?? raw.itemNote,
   };
 }

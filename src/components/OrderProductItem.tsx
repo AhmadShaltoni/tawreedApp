@@ -1,9 +1,9 @@
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import type { OrderItem } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";

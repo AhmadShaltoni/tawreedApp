@@ -220,6 +220,17 @@ function AuthGate() {
             animation: "slide_from_right",
           }}
         />
+        <Stack.Screen
+          name="loyalty"
+          options={{
+            headerShown: true,
+            animation: "slide_from_right",
+            headerTitleAlign: "center",
+            headerStyle: { backgroundColor: Colors.white },
+            headerTitleStyle: { fontWeight: "700", color: Colors.text },
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
       <StatusBar style="dark" />
       <NotificationPermissionModal

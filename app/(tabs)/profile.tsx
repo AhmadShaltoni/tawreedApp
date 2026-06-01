@@ -10,11 +10,13 @@ import { changeLanguage, getCurrentLanguage } from "@/src/localization/i18n";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { logout } from "@/src/store/slices/auth.slice";
+import { fetchBalance } from "@/src/store/slices/loyalty.slice";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+    ActivityIndicator,
     Alert,
     Pressable,
     ScrollView,
@@ -29,7 +31,17 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { balance, balanceLoading } = useAppSelector((state) => state.loyalty);
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
+
+  // Fetch loyalty balance when screen is focused (for authenticated users)
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        dispatch(fetchBalance());
+      }
+    }, [dispatch, isAuthenticated]),
+  );
 
   const handleLanguageToggle = async () => {
     const newLang = currentLang === "ar" ? "en" : "ar";
@@ -135,6 +147,35 @@ export default function ProfileScreen() {
               )
             : null}
         </View>
+      )}
+
+      {/* Loyalty Points Card */}
+      {isAuthenticated && (
+        <Pressable
+          style={styles.loyaltyCard}
+          onPress={() => router.push("/loyalty")}
+        >
+          <View style={styles.loyaltyCardContent}>
+            <View style={styles.loyaltyLeft}>
+              <Ionicons name="trophy" size={28} color={Colors.warning} />
+              <View style={styles.loyaltyInfo}>
+                <Text style={styles.loyaltyTitle}>{t("loyalty.title")}</Text>
+                {balanceLoading ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : balance && balance.currentBalance != null ? (
+                  <Text style={styles.loyaltyBalance}>
+                    {balance.currentBalance.toLocaleString()} {t("loyalty.points")}
+                  </Text>
+                ) : (
+                  <Text style={styles.loyaltyBalance}>
+                    {t("loyalty.viewAll")}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
+          </View>
+        </Pressable>
       )}
 
       {/* Settings Section */}
@@ -255,6 +296,41 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     ...Shadows.sm,
+  },
+  loyaltyCard: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    ...Shadows.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.warning,
+  },
+  loyaltyCardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  loyaltyLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    flex: 1,
+  },
+  loyaltyInfo: {
+    flex: 1,
+  },
+  loyaltyTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  loyaltyBalance: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.primary,
   },
   sectionTitle: {
     fontSize: FontSize.xs,

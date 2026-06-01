@@ -17,7 +17,26 @@ import { springPresets } from "./motionPresets";
 interface UseAnimatedCounterOptions {
   duration?: number;
   springConfig?: WithSpringConfig;
-  formatValue?: (value: number) => string;
+}
+
+/**
+ * Worklet-safe number formatter with thousands separators
+ * Uses 'worklet' directive to run on UI thread
+ */
+function formatNumberWorklet(value: number): string {
+  'worklet';
+  const rounded = Math.round(value);
+  const str = rounded.toString();
+  const parts = [];
+  
+  for (let i = str.length - 1, count = 0; i >= 0; i--, count++) {
+    if (count > 0 && count % 3 === 0) {
+      parts.unshift(',');
+    }
+    parts.unshift(str[i]);
+  }
+  
+  return parts.join('');
 }
 
 export function useAnimatedCounter(
@@ -26,7 +45,6 @@ export function useAnimatedCounter(
 ) {
   const {
     springConfig = springPresets.standard,
-    formatValue = (val) => Math.round(val).toString(),
   } = options;
 
   const animatedValue = useSharedValue(0);
@@ -37,9 +55,9 @@ export function useAnimatedCounter(
 
   const animatedProps = useAnimatedProps(() => {
     return {
-      text: formatValue(animatedValue.value),
+      text: formatNumberWorklet(animatedValue.value),
     };
   });
 
-  return { animatedValue, animatedProps, formatValue };
+  return { animatedValue, animatedProps };
 }

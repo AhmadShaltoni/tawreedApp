@@ -1,4 +1,5 @@
 import LoginRequiredModal from "@/src/components/LoginRequiredModal";
+import ProductOptionsBottomSheet from "@/src/components/ProductOptionsBottomSheet";
 import {
   BorderRadius,
   Colors,
@@ -44,6 +45,7 @@ function ProductCard({
   const variantScrollRef = useRef<ScrollView>(null);
   const unitScrollRef = useRef<ScrollView>(null);
   const [quantity, setQuantity] = useState(1);
+  const [showOptionsSheet, setShowOptionsSheet] = useState(false);
 
   // --- Variants ---
   const variants = useMemo(
@@ -134,6 +136,12 @@ function ProductCard({
 
   const availableStock = Math.max(0, currentStock - quantityInCart);
 
+  // --- Check if product has variant options (flavors, etc.) ---
+  const hasProductOptions = useMemo(
+    () => variants.some((v) => v.options && v.options.length > 0),
+    [variants],
+  );
+
   const getUnitLabel = (unit: ProductUnit) =>
     isArabic ? unit.label : unit.labelEn;
 
@@ -149,6 +157,13 @@ function ProductCard({
 
   const handleAddToCart = useCallback(() => {
     if (isOutOfStock || availableStock <= 0) return;
+
+    // If product has options (flavors, etc.), open the bottom sheet instead
+    if (hasProductOptions) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setShowOptionsSheet(true);
+      return;
+    }
 
     if (quantity > availableStock) {
       Alert.alert(
@@ -196,6 +211,7 @@ function ProductCard({
     availableStock,
     currentStock,
     quantityInCart,
+    hasProductOptions,
     t,
   ]);
 
@@ -460,6 +476,14 @@ function ProductCard({
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+      />
+      <ProductOptionsBottomSheet
+        visible={showOptionsSheet}
+        product={product}
+        initialVariant={selectedVariant}
+        initialUnit={selectedUnit}
+        onClose={() => setShowOptionsSheet(false)}
+        onAdded={() => setQuantity(1)}
       />
     </>
   );

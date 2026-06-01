@@ -110,8 +110,7 @@ const initialState: LoyaltyState = {
     loading: false,
     success: false,
     error: null,
-    lastRedeemedCoupon: null,
-    showReveal: false,
+    couponCode: null,
   },
 
   pointsEarned: {
@@ -190,12 +189,18 @@ export const fetchRewards = createAsyncThunk(
 
 /**
  * Redeem a reward
+ * Backend returns { success: true, couponCode: string }
+ * After success, we refresh balance, coupons, and transactions
  */
 export const redeemReward = createAsyncThunk(
   "loyalty/redeemReward",
-  async (payload: RedeemRewardPayload, { rejectWithValue }) => {
+  async (payload: RedeemRewardPayload, { rejectWithValue, dispatch }) => {
     try {
       const data = await loyaltyService.redeemReward(payload);
+      // Refresh related data after successful redemption
+      dispatch(fetchBalance());
+      dispatch(fetchCoupons());
+      dispatch(fetchTransactions({ page: 1 }));
       return data;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
@@ -353,21 +358,6 @@ const loyaltySlice = createSlice({
     },
 
     /**
-     * Show reward reveal overlay
-     */
-    showRewardReveal(state, action: PayloadAction<Coupon>) {
-      state.redemption.showReveal = true;
-      state.redemption.lastRedeemedCoupon = action.payload;
-    },
-
-    /**
-     * Hide reward reveal overlay
-     */
-    hideRewardReveal(state) {
-      state.redemption.showReveal = false;
-    },
-
-    /**
      * Reset redemption state
      */
     resetRedemption(state) {
@@ -375,8 +365,7 @@ const loyaltySlice = createSlice({
         loading: false,
         success: false,
         error: null,
-        lastRedeemedCoupon: null,
-        showReveal: false,
+        couponCode: null,
       };
     },
   },
@@ -403,7 +392,7 @@ const loyaltySlice = createSlice({
     // ========================================
     builder
       .addCase(fetchTransactions.pending, (state, action) => {
-        const page = action.meta.arg.page ?? 1;
+        const page = action.meta.arg?.page ?? 1;
         if (page === 1) {
           state.transactions.loading = true;
         } else {
@@ -413,7 +402,7 @@ const loyaltySlice = createSlice({
       })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
         const { transactions, pagination } = action.payload;
-        const page = action.meta.arg.page ?? 1;
+        const page = action.meta.arg?.page ?? 1;
 
         if (page === 1) {
           state.transactions.items = transactions;
@@ -461,23 +450,7 @@ const loyaltySlice = createSlice({
       .addCase(redeemReward.fulfilled, (state, action) => {
         state.redemption.loading = false;
         state.redemption.success = true;
-        state.redemption.lastRedeemedCoupon = action.payload.coupon;
-        state.redemption.showReveal = true; // Trigger fullscreen reveal
-
-        // Update balance
-        if (state.balance) {
-          state.balance.currentBalance = action.payload.newBalance;
-        }
-
-        // Add new coupon to list
-        state.coupons.items.unshift(action.payload.coupon);
-
-        // Refresh rewards affordability
-        state.rewards.items = state.rewards.items.map((reward) => ({
-          ...reward,
-          isAffordable: action.payload.newBalance >= reward.pointsCost,
-          isLocked: !reward.isActive || action.payload.newBalance < reward.pointsCost,
-        }));
+        state.redemption.couponCode = action.payload.couponCode;
       })
       .addCase(redeemReward.rejected, (state, action) => {
         state.redemption.loading = false;
@@ -542,8 +515,6 @@ export const {
   clearError,
   showPointsEarned,
   hidePointsEarned,
-  showRewardReveal,
-  hideRewardReveal,
   resetRedemption,
 } = loyaltySlice.actions;
 

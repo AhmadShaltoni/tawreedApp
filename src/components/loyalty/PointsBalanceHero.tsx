@@ -20,9 +20,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 interface PointsBalanceHeroProps {
-  currentBalance: number;
-  totalEarned: number;
-  totalRedeemed: number;
+  currentBalance: number | undefined;
+  totalEarned: number | undefined;
+  totalRedeemed: number | undefined;
   onPress?: () => void;
 }
 
@@ -57,7 +57,7 @@ export default function PointsBalanceHero({
         {/* Main Balance */}
         <View style={styles.balanceContainer}>
           <AnimatedCounter
-            value={currentBalance}
+            value={currentBalance ?? 0}
             style={styles.balanceText}
           />
           <Text style={styles.pointsLabel}>{t("loyalty.points")}</Text>
@@ -67,7 +67,7 @@ export default function PointsBalanceHero({
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>
-              {totalEarned.toLocaleString()}
+              {totalEarned != null ? totalEarned.toLocaleString() : "0"}
             </Text>
             <Text style={styles.statLabel}>{t("loyalty.totalEarned")}</Text>
           </View>
@@ -76,7 +76,7 @@ export default function PointsBalanceHero({
 
           <View style={styles.stat}>
             <Text style={styles.statValue}>
-              {totalRedeemed.toLocaleString()}
+              {totalRedeemed != null ? totalRedeemed.toLocaleString() : "0"}
             </Text>
             <Text style={styles.statLabel}>{t("loyalty.totalRedeemed")}</Text>
           </View>

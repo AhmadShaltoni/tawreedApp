@@ -171,13 +171,16 @@ const authSlice = createSlice({
           state.user = action.payload.user;
           state.token = action.payload.token;
           state.isAuthenticated = true;
+        } else {
+          // No token found — automatically enable guest mode for first launch
+          state.isGuest = true;
         }
-        // If no token, isGuest stays false — AuthGate will redirect to login
       })
       .addCase(restoreSession.rejected, (state) => {
         state.loading = false;
         state.isInitialized = true;
-        // Failed authentication — AuthGate will redirect to login
+        // Failed authentication — enable guest mode
+        state.isGuest = true;
       });
 
     // Logout
@@ -185,7 +188,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      state.isGuest = false;
+      state.isGuest = true; // Return to guest mode after logout
       state.error = null;
     });
 

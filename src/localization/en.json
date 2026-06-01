@@ -379,8 +379,8 @@
     "linkCopied": "Link Copied!",
     "howItWorks": "How It Works",
     "referralStep1": "Share your referral code with friends",
-    "referralStep2": "Your friend gets {{points}} points on signup",
-    "referralStep3": "You get {{points}} points when they place their first order",
+    "referralStep2": "Your friend gets points on signup",
+    "referralStep3": "You get points when they place their first order",
     "totalInvited": "Total Invited",
     "totalReferralEarned": "Total Points from Referrals",
     "invitedFriends": "Invited Friends",
@@ -427,6 +427,7 @@
     },
     "orderSuccess": {
       "pointsEarned": "+{{points}} Points Earned! 🎉",
+      "loyaltyHint": "Loyalty points will be added after delivery",
       "campaignProgress": "You're now {{percent}}% toward {{campaign}}",
       "milestoneUnlocked": "Congratulations! Milestone Unlocked"
     }

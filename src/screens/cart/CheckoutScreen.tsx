@@ -730,6 +730,9 @@ export default function CheckoutScreen() {
             <Text style={styles.modalMessage}>
               {t("checkout.successMessage")}
             </Text>
+            <Text style={styles.loyaltyHint}>
+              {t("loyalty.orderSuccess.loyaltyHint")}
+            </Text>
             <View style={styles.modalButtons}>
               <Button
                 title={t("checkout.goToOrders")}
@@ -1093,8 +1096,15 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
     lineHeight: 22,
+  },
+  loyaltyHint: {
+    fontSize: FontSize.xs,
+    color: Colors.warning,
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+    fontWeight: "600",
   },
   modalButtons: {
     width: "100%",

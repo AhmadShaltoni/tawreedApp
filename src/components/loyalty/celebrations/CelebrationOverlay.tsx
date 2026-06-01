@@ -8,7 +8,7 @@
 
 import { ParticleConfig } from "@/src/constants/loyaltyTheme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { hideRewardReveal } from "@/src/store/slices/loyalty.slice";
+import { resetRedemption } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
 import React, { useEffect, useRef } from "react";
 import { Modal, StyleSheet, View } from "react-native";
@@ -16,29 +16,29 @@ import { Modal, StyleSheet, View } from "react-native";
 
 export default function CelebrationOverlay() {
   const dispatch = useAppDispatch();
-  const { showReveal } = useAppSelector((state) => state.loyalty.redemption);
+  const { success } = useAppSelector((state) => state.loyalty.redemption);
   
   // const lottieRef = useRef<LottieView>(null);
 
   useEffect(() => {
-    if (showReveal) {
+    if (success) {
       // Trigger haptic celebration
       haptics.celebration();
 
       // Auto-hide after animation completes
       const timer = setTimeout(() => {
-        dispatch(hideRewardReveal());
+        dispatch(resetRedemption());
       }, ParticleConfig.duration);
 
       return () => clearTimeout(timer);
     }
-  }, [showReveal, dispatch]);
+  }, [success, dispatch]);
 
-  if (!showReveal) return null;
+  if (!success) return null;
 
   return (
     <Modal
-      visible={showReveal}
+      visible={success}
       transparent
       animationType="fade"
       statusBarTranslucent

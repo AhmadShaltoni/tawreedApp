@@ -19,7 +19,6 @@ import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { useAppDispatch } from "@/src/store";
 import {
   showPointsEarned,
-  showRewardReveal,
 } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
 import React, { useState } from "react";
@@ -33,7 +32,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { CouponStatus, RewardType } from "@/src/types/loyalty";
+import type { CouponStatus, RewardType } from "@/src/types/loyalty";
 
 export default function LoyaltyPrototypeScreen() {
   const { t } = useTranslation();
@@ -63,19 +62,7 @@ export default function LoyaltyPrototypeScreen() {
   };
 
   const handleShowRewardReveal = () => {
-    // Mock coupon data
-    const mockCoupon = {
-      id: "demo-1",
-      code: "REWARD2024",
-      rewardId: "reward-1",
-      rewardName: "خصم 50 دينار",
-      rewardNameEn: "50 JOD Discount",
-      status: CouponStatus.ACTIVE,
-      discountValue: 50,
-      redeemedAt: new Date().toISOString(),
-    };
-
-    dispatch(showRewardReveal(mockCoupon));
+    // Prototype demo - just show haptic feedback
     haptics.celebration();
   };
 

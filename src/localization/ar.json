@@ -378,8 +378,8 @@
     "linkCopied": "تم نسخ الرابط!",
     "howItWorks": "كيف يعمل؟",
     "referralStep1": "شارك رمز الإحالة الخاص بك مع الأصدقاء",
-    "referralStep2": "يحصل صديقك على {{points}} نقطة عند التسجيل",
-    "referralStep3": "تحصل على {{points}} نقطة عند أول طلب له",
+    "referralStep2": "يحصل صديقك على نقاط عند التسجيل",
+    "referralStep3": "تحصل على نقاط عند أول طلب له",
     "totalInvited": "إجمالي الدعوات",
     "totalReferralEarned": "إجمالي النقاط من الإحالات",
     "invitedFriends": "الأصدقاء المدعوون",
@@ -426,6 +426,7 @@
     },
     "orderSuccess": {
       "pointsEarned": "+{{points}} نقطة مكتسبة! 🎉",
+      "loyaltyHint": "سيتم إضافة نقاط الولاء بعد تسليم الطلب",
       "campaignProgress": "أنت الآن {{percent}}% نحو {{campaign}}",
       "milestoneUnlocked": "تهانينا! فتحت مرحلة جديدة"
     }

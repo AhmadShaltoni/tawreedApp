@@ -7,7 +7,7 @@
  */
 
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { hideRewardReveal } from "@/src/store/slices/loyalty.slice";
+import { resetRedemption } from "@/src/store/slices/loyalty.slice";
 import { haptics } from "@/src/utils/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -41,23 +41,23 @@ const { width, height } = Dimensions.get("window");
 export default function RewardRevealScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { showReveal, lastRedeemedCoupon } = useAppSelector(
+  const { success, couponCode } = useAppSelector(
     (state) => state.loyalty.redemption,
   );
 
   const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
-    if (showReveal) {
+    if (success) {
       // Trigger success haptic
       haptics.success();
     }
-  }, [showReveal]);
+  }, [success]);
 
   const handleCopyCode = async () => {
-    if (!lastRedeemedCoupon) return;
+    if (!couponCode) return;
 
-    await Clipboard.setStringAsync(lastRedeemedCoupon.code);
+    await Clipboard.setStringAsync(couponCode);
     setCodeCopied(true);
     haptics.light();
 
@@ -65,14 +65,14 @@ export default function RewardRevealScreen() {
   };
 
   const handleClose = () => {
-    dispatch(hideRewardReveal());
+    dispatch(resetRedemption());
   };
 
-  if (!showReveal || !lastRedeemedCoupon) return null;
+  if (!success || !couponCode) return null;
 
   return (
     <Modal
-      visible={showReveal}
+      visible={success}
       animationType="fade"
       statusBarTranslucent
       onRequestClose={handleClose}
@@ -120,21 +120,9 @@ export default function RewardRevealScreen() {
               <Text style={styles.couponLabel}>{t("loyalty.couponCode")}</Text>
               
               <View style={styles.codeContainer}>
-                <Text style={styles.code}>{lastRedeemedCoupon.code}</Text>
+                <Text style={styles.code}>{couponCode}</Text>
               </View>
 
-              {/* Discount Info */}
-              {lastRedeemedCoupon.discountValue && (
-                <Text style={styles.discountInfo}>
-                  {lastRedeemedCoupon.discountValue} {t("common.currency")}{" "}
-                  {t("loyalty.discount")}
-                </Text>
-              )}
-              {lastRedeemedCoupon.discountPercentage && (
-                <Text style={styles.discountInfo}>
-                  {lastRedeemedCoupon.discountPercentage}% {t("loyalty.discount")}
-                </Text>
-              )}
             </LinearGradient>
           </Animated.View>
 

@@ -216,8 +216,7 @@ export interface RedeemRewardPayload {
 
 export interface RedeemRewardResponse {
   success: boolean;
-  coupon: Coupon;
-  newBalance: number;
+  couponCode: string;
 }
 
 export interface ValidateCouponPayload {
@@ -257,8 +256,7 @@ export interface RedemptionState {
   loading: boolean;
   success: boolean;
   error: string | null;
-  lastRedeemedCoupon: Coupon | null;
-  showReveal: boolean; // Controls fullscreen reveal overlay
+  couponCode: string | null;
 }
 
 // ============================================

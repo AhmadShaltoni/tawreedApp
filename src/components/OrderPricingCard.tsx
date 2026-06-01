@@ -11,8 +11,16 @@ interface OrderPricingCardProps {
 export default function OrderPricingCard({ order }: OrderPricingCardProps) {
   const { t } = useTranslation();
 
+  // Calculate subtotal with multiple fallbacks
   const subtotal =
-    order.items?.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) ?? 0;
+    order.items?.reduce((sum, item) => {
+      // Use item.subtotal if available, otherwise calculate from price × quantity
+      const itemTotal = item.subtotal && item.subtotal > 0 
+        ? item.subtotal 
+        : ((item.price ?? 0) * (item.quantity ?? 0));
+      return sum + itemTotal;
+    }, 0) ?? 0;
+  
   const total = order.total ?? subtotal;
 
   return (
