@@ -96,6 +96,8 @@
     "liter": "لتر",
     "pallet": "طبلية",
     "piecesCount": "{{count}} قطعة",
+    "unitType": "نوع البيع",
+    "piecesPerUnit": "عدد القطع",
     "mostOrdered": "الأكثر طلباً",
     "unitPrice": "سعر القطعة",
     "quantity": "الكمية",

@@ -165,6 +165,8 @@ export default function ProductDetailScreen() {
   const handleOptionChange = useCallback((option: VariantOption) => {
     if (option.stock === 0) return;
     setSelectedOption(option);
+    setActiveImageIndex(0);
+    galleryRef.current?.scrollToOffset({ offset: 0, animated: false });
     Haptics.selectionAsync();
   }, []);
 
@@ -326,6 +328,19 @@ export default function ProductDetailScreen() {
 
   const images = product.images?.length ? product.images : [null];
 
+  // Image priority: option > variant > first option in variant > product main image
+  const firstImageInSelectedVariant =
+    selectedVariant?.options?.find((o) => o.image)?.image;
+
+  const displayImage =
+    selectedOption?.image ||
+    selectedVariant?.image ||
+    firstImageInSelectedVariant ||
+    product.images?.[0] ||
+    null;
+
+  const displayImages = displayImage ? [displayImage] : images;
+
   return (
     <>
       <View style={styles.container}>
@@ -334,7 +349,7 @@ export default function ProductDetailScreen() {
           <View style={styles.imageSection}>
             <FlatList
               ref={galleryRef}
-              data={images}
+              data={displayImages}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -380,9 +395,9 @@ export default function ProductDetailScreen() {
             </Pressable>
 
             {/* Pagination dots */}
-            {images.length > 1 && (
+            {displayImages.length > 1 && (
               <View style={styles.dots}>
-                {images.map((_, i) => (
+                {displayImages.map((_, i) => (
                   <View
                     key={i}
                     style={[
@@ -518,7 +533,7 @@ export default function ProductDetailScreen() {
             )}
 
             {/* Unit / Packaging selector */}
-            {hasMultipleUnits && (
+            {hasMultipleUnits ? (
               <View style={styles.selectorSection}>
                 <Text style={styles.selectorLabel}>
                   {t("products.selectUnit")}
@@ -571,7 +586,39 @@ export default function ProductDetailScreen() {
                   })}
                 </View>
               </View>
-            )}
+            ) : selectedUnit ? (
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorLabel}>
+                  {t("products.unitType")}
+                </Text>
+                <View style={styles.unitInfoRow}>
+                  <View style={styles.unitInfoCard}>
+                    <Ionicons
+                      name="cube-outline"
+                      size={20}
+                      color={Colors.primary}
+                    />
+                    <Text style={styles.unitInfoLabel}>
+                      {getUnitLabel(selectedUnit)}
+                    </Text>
+                  </View>
+                  {selectedUnit.piecesPerUnit > 1 && (
+                    <View style={styles.unitInfoCard}>
+                      <Ionicons
+                        name="layers-outline"
+                        size={20}
+                        color={Colors.primary}
+                      />
+                      <Text style={styles.unitInfoLabel}>
+                        {t("products.piecesCount", {
+                          count: selectedUnit.piecesPerUnit,
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ) : null}
 
             {/* Quantity selector */}
             <View style={styles.selectorSection}>
@@ -969,6 +1016,28 @@ const styles = StyleSheet.create({
   unitCardSubSelected: {
     color: Colors.white,
     opacity: 0.9,
+  },
+  // Unit info (single unit display)
+  unitInfoRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    flexWrap: "wrap",
+  },
+  unitInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary + "10",
+    borderWidth: 1.5,
+    borderColor: Colors.primary + "30",
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  unitInfoLabel: {
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.primary,
   },
   // Quantity
   quantityStepper: {

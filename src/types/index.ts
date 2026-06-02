@@ -14,6 +14,7 @@ export interface VariantOption {
   id: string;
   name: string;
   nameEn?: string;
+  image?: string | null;
   stock: number;
   sku?: string;
   barcode?: string;
@@ -26,6 +27,7 @@ export interface ProductVariant {
   id: string;
   size: string;
   sizeEn: string | null;
+  image?: string | null;
   sku: string | null;
   barcode: string | null;
   stock: number;
@@ -67,6 +69,7 @@ export interface ApiProductVariant {
   id: string;
   size: string;
   sizeEn?: string | null;
+  image?: string | null;
   sku?: string | null;
   barcode?: string | null;
   stock: number;
@@ -220,6 +223,7 @@ export interface OrderItem {
   variantSizeEn?: string;
   optionName?: string;
   optionNameEn?: string;
+  optionImage?: string | null;
   price: number;
   quantity: number;
   unit: string;
@@ -266,6 +270,7 @@ export interface CartItemAPI {
     id: string;
     size: string;
     sizeEn?: string | null;
+    image?: string | null;
     stock: number;
     minOrderQuantity: number;
     isDefault: boolean;
@@ -278,6 +283,7 @@ export interface CartItemAPI {
     id: string;
     name: string;
     nameEn?: string;
+    image?: string | null;
     stock?: number;
     priceOverride?: number | null;
   } | null;
@@ -298,6 +304,7 @@ export interface RawCartItemAPI {
     id: string;
     size: string;
     sizeEn?: string | null;
+    image?: string | null;
     stock: number;
     minOrderQuantity: number;
     isDefault: boolean;
@@ -310,6 +317,7 @@ export interface RawCartItemAPI {
     id: string;
     name: string;
     nameEn?: string;
+    image?: string | null;
     stock?: number;
     priceOverride?: number | null;
   } | null;

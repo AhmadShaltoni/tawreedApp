@@ -457,8 +457,8 @@ export default function ProductOptionsBottomSheet({
               <View style={styles.imageRing}>
                 <Image
                   source={
-                    product.images?.[0]
-                      ? { uri: product.images[0] }
+                    (selectedOption?.image || selectedVariant?.image || selectedVariant?.options?.find((o) => o.image)?.image || product.images?.[0])
+                      ? { uri: (selectedOption?.image || selectedVariant?.image || selectedVariant?.options?.find((o) => o.image)?.image || product.images?.[0])! }
                       : require("@/assets/images/icon2.png")
                   }
                   style={styles.productImage}

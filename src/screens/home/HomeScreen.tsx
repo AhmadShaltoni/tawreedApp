@@ -3,6 +3,7 @@ import CategoryCard from "@/src/components/CategoryCard";
 import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
+import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import Loader from "@/src/components/ui/Loader";
 import {
     BorderRadius,
@@ -193,6 +194,7 @@ export default function HomeScreen() {
   }
 
   return (
+    <View style={styles.container}>
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -435,6 +437,8 @@ export default function HomeScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+    <WhatsAppFAB />
+    </View>
   );
 }
 

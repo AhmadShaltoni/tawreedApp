@@ -10,7 +10,7 @@ import {
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { addToCartAsync, fetchCart } from "@/src/store/slices/cart.slice";
-import type { Product, ProductUnit, ProductVariant } from "@/src/types";
+import type { Product, ProductUnit, ProductVariant, VariantOption } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -70,6 +70,19 @@ function ProductCard({
   const hasVariants = variants.length >= 1;
   const hasMultipleVariants = variants.length > 1;
 
+  // --- Options (flavors) for selected variant ---
+  const options = useMemo(
+    () =>
+      selectedVariant?.options && selectedVariant.options.length > 0
+        ? [...selectedVariant.options]
+            .filter((o) => o.isActive !== false)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+        : [],
+    [selectedVariant?.options],
+  );
+
+  const [selectedOption, setSelectedOption] = useState<VariantOption | null>(null);
+
   // --- Units (from selected variant) ---
   const units = useMemo(
     () =>
@@ -95,6 +108,7 @@ function ProductCard({
     );
     const newDefault = newUnits.find((u) => u.isDefault) ?? newUnits[0] ?? null;
     setSelectedUnit(newDefault);
+    setSelectedOption(null);
     Haptics.selectionAsync();
   }, []);
 
@@ -217,6 +231,18 @@ function ProductCard({
 
   const currency = isArabic ? "د.أ" : "JOD";
 
+  // --- Card display image: option > variant > first option in variant > product image ---
+  const cardDisplayImage = useMemo(() => {
+    const firstOptionImage = selectedVariant?.options?.find((o) => o.image)?.image;
+    return (
+      selectedOption?.image ||
+      selectedVariant?.image ||
+      firstOptionImage ||
+      product.images?.[0] ||
+      null
+    );
+  }, [selectedOption, selectedVariant, product.images]);
+
   return (
     <>
       <View
@@ -236,8 +262,8 @@ function ProductCard({
           <View style={styles.imageContainer}>
             <Image
               source={
-                product.images?.[0]
-                  ? { uri: product.images[0] }
+                cardDisplayImage
+                  ? { uri: cardDisplayImage }
                   : require("@/assets/images/icon2.png")
               }
               style={[styles.image, compact && styles.imageCompact]}

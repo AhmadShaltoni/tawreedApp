@@ -29,11 +29,13 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
     ? item.optionName
     : (item.optionNameEn ?? item.optionName);
 
+  const displayImage = item.optionImage || item.productImage;
+
   return (
     <View style={styles.container}>
-      {item.productImage ? (
+      {displayImage ? (
         <Image
-          source={{ uri: item.productImage }}
+          source={{ uri: displayImage }}
           style={styles.image}
           contentFit="cover"
           recyclingKey={item.id}

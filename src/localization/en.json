@@ -96,6 +96,8 @@
     "liter": "Liter",
     "pallet": "Pallet",
     "piecesCount": "{{count}} pieces",
+    "unitType": "Sale Type",
+    "piecesPerUnit": "Pieces per Unit",
     "mostOrdered": "Most Ordered",
     "unitPrice": "Unit Price",
     "quantity": "Quantity",
