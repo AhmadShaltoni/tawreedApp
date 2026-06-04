@@ -329,8 +329,9 @@ export default function ProductDetailScreen() {
   const images = product.images?.length ? product.images : [null];
 
   // Image priority: option > variant > first option in variant > product main image
-  const firstImageInSelectedVariant =
-    selectedVariant?.options?.find((o) => o.image)?.image;
+  const firstImageInSelectedVariant = selectedVariant?.options?.find(
+    (o) => o.image,
+  )?.image;
 
   const displayImage =
     selectedOption?.image ||

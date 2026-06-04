@@ -211,7 +211,7 @@ export default function CartScreen() {
         <View style={[styles.cartItem, isUpdating && styles.itemUpdating]}>
           <Image
             source={
-              (item.selectedOption?.image || item.variant?.image)
+              item.selectedOption?.image || item.variant?.image
                 ? { uri: (item.selectedOption?.image || item.variant?.image)! }
                 : item.product.images?.[0]
                   ? { uri: item.product.images[0] }

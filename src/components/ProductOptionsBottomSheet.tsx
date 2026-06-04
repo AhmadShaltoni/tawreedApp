@@ -1,9 +1,4 @@
-import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows
-} from "@/src/constants/theme";
+import { BorderRadius, Colors, FontSize, Shadows } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { addToCartAsync, fetchCart } from "@/src/store/slices/cart.slice";
@@ -457,8 +452,17 @@ export default function ProductOptionsBottomSheet({
               <View style={styles.imageRing}>
                 <Image
                   source={
-                    (selectedOption?.image || selectedVariant?.image || selectedVariant?.options?.find((o) => o.image)?.image || product.images?.[0])
-                      ? { uri: (selectedOption?.image || selectedVariant?.image || selectedVariant?.options?.find((o) => o.image)?.image || product.images?.[0])! }
+                    selectedOption?.image ||
+                    selectedVariant?.image ||
+                    selectedVariant?.options?.find((o) => o.image)?.image ||
+                    product.images?.[0]
+                      ? {
+                          uri: (selectedOption?.image ||
+                            selectedVariant?.image ||
+                            selectedVariant?.options?.find((o) => o.image)
+                              ?.image ||
+                            product.images?.[0])!,
+                        }
                       : require("@/assets/images/icon2.png")
                   }
                   style={styles.productImage}

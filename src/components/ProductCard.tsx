@@ -1,28 +1,33 @@
 import LoginRequiredModal from "@/src/components/LoginRequiredModal";
 import ProductOptionsBottomSheet from "@/src/components/ProductOptionsBottomSheet";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { addToCartAsync, fetchCart } from "@/src/store/slices/cart.slice";
-import type { Product, ProductUnit, ProductVariant, VariantOption } from "@/src/types";
+import type {
+    Product,
+    ProductUnit,
+    ProductVariant,
+    VariantOption,
+} from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 interface ProductCardProps {
@@ -81,7 +86,9 @@ function ProductCard({
     [selectedVariant?.options],
   );
 
-  const [selectedOption, setSelectedOption] = useState<VariantOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<VariantOption | null>(
+    null,
+  );
 
   // --- Units (from selected variant) ---
   const units = useMemo(
@@ -233,7 +240,9 @@ function ProductCard({
 
   // --- Card display image: option > variant > first option in variant > product image ---
   const cardDisplayImage = useMemo(() => {
-    const firstOptionImage = selectedVariant?.options?.find((o) => o.image)?.image;
+    const firstOptionImage = selectedVariant?.options?.find(
+      (o) => o.image,
+    )?.image;
     return (
       selectedOption?.image ||
       selectedVariant?.image ||

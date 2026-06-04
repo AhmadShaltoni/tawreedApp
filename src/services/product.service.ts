@@ -1,13 +1,13 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import type {
-    ApiProduct,
-    ApiProductsResponse,
-    Product,
-    ProductFilters,
-    ProductsResponse,
-    ProductUnit,
-    ProductVariant,
-    VariantOption,
+  ApiProduct,
+  ApiProductsResponse,
+  Product,
+  ProductFilters,
+  ProductsResponse,
+  ProductUnit,
+  ProductVariant,
+  VariantOption,
 } from "@/src/types";
 import apiClient from "./api";
 

@@ -2,7 +2,10 @@ import {
     authService,
     type LoginPayload,
     type RegisterPayload,
+    type ResendSmsOtpPayload,
+    type SendOtpPayload,
     type User,
+    type VerifyOtpPayload,
 } from "@/src/services/auth.service";
 import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
@@ -17,6 +20,9 @@ interface AuthState {
   isAuthenticated: boolean;
   isGuest: boolean;
   isInitialized: boolean;
+  otpSending: boolean;
+  otpVerifying: boolean;
+  verificationToken: string | null;
 }
 
 const initialState: AuthState = {
@@ -27,6 +33,9 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isGuest: false,
   isInitialized: false,
+  otpSending: false,
+  otpVerifying: false,
+  verificationToken: null,
 };
 
 export const login = createAsyncThunk(
@@ -90,6 +99,45 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   // Clear JWT token from secure storage
   await removeToken();
 });
+
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (payload: SendOtpPayload, { rejectWithValue }) => {
+    try {
+      const response = await authService.sendOtp(payload);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      return rejectWithValue(message);
+    }
+  },
+);
+
+export const verifyOtp = createAsyncThunk(
+  "auth/verifyOtp",
+  async (payload: VerifyOtpPayload, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyOtp(payload);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      return rejectWithValue(message);
+    }
+  },
+);
+
+export const resendSmsOtp = createAsyncThunk(
+  "auth/resendSmsOtp",
+  async (payload: ResendSmsOtpPayload, { rejectWithValue }) => {
+    try {
+      const response = await authService.resendSmsOtp(payload);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      return rejectWithValue(message);
+    }
+  },
+);
 
 export const updateUserLocation = createAsyncThunk(
   "auth/updateLocation",
@@ -200,6 +248,35 @@ const authSlice = createSlice({
         }
       })
       .addCase(updateUserLocation.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Send OTP
+    builder
+      .addCase(sendOtp.pending, (state) => {
+        state.otpSending = true;
+        state.error = null;
+      })
+      .addCase(sendOtp.fulfilled, (state) => {
+        state.otpSending = false;
+      })
+      .addCase(sendOtp.rejected, (state, action) => {
+        state.otpSending = false;
+        state.error = action.payload as string;
+      });
+
+    // Verify OTP (registration phone verification — does NOT authenticate)
+    builder
+      .addCase(verifyOtp.pending, (state) => {
+        state.otpVerifying = true;
+        state.error = null;
+      })
+      .addCase(verifyOtp.fulfilled, (state, action) => {
+        state.otpVerifying = false;
+        state.verificationToken = action.payload.verificationToken;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.otpVerifying = false;
         state.error = action.payload as string;
       });
   },

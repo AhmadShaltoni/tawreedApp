@@ -11,7 +11,6 @@
  * - If logged out and route needs auth → redirect to login first
  */
 
-
 export interface NotificationNavigation {
   linkUrl: string;
   data?: Record<string, string | object>;

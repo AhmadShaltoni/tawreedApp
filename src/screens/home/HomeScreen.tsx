@@ -6,11 +6,11 @@ import SectionHeader from "@/src/components/SectionHeader";
 import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import Loader from "@/src/components/ui/Loader";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchBrands } from "@/src/store/slices/brands.slice";
@@ -25,21 +25,21 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    FlatList,
-    I18nManager,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    ViewStyle,
+  FlatList,
+  I18nManager,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
 } from "react-native";
 import Animated, {
-    FadeInDown,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -195,249 +195,249 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={Colors.primary}
-        />
-      }
-    >
-      {/* Notice Banner */}
-      {notices.length > 0 && (
-        <NoticeCarousel
-          notices={notices}
-          currentIndex={currentIndex}
-          onNextNotice={() => dispatch(nextNotice())}
-        />
-      )}
-
-      {/* Welcome Header */}
-      <Animated.View
-        entering={FadeInDown.duration(400).delay(50)}
-        style={[styles.header, dynamicHeaderStyle]}
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       >
-        <View style={{ flex: 1 }}>
-          {isAuthenticated && (
-            <Text style={styles.greeting}>
-              {t("home.welcomeBack")} {user?.username ?? user?.storeName}
-            </Text>
-          )}
-          <Text style={styles.storeName}>
-            {isAuthenticated
-              ? (user?.storeName ?? user?.username)
-              : t("home.browseAsGuest")}
-          </Text>
-          {!isAuthenticated && (
-            <Text style={styles.browseAsGuestSubtitle}>
-              {t("home.browseAsGuestSubtitle")}
-            </Text>
-          )}
-        </View>
-        <View
-          style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}
+        {/* Notice Banner */}
+        {notices.length > 0 && (
+          <NoticeCarousel
+            notices={notices}
+            currentIndex={currentIndex}
+            onNextNotice={() => dispatch(nextNotice())}
+          />
+        )}
+
+        {/* Welcome Header */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(50)}
+          style={[styles.header, dynamicHeaderStyle]}
         >
-          {!isAuthenticated && (
+          <View style={{ flex: 1 }}>
+            {isAuthenticated && (
+              <Text style={styles.greeting}>
+                {t("home.welcomeBack")} {user?.username ?? user?.storeName}
+              </Text>
+            )}
+            <Text style={styles.storeName}>
+              {isAuthenticated
+                ? (user?.storeName ?? user?.username)
+                : t("home.browseAsGuest")}
+            </Text>
+            {!isAuthenticated && (
+              <Text style={styles.browseAsGuestSubtitle}>
+                {t("home.browseAsGuestSubtitle")}
+              </Text>
+            )}
+          </View>
+          <View
+            style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}
+          >
+            {!isAuthenticated && (
+              <Pressable
+                style={styles.loginButton}
+                onPress={() => router.push("/(auth)/login")}
+                hitSlop={8}
+              >
+                <Ionicons name="log-in-outline" size={22} color={Colors.text} />
+              </Pressable>
+            )}
             <Pressable
-              style={styles.loginButton}
-              onPress={() => router.push("/(auth)/login")}
+              style={styles.notifButton}
+              onPress={() => router.push("/notifications")}
               hitSlop={8}
             >
-              <Ionicons name="log-in-outline" size={22} color={Colors.text} />
-            </Pressable>
-          )}
-          <Pressable
-            style={styles.notifButton}
-            onPress={() => router.push("/notifications")}
-            hitSlop={8}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={Colors.text}
-            />
-            {unreadCount > 0 && (
-              <View style={[styles.notifBadge, dynamicNotifBadgeStyle]}>
-                <Text style={styles.notifBadgeText}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </Animated.View>
-
-      {/* Hero Banner */}
-      <Animated.View
-        entering={FadeInDown.duration(500).delay(100)}
-        style={styles.heroBanner}
-      >
-        <View style={styles.heroContent}>
-          <Text style={styles.heroTag}>{t("home.featuredProducts")}</Text>
-          <Text style={styles.heroTitle}>{t("quickActions.products")}</Text>
-          <Pressable
-            style={[styles.heroButton, dynamicHeroButtonStyle]}
-            onPress={() => router.push("/products")}
-          >
-            <Text style={styles.heroButtonText}>{t("common.viewAll")}</Text>
-            <Ionicons name="arrow-forward" size={14} color={Colors.white} />
-          </Pressable>
-        </View>
-        <View style={styles.heroBg}>
-          <Ionicons
-            name="storefront"
-            size={80}
-            color="rgba(255,255,255,0.15)"
-          />
-        </View>
-      </Animated.View>
-
-      {/* Quick Actions */}
-      <Animated.View
-        entering={FadeInDown.duration(400).delay(200)}
-        style={[styles.quickActions, dynamicQuickActionsStyle]}
-      >
-        {QUICK_ACTIONS.map((action, i) => (
-          <QuickActionTile
-            key={action.label}
-            action={action}
-            index={i}
-            router={router}
-          />
-        ))}
-      </Animated.View>
-
-      {/* Categories */}
-      {categories.length > 0 ? (
-        <>
-          <SectionHeader
-            title={t("home.categories")}
-            actionLabel={t("common.seeAll")}
-            onAction={() => router.push("/categories")}
-          />
-          <FlatList
-            data={categories}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => (
-              <CategoryCard category={item} onPress={handleCategoryPress} />
-            )}
-          />
-        </>
-      ) : null}
-
-      {/* Brands */}
-      {brands.length > 0 || brandsLoading ? (
-        <>
-          <SectionHeader
-            title={t("brands.title")}
-            actionLabel={t("common.seeAll")}
-            onAction={() => router.push("/products")}
-          />
-          <Animated.View entering={FadeInDown.duration(400).delay(250)}>
-            {brandsLoading && brands.length === 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-              >
-                <BrandCardSkeleton />
-                <BrandCardSkeleton />
-                <BrandCardSkeleton />
-              </ScrollView>
-            ) : (
-              <FlatList
-                data={brands}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.horizontalList}
-                renderItem={({ item }) => (
-                  <BrandCard brand={item} onPress={handleBrandPress} />
-                )}
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={Colors.text}
               />
-            )}
-          </Animated.View>
-        </>
-      ) : null}
-
-      {/* Featured Products - 2 Column Grid */}
-      {featured.length > 0 ? (
-        <>
-          <SectionHeader
-            title={t("home.featuredProducts")}
-            actionLabel={t("common.viewAll")}
-            onAction={() => router.push("/products")}
-          />
-          <View style={styles.gridContainer}>
-            <FlatList
-              data={featured.slice(0, displayedFeaturedCount)}
-              numColumns={2}
-              columnWrapperStyle={styles.gridRow}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.gridContent}
-              scrollEnabled={false}
-              renderItem={({ item }) => (
-                <ProductCard
-                  product={item}
-                  onPress={handleProductPress}
-                  grid={true}
-                />
+              {unreadCount > 0 && (
+                <View style={[styles.notifBadge, dynamicNotifBadgeStyle]}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
+                </View>
               )}
+            </Pressable>
+          </View>
+        </Animated.View>
+
+        {/* Hero Banner */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(100)}
+          style={styles.heroBanner}
+        >
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTag}>{t("home.featuredProducts")}</Text>
+            <Text style={styles.heroTitle}>{t("quickActions.products")}</Text>
+            <Pressable
+              style={[styles.heroButton, dynamicHeroButtonStyle]}
+              onPress={() => router.push("/products")}
+            >
+              <Text style={styles.heroButtonText}>{t("common.viewAll")}</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+            </Pressable>
+          </View>
+          <View style={styles.heroBg}>
+            <Ionicons
+              name="storefront"
+              size={80}
+              color="rgba(255,255,255,0.15)"
             />
           </View>
-          {displayedFeaturedCount < featured.length && (
-            <View style={styles.gridButtonContainer}>
-              <Pressable
-                style={styles.viewMoreButton}
-                onPress={() =>
-                  setDisplayedFeaturedCount((prev) =>
-                    Math.min(prev + 4, featured.length),
-                  )
-                }
-              >
-                <Text style={styles.viewMoreButtonText}>
-                  {t("common.viewMore")}
-                </Text>
-                <Ionicons
-                  name="arrow-down"
-                  size={16}
-                  color={Colors.primary}
-                  style={{ marginStart: 8 }}
+        </Animated.View>
+
+        {/* Quick Actions */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(200)}
+          style={[styles.quickActions, dynamicQuickActionsStyle]}
+        >
+          {QUICK_ACTIONS.map((action, i) => (
+            <QuickActionTile
+              key={action.label}
+              action={action}
+              index={i}
+              router={router}
+            />
+          ))}
+        </Animated.View>
+
+        {/* Categories */}
+        {categories.length > 0 ? (
+          <>
+            <SectionHeader
+              title={t("home.categories")}
+              actionLabel={t("common.seeAll")}
+              onAction={() => router.push("/categories")}
+            />
+            <FlatList
+              data={categories}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.horizontalList}
+              renderItem={({ item }) => (
+                <CategoryCard category={item} onPress={handleCategoryPress} />
+              )}
+            />
+          </>
+        ) : null}
+
+        {/* Brands */}
+        {brands.length > 0 || brandsLoading ? (
+          <>
+            <SectionHeader
+              title={t("brands.title")}
+              actionLabel={t("common.seeAll")}
+              onAction={() => router.push("/products")}
+            />
+            <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+              {brandsLoading && brands.length === 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                >
+                  <BrandCardSkeleton />
+                  <BrandCardSkeleton />
+                  <BrandCardSkeleton />
+                </ScrollView>
+              ) : (
+                <FlatList
+                  data={brands}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.horizontalList}
+                  renderItem={({ item }) => (
+                    <BrandCard brand={item} onPress={handleBrandPress} />
+                  )}
                 />
-              </Pressable>
+              )}
+            </Animated.View>
+          </>
+        ) : null}
+
+        {/* Featured Products - 2 Column Grid */}
+        {featured.length > 0 ? (
+          <>
+            <SectionHeader
+              title={t("home.featuredProducts")}
+              actionLabel={t("common.viewAll")}
+              onAction={() => router.push("/products")}
+            />
+            <View style={styles.gridContainer}>
+              <FlatList
+                data={featured.slice(0, displayedFeaturedCount)}
+                numColumns={2}
+                columnWrapperStyle={styles.gridRow}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.gridContent}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <ProductCard
+                    product={item}
+                    onPress={handleProductPress}
+                    grid={true}
+                  />
+                )}
+              />
             </View>
-          )}
-          {displayedFeaturedCount === featured.length &&
-            featured.length > 4 && (
+            {displayedFeaturedCount < featured.length && (
               <View style={styles.gridButtonContainer}>
                 <Pressable
-                  style={styles.viewAllButton}
-                  onPress={() => router.push("/products")}
+                  style={styles.viewMoreButton}
+                  onPress={() =>
+                    setDisplayedFeaturedCount((prev) =>
+                      Math.min(prev + 4, featured.length),
+                    )
+                  }
                 >
-                  <Text style={styles.viewAllButtonText}>
-                    {t("common.viewAll")}
+                  <Text style={styles.viewMoreButtonText}>
+                    {t("common.viewMore")}
                   </Text>
                   <Ionicons
-                    name="arrow-forward"
+                    name="arrow-down"
                     size={16}
-                    color={Colors.white}
+                    color={Colors.primary}
                     style={{ marginStart: 8 }}
                   />
                 </Pressable>
               </View>
             )}
-        </>
-      ) : null}
+            {displayedFeaturedCount === featured.length &&
+              featured.length > 4 && (
+                <View style={styles.gridButtonContainer}>
+                  <Pressable
+                    style={styles.viewAllButton}
+                    onPress={() => router.push("/products")}
+                  >
+                    <Text style={styles.viewAllButtonText}>
+                      {t("common.viewAll")}
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={Colors.white}
+                      style={{ marginStart: 8 }}
+                    />
+                  </Pressable>
+                </View>
+              )}
+          </>
+        ) : null}
 
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
-    <WhatsAppFAB />
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+      <WhatsAppFAB />
     </View>
   );
 }

@@ -15,6 +15,10 @@ export const API_ENDPOINTS = {
     LOGIN: "/api/v1/auth",
     REGISTER: "/api/v1/auth",
     ME: "/api/v1/auth/me",
+    OTP_SEND: "/api/v1/auth/send-otp",
+    OTP_VERIFY: "/api/v1/auth/verify-otp",
+    OTP_RESEND_SMS: "/api/v1/auth/resend-sms-otp",
+    OTP_STATUS: "/api/v1/auth/otp-status",
   },
   PRODUCTS: {
     LIST: "/api/v1/products",

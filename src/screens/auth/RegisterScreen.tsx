@@ -147,7 +147,9 @@ export default function RegisterScreen() {
               clearFieldError("username");
             }}
             error={formErrors.username}
-            autoComplete="username"
+            autoCapitalize="words"
+            autoComplete="off"
+            textContentType="none"
           />
 
           <Input
@@ -173,8 +175,9 @@ export default function RegisterScreen() {
               clearFieldError("storeName");
             }}
             error={formErrors.storeName}
-            autoComplete="organization"
-            textContentType="organizationName"
+            autoCapitalize="words"
+            autoComplete="off"
+            textContentType="none"
           />
 
           <Input

@@ -12,6 +12,38 @@ export interface RegisterPayload {
   storeName: string;
   password: string;
   confirmPassword: string;
+  verificationToken?: string;
+}
+
+export interface SendOtpPayload {
+  phone: string;
+  channel?: "whatsapp" | "sms";
+}
+
+export interface SendOtpResponse {
+  success: boolean;
+  channel: "whatsapp" | "sms";
+  expiresIn: number;
+}
+
+export interface VerifyOtpPayload {
+  phone: string;
+  code: string;
+}
+
+export interface VerifyOtpResponse {
+  verificationToken: string;
+}
+
+export interface ResendSmsOtpPayload {
+  phone: string;
+}
+
+export interface OtpStatusResponse {
+  canResendWhatsApp: boolean;
+  canResendSms: boolean;
+  whatsAppCooldown: number;
+  smsCooldown: number;
 }
 
 export interface AuthResponse {
@@ -55,6 +87,9 @@ export const authService = {
       password: payload.password,
       confirmPassword: payload.confirmPassword,
       role: "buyer",
+      ...(payload.verificationToken && {
+        verificationToken: payload.verificationToken,
+      }),
     };
 
     const { data } = await apiClient.post<AuthResponse>(
@@ -73,6 +108,40 @@ export const authService = {
     const { data } = await apiClient.patch<User>(
       API_ENDPOINTS.USER.UPDATE_LOCATION,
       { cityId, areaId },
+    );
+    return data;
+  },
+
+  sendOtp: async (payload: SendOtpPayload): Promise<SendOtpResponse> => {
+    const { data } = await apiClient.post<SendOtpResponse>(
+      API_ENDPOINTS.AUTH.OTP_SEND,
+      payload,
+    );
+    return data;
+  },
+
+  verifyOtp: async (payload: VerifyOtpPayload): Promise<VerifyOtpResponse> => {
+    const { data } = await apiClient.post<VerifyOtpResponse>(
+      API_ENDPOINTS.AUTH.OTP_VERIFY,
+      payload,
+    );
+    return data;
+  },
+
+  resendSmsOtp: async (
+    payload: ResendSmsOtpPayload,
+  ): Promise<SendOtpResponse> => {
+    const { data } = await apiClient.post<SendOtpResponse>(
+      API_ENDPOINTS.AUTH.OTP_RESEND_SMS,
+      payload,
+    );
+    return data;
+  },
+
+  getOtpStatus: async (phone: string): Promise<OtpStatusResponse> => {
+    const { data } = await apiClient.get<OtpStatusResponse>(
+      API_ENDPOINTS.AUTH.OTP_STATUS,
+      { params: { phone } },
     );
     return data;
   },

@@ -1,21 +1,15 @@
 import Button from "@/src/components/ui/Button";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
 interface LoginRequiredModalProps {
@@ -58,9 +52,7 @@ export default function LoginRequiredModal({
 
           {/* Content */}
           <View style={styles.content}>
-            <Text style={styles.title}>
-              {t("auth.guestPromptTitle")}
-            </Text>
+            <Text style={styles.title}>{t("auth.guestPromptTitle")}</Text>
 
             <Text style={styles.description}>
               {t("auth.guestPromptMessage")}

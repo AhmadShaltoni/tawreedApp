@@ -6,9 +6,9 @@ import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-    clearError,
-    continueAsGuest,
-    login,
+  clearError,
+  continueAsGuest,
+  login,
 } from "@/src/store/slices/auth.slice";
 import { Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -151,7 +151,7 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t("auth.noAccount")} </Text>
-            <Link href="/(auth)/register" style={styles.link}>
+            <Link href="/(auth)/phone" style={styles.link}>
               {t("auth.register")}
             </Link>
           </View>

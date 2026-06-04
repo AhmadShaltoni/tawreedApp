@@ -70,7 +70,7 @@ export default function Input({
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={isPassword && !showPassword}
-          autoCapitalize="none"
+          autoCapitalize={isPassword ? "none" : undefined}
           {...props}
         />
         {isPassword && (
