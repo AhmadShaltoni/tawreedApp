@@ -4,6 +4,7 @@ import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
 import WhatsAppFAB from "@/src/components/WhatsAppFAB";
+import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import Loader from "@/src/components/ui/Loader";
 import {
   BorderRadius,
@@ -49,9 +50,11 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const { featured, loading: productsLoading } = useAppSelector(
-    (state) => state.products,
-  );
+  const {
+    featured,
+    loading: productsLoading,
+    error: productsError,
+  } = useAppSelector((state) => state.products);
   const { items: categories } = useAppSelector((state) => state.categories);
   const { items: brands, loading: brandsLoading } = useAppSelector(
     (state) => state.brands,
@@ -191,6 +194,24 @@ export default function HomeScreen() {
 
   if (productsLoading && !refreshing && featured.length === 0) {
     return <Loader />;
+  }
+
+  if (productsError && featured.length === 0) {
+    const errorType =
+      productsError.includes("Network") || productsError.includes("اتصال")
+        ? ("network" as const)
+        : productsError.includes("timeout") || productsError.includes("مهلة")
+          ? ("timeout" as const)
+          : productsError.includes("500") || productsError.includes("خادم")
+            ? ("server" as const)
+            : ("generic" as const);
+    return (
+      <ErrorScreen
+        type={errorType}
+        onRetry={() => loadData(true)}
+        errorMessage={productsError}
+      />
+    );
   }
 
   return (

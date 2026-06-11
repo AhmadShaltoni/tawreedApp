@@ -1,3 +1,4 @@
+import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import OrderCard from "@/src/components/OrderCard";
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
@@ -49,9 +50,19 @@ export default function OrdersListScreen() {
     return <Loader />;
   }
 
+  if (error && items.length === 0) {
+    return (
+      <ErrorScreen
+        type="generic"
+        onRetry={() => dispatch(fetchOrders())}
+        errorMessage={error}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {error ? (
+      {error && items.length > 0 ? (
         <View style={styles.errorBanner}>
           <Ionicons name="alert-circle" size={16} color={Colors.error} />
           <Text style={styles.errorText}>{error}</Text>

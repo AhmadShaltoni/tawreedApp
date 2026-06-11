@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
+import { AppErrorBoundary } from "@/src/components/errors";
 import { Config } from "@/src/config/env";
 import { Colors } from "@/src/constants/theme";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
@@ -245,9 +246,11 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Provider store={store}>
-        <AuthGate />
-      </Provider>
+      <AppErrorBoundary>
+        <Provider store={store}>
+          <AuthGate />
+        </Provider>
+      </AppErrorBoundary>
     </SafeAreaProvider>
   );
 }

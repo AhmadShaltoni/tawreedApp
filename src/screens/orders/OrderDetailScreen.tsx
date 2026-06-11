@@ -1,3 +1,4 @@
+import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import OrderDeliveryCard from "@/src/components/OrderDeliveryCard";
 import OrderPricingCard from "@/src/components/OrderPricingCard";
 import OrderProductItem from "@/src/components/OrderProductItem";
@@ -59,6 +60,7 @@ export default function OrderDetailScreen() {
     selectedOrder: order,
     loadingDetail,
     updating,
+    error: orderError,
   } = useAppSelector((state) => state.orders);
 
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -116,6 +118,17 @@ export default function OrderDetailScreen() {
   }, [order, editAddress, editCity, editNotes, dispatch]);
 
   if (loadingDetail || !order) {
+    if (orderError && !loadingDetail) {
+      return (
+        <ErrorScreen
+          type="generic"
+          onRetry={() => {
+            if (id) dispatch(fetchOrderDetail(id));
+          }}
+          errorMessage={orderError}
+        />
+      );
+    }
     return <Loader />;
   }
 

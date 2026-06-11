@@ -156,6 +156,33 @@ export const orderService = {
     return mapOrderDetail(data);
   },
 
+  getLastDeliveryAddress: async (): Promise<{
+    address: string;
+    cityId?: string;
+    areaId?: string;
+  } | null> => {
+    try {
+      const { data } = await apiClient.get<{ orders: any[] }>(
+        API_ENDPOINTS.ORDERS.RECENT,
+      );
+      if (!data.orders || data.orders.length === 0) return null;
+
+      const lastOrderId = data.orders[0].id;
+      const { data: detailData } = await apiClient.get<any>(
+        API_ENDPOINTS.ORDERS.DETAIL(lastOrderId),
+      );
+      const raw = detailData.order ?? detailData;
+
+      return {
+        address: raw.deliveryAddress ?? raw.shippingAddress ?? "",
+        cityId: raw.deliveryCityId ?? raw.cityId ?? undefined,
+        areaId: raw.deliveryAreaId ?? raw.areaId ?? undefined,
+      };
+    } catch {
+      return null;
+    }
+  },
+
   validateCart: async (): Promise<CartValidationResponse> => {
     console.log(`🌐 API: GET ${API_ENDPOINTS.CART.VALIDATE}`);
     try {

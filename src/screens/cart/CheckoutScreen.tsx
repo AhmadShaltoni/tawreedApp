@@ -16,6 +16,8 @@ import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
 import {
   createOrder,
+  fetchLastDeliveryAddress,
+  setLastDeliveryAddress,
   validateCartBeforeCheckout,
 } from "@/src/store/slices/orders.slice";
 import type {
@@ -53,7 +55,8 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { items } = useAppSelector((state) => state.cart);
-  const { creating, error, loading } = useAppSelector((state) => state.orders);
+  const { creating, error, loading, lastDeliveryAddress, loadingLastAddress } =
+    useAppSelector((state) => state.orders);
   const { user } = useAppSelector((state) => state.auth);
   const isArabic = i18n.language === "ar";
 
@@ -138,10 +141,38 @@ export default function CheckoutScreen() {
     };
   }, []);
 
-  // Pre-fill from user's saved location after cities are loaded
+  // Fetch last delivery address on mount
   useEffect(() => {
-    if (cities.length > 0 && user?.cityId) {
-      // Check if the city exists in the loaded cities
+    dispatch(fetchLastDeliveryAddress());
+  }, [dispatch]);
+
+  // Pre-fill from last order's delivery address, fallback to user's saved location
+  useEffect(() => {
+    if (cities.length === 0) return;
+
+    // Priority 1: last order's delivery address
+    if (lastDeliveryAddress) {
+      // Pre-fill address text
+      if (lastDeliveryAddress.address) {
+        setAddress(lastDeliveryAddress.address);
+      }
+      // Pre-fill city/area from last order if available, otherwise from user profile
+      const cityId = lastDeliveryAddress.cityId ?? user?.cityId;
+      const areaId = lastDeliveryAddress.areaId ?? user?.areaId;
+      if (cityId) {
+        const cityExists = cities.some((c) => c.id === cityId);
+        if (cityExists) {
+          setSelectedCityId(cityId);
+          if (areaId) {
+            setSelectedAreaId(areaId);
+          }
+        }
+      }
+      return;
+    }
+
+    // Priority 2: user's saved location (registration / profile)
+    if (!loadingLastAddress && user?.cityId) {
       const cityExists = cities.some((c) => c.id === user.cityId);
       if (cityExists) {
         setSelectedCityId(user.cityId);
@@ -150,7 +181,13 @@ export default function CheckoutScreen() {
         }
       }
     }
-  }, [cities, user?.cityId, user?.areaId]);
+  }, [
+    cities,
+    lastDeliveryAddress,
+    loadingLastAddress,
+    user?.cityId,
+    user?.areaId,
+  ]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -392,6 +429,15 @@ export default function CheckoutScreen() {
           }),
         );
       }
+
+      // Save delivery address for next checkout pre-fill
+      dispatch(
+        setLastDeliveryAddress({
+          address: address.trim(),
+          cityId: selectedCityId ?? undefined,
+          areaId: selectedAreaId ?? undefined,
+        }),
+      );
 
       console.log("🗑️ Clearing cart...");
       dispatch(clearCart());

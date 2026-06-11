@@ -1,3 +1,4 @@
+import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import ProductCard from "@/src/components/ProductCard";
 import { TagFilterBar } from "@/src/components/TagFilterBar";
 import EmptyState from "@/src/components/ui/EmptyState";
@@ -58,9 +59,15 @@ export default function ProductsListScreen() {
     includeDescendants?: string;
   }>();
 
-  const { items, loading, loadingMore, total, page, filters } = useAppSelector(
-    (state) => state.products,
-  );
+  const {
+    items,
+    loading,
+    loadingMore,
+    total,
+    page,
+    filters,
+    error: productsError,
+  } = useAppSelector((state) => state.products);
   const { items: categories } = useAppSelector((state) => state.categories);
   const { items: brands } = useAppSelector((state) => state.brands);
 
@@ -499,6 +506,16 @@ export default function ProductsListScreen() {
         {Header}
         <Loader />
       </View>
+    );
+  }
+
+  if (productsError && items.length === 0) {
+    return (
+      <ErrorScreen
+        type="generic"
+        onRetry={() => dispatch(fetchProducts({ ...filters, page: 1 }))}
+        errorMessage={productsError}
+      />
     );
   }
 

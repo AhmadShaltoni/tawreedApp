@@ -3,10 +3,16 @@ import type {
     CreateOrderPayload,
     EditOrderPayload,
     Order,
-    OrderDetail
+    OrderDetail,
 } from "@/src/types";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+interface LastDeliveryAddress {
+  address: string;
+  cityId?: string;
+  areaId?: string;
+}
 
 interface OrdersState {
   items: Order[];
@@ -16,6 +22,8 @@ interface OrdersState {
   creating: boolean;
   updating: boolean;
   error: string | null;
+  lastDeliveryAddress: LastDeliveryAddress | null;
+  loadingLastAddress: boolean;
 }
 
 const initialState: OrdersState = {
@@ -26,6 +34,8 @@ const initialState: OrdersState = {
   creating: false,
   updating: false,
   error: null,
+  lastDeliveryAddress: null,
+  loadingLastAddress: false,
 };
 
 export const fetchOrders = createAsyncThunk(
@@ -84,6 +94,17 @@ export const validateCartBeforeCheckout = createAsyncThunk(
   },
 );
 
+export const fetchLastDeliveryAddress = createAsyncThunk(
+  "orders/fetchLastDeliveryAddress",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await orderService.getLastDeliveryAddress();
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const updateOrder = createAsyncThunk(
   "orders/update",
   async (
@@ -107,6 +128,9 @@ const ordersSlice = createSlice({
     },
     clearOrdersError(state) {
       state.error = null;
+    },
+    setLastDeliveryAddress(state, action) {
+      state.lastDeliveryAddress = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -218,8 +242,22 @@ const ordersSlice = createSlice({
         state.updating = false;
         state.error = action.payload as string;
       });
+
+    // Fetch last delivery address
+    builder
+      .addCase(fetchLastDeliveryAddress.pending, (state) => {
+        state.loadingLastAddress = true;
+      })
+      .addCase(fetchLastDeliveryAddress.fulfilled, (state, action) => {
+        state.loadingLastAddress = false;
+        state.lastDeliveryAddress = action.payload;
+      })
+      .addCase(fetchLastDeliveryAddress.rejected, (state) => {
+        state.loadingLastAddress = false;
+      });
   },
 });
 
-export const { clearOrderDetail, clearOrdersError } = ordersSlice.actions;
+export const { clearOrderDetail, clearOrdersError, setLastDeliveryAddress } =
+  ordersSlice.actions;
 export default ordersSlice.reducer;

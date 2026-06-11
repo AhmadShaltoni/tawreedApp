@@ -1,3 +1,4 @@
+import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import LoginRequiredModal from "@/src/components/LoginRequiredModal";
 import Loader from "@/src/components/ui/Loader";
 import {
@@ -57,9 +58,11 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { requireAuth, showLoginModal, setShowLoginModal } = useAuthGuard();
-  const { selectedProduct: product, loadingDetail } = useAppSelector(
-    (state) => state.products,
-  );
+  const {
+    selectedProduct: product,
+    loadingDetail,
+    error: productError,
+  } = useAppSelector((state) => state.products);
   const cartItems = useAppSelector((state) => state.cart.items);
   const galleryRef = useRef<FlatList>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -323,6 +326,17 @@ export default function ProductDetailScreen() {
   ]);
 
   if (loadingDetail || !product) {
+    if (productError && !loadingDetail) {
+      return (
+        <ErrorScreen
+          type="generic"
+          onRetry={() => {
+            if (id) dispatch(fetchProductDetail(id));
+          }}
+          errorMessage={productError}
+        />
+      );
+    }
     return <Loader />;
   }
 

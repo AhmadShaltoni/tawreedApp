@@ -486,5 +486,48 @@
     "feeError": "Could not calculate delivery fee",
     "selectCityForDelivery": "Select a city to see delivery fees",
     "changeLocation": "Change Location"
+  },
+  "errors": {
+    "network": {
+      "title": "No Internet Connection",
+      "subtitle": "It looks like you're offline. Check your connection and try again.",
+      "tipsTitle": "Try these steps:",
+      "tip1": "Make sure mobile data or Wi-Fi is turned on",
+      "tip2": "Restart your router",
+      "tip3": "Move to an area with better signal"
+    },
+    "server": {
+      "title": "Server Error",
+      "subtitle": "We're experiencing a technical issue. Our team is working on it.",
+      "info": "This issue is on our end, not your device. It will be resolved shortly."
+    },
+    "timeout": {
+      "title": "Request Timed Out",
+      "subtitle": "The server is taking longer than expected. Please try again.",
+      "suggestion1": "Check your internet connection speed",
+      "suggestion2": "Try again in a few moments"
+    },
+    "sessionExpired": {
+      "title": "Session Expired",
+      "subtitle": "For your account's security, you've been signed out automatically. Sign in again to continue.",
+      "securityNote": "We do this to keep your account and personal information secure."
+    },
+    "maintenance": {
+      "title": "Scheduled Maintenance",
+      "subtitle": "We're updating our systems to serve you better. We'll be back soon!",
+      "estimatedTime": "We're working to finish as soon as possible",
+      "note": "We're improving the app for a better and faster experience."
+    },
+    "generic": {
+      "title": "Something Went Wrong",
+      "subtitle": "An unexpected error occurred. Try again later or contact us for help.",
+      "retryLater": "Try Again",
+      "contactUs": "Contact Us via WhatsApp",
+      "contactUsSubtitle": "Tell us about the issue and we'll help right away",
+      "errorDetails": "Error Details",
+      "errorCodeLabel": "Error Code",
+      "whatsappMessage": "Hello, I encountered an issue in the Tawreed app. Error code: {{code}}",
+      "whatsappMessageDefault": "Hello, I encountered an issue in the Tawreed app and need help."
+    }
   }
 }
