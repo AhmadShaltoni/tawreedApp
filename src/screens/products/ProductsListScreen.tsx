@@ -4,40 +4,40 @@ import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import SearchBar from "@/src/components/ui/SearchBar";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { categoryService } from "@/src/services/category.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
 import {
-    fetchMoreProducts,
-    fetchProducts,
-    setFilters,
+  fetchMoreProducts,
+  fetchProducts,
+  setFilters,
 } from "@/src/store/slices/products.slice";
 import type { Category, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const NUM_COLUMNS = 2;
