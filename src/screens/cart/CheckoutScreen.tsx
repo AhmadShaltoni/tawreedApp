@@ -2,37 +2,44 @@ import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { couponService } from "@/src/services/coupon.service";
+import { deliveryService } from "@/src/services/delivery.service";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
 import {
-    createOrder,
-    validateCartBeforeCheckout,
+  createOrder,
+  validateCartBeforeCheckout,
 } from "@/src/store/slices/orders.slice";
-import type { City, CouponValidateSuccess, InvalidCartItem } from "@/src/types";
+import type {
+  City,
+  CouponValidateSuccess,
+  DeliveryFeeResponse,
+  DeliveryZone,
+  InvalidCartItem,
+} from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -81,6 +88,16 @@ export default function CheckoutScreen() {
   const [appliedCoupon, setAppliedCoupon] =
     useState<CouponValidateSuccess | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Delivery fee state
+  const [deliveryFee, setDeliveryFee] = useState<DeliveryFeeResponse | null>(
+    null,
+  );
+  const [loadingDeliveryFee, setLoadingDeliveryFee] = useState(false);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+
+  // Delivery zone (for freeDeliveryThreshold)
+  const [userZone, setUserZone] = useState<DeliveryZone | null>(null);
 
   const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
   const areas = selectedCity?.areas ?? [];
@@ -151,10 +168,22 @@ export default function CheckoutScreen() {
     };
   }, [items]);
 
-  // The final total to display (with or without coupon)
-  const displayTotal = appliedCoupon
-    ? appliedCoupon.finalTotal
-    : totals.subtotal;
+  // Free delivery calculation (frontend logic, same as CartScreen)
+  const freeDeliveryThreshold = userZone?.freeDeliveryThreshold ?? null;
+  const isFreeDelivery =
+    freeDeliveryThreshold != null && totals.subtotal >= freeDeliveryThreshold;
+  const effectiveDeliveryFee = isFreeDelivery ? 0 : (deliveryFee?.fee ?? 0);
+  const remainingForFree =
+    freeDeliveryThreshold != null
+      ? Math.max(0, freeDeliveryThreshold - totals.subtotal)
+      : null;
+
+  // The final total to display (with or without coupon) + delivery fee
+  const displayTotal = useMemo(() => {
+    let base = appliedCoupon ? appliedCoupon.finalTotal : totals.subtotal;
+    base += effectiveDeliveryFee;
+    return base;
+  }, [appliedCoupon, totals.subtotal, effectiveDeliveryFee]);
 
   const handleApplyCoupon = useCallback(async () => {
     const code = couponCode.replace(/\s/g, "").toUpperCase();
@@ -190,6 +219,65 @@ export default function CheckoutScreen() {
     setCouponCode("");
     setCouponError(null);
   }, []);
+
+  // Calculate delivery fee based on city and order total
+  const calculateDeliveryFee = useCallback(
+    async (cityId: string, orderTotal: number) => {
+      if (!cityId) {
+        setDeliveryFee(null);
+        setDeliveryError(null);
+        return;
+      }
+      try {
+        setLoadingDeliveryFee(true);
+        setDeliveryError(null);
+        const fee = await deliveryService.getFee(cityId, orderTotal);
+        setDeliveryFee(fee);
+        console.log("✅ Delivery fee calculated:", fee);
+      } catch (error) {
+        console.error("❌ Error calculating delivery fee:", error);
+        setDeliveryError(
+          t("checkout.deliveryFeeError") || "خطأ في حساب رسوم التوصيل",
+        );
+        setDeliveryFee(null);
+      } finally {
+        setLoadingDeliveryFee(false);
+      }
+    },
+    [t],
+  );
+
+  // Fetch delivery zones once to get freeDeliveryThreshold for user's city
+  useEffect(() => {
+    if (!selectedCityId) {
+      setUserZone(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const zones = await deliveryService.getZones();
+        if (!cancelled) {
+          const zone = zones.find((z) => z.cityId === selectedCityId) ?? null;
+          setUserZone(zone);
+        }
+      } catch {
+        // silent — zone info is supplementary
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCityId]);
+
+  // Recalculate delivery fee when city or items change
+  // NOTE: Always use subtotal (products only), not finalTotal (after coupon discount)
+  // This ensures free delivery threshold is consistent with CartScreen
+  useEffect(() => {
+    if (selectedCityId) {
+      calculateDeliveryFee(selectedCityId, totals.subtotal);
+    }
+  }, [selectedCityId, totals.subtotal, calculateDeliveryFee]);
 
   const handleConfirm = useCallback(async () => {
     console.log("🔴 handleConfirm: Button pressed!");
@@ -260,9 +348,18 @@ export default function CheckoutScreen() {
     // ===== Proceed with order creation =====
     const orderPayload = {
       deliveryAddress: address.trim() || "No address provided",
+      deliveryAddressDetails: address.trim() || undefined,
       deliveryCity: cityDisplayText,
+      deliveryArea: selectedArea
+        ? isArabic
+          ? selectedArea.name
+          : selectedArea.nameEn
+        : undefined,
       buyerNotes: notes.trim() || undefined,
+      notes: notes.trim() || undefined,
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+      deliveryFee: effectiveDeliveryFee,
+      deliveryEstimatedDays: deliveryFee?.estimatedDays ?? 0,
       itemNotes: items
         .filter((item) => item.note)
         .map((item) => ({
@@ -335,8 +432,12 @@ export default function CheckoutScreen() {
     t,
     selectedCityId,
     selectedAreaId,
+    selectedArea,
     appliedCoupon,
     items,
+    deliveryFee,
+    effectiveDeliveryFee,
+    isArabic,
   ]);
 
   return (
@@ -470,7 +571,72 @@ export default function CheckoutScreen() {
               </Text>
             </View>
           )}
+
+          {/* Delivery Fee Section */}
+          {selectedCityId && (
+            <>
+              <View style={styles.divider} />
+              {loadingDeliveryFee ? (
+                <View style={styles.summaryItem}>
+                  <Text style={styles.totalLabel}>
+                    {t("checkout.deliveryFee")}
+                  </Text>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                </View>
+              ) : deliveryFee ? (
+                <>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.totalLabel}>
+                      {t("checkout.deliveryFee")}
+                    </Text>
+                    {isFreeDelivery ? (
+                      <Text
+                        style={[
+                          styles.summaryItemPrice,
+                          styles.freeDeliveryText,
+                        ]}
+                      >
+                        {t("checkout.free")}
+                      </Text>
+                    ) : (
+                      <Text style={styles.summaryItemPrice}>
+                        {effectiveDeliveryFee.toFixed(2)} {t("common.currency")}
+                      </Text>
+                    )}
+                  </View>
+                  {isFreeDelivery && (
+                    <Text style={styles.freeDeliveryNote}>
+                      🎉 {t("checkout.freeDeliveryApplied")}
+                    </Text>
+                  )}
+                  {!isFreeDelivery &&
+                    remainingForFree != null &&
+                    remainingForFree > 0 && (
+                      <Text style={styles.deliveryThresholdNote}>
+                        {t("checkout.freeDeliveryAt", {
+                          amount: remainingForFree.toFixed(2),
+                        })}
+                      </Text>
+                    )}
+                </>
+              ) : null}
+            </>
+          )}
         </View>
+
+        {/* Final Total with Delivery */}
+        {selectedCityId && (deliveryFee || deliveryError) && (
+          <View style={styles.finalTotalCard}>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.totalLabel, { fontSize: FontSize.lg }]}>
+                {t("checkout.grandTotal")}
+              </Text>
+              <Text style={[styles.totalValue, { fontSize: FontSize.xl }]}>
+                {displayTotal.toFixed(2)} {t("common.currency")}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Shipping Details */}
         <View style={styles.sectionHeader}>
@@ -1066,6 +1232,35 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.success,
+  },
+  finalTotalCard: {
+    backgroundColor: Colors.primaryXLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    ...Shadows.sm,
+  },
+  freeDeliveryText: {
+    color: Colors.success,
+    fontWeight: "700",
+  },
+  freeDeliveryNote: {
+    fontSize: FontSize.xs,
+    color: Colors.success,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  deliveryThresholdNote: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   modalOverlay: {
     flex: 1,

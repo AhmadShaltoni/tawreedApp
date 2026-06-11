@@ -218,7 +218,13 @@
     "insufficientStockMessage": "بعض المنتجات غير متاحة بالكمية المطلوبة. يرجى تحديث السلة.",
     "requestedVsAvailable": "المطلوب: {{requested}} | المتاح: {{available}}",
     "backToCart": "العودة للسلة",
-    "availableStock": "✓ المتاح: {{count}} قطعة"
+    "availableStock": "✓ المتاح: {{count}} قطعة",
+    "deliveryFee": "رسوم التوصيل",
+    "free": "مجاني",
+    "freeDeliveryApplied": "التوصيل مجاني!",
+    "freeDeliveryAt": "التوصيل مجاني عند إضافة {{amount}} د.أ أخرى",
+    "grandTotal": "الإجمالي النهائي",
+    "deliveryFeeError": "خطأ في حساب رسوم التوصيل"
   },
   "orders": {
     "title": "سجل الطلبات",
@@ -310,7 +316,9 @@
     "detected": "تم تحديد الموقع بنجاح ✓",
     "loadingCities": "جاري تحميل المدن...",
     "infoTitle": "معلومة",
-    "nearbyLocationInfo": "لم يتم العثور على مدينة متطابقة. سيتم استخدام الموقع الحالي."
+    "nearbyLocationInfo": "لم يتم العثور على مدينة متطابقة. سيتم استخدام الموقع الحالي.",
+    "noMatchTitle": "لم نتمكن من تحديد مكانك بدقة",
+    "noMatchMessage": "يرجى الاختيار من القائمة بالأسفل.\nيمكنك اختيار أقرب منطقة لك من القائمة."
   },
   "contact": {
     "title": "تواصل معنا",
@@ -452,5 +460,30 @@
       "campaignProgress": "أنت الآن {{percent}}% نحو {{campaign}}",
       "milestoneUnlocked": "تهانينا! فتحت مرحلة جديدة"
     }
+  },
+  "delivery": {
+    "title": "التوصيل",
+    "summary": "ملخص التوصيل",
+    "fee": "رسوم التوصيل",
+    "deliveryFee": "أجور التوصيل",
+    "free": "مجاني",
+    "freeDelivery": "توصيل مجاني",
+    "freeDeliveryAbove": "توصيل مجاني للطلبات فوق {{amount}} {{currency}}",
+    "estimatedDays": "مدة التوصيل المتوقعة",
+    "oneDay": "يوم واحد",
+    "twoDays": "يومان",
+    "days": "{{count}} أيام",
+    "governorate": "المحافظة",
+    "addMoreForFree": "أضف منتجات بقيمة {{amount}} {{currency}} إضافية لتحصل على توصيل مجاني",
+    "freeAbove": "توصيل مجاني فوق",
+    "congratsFree": "مبروك! لقد حصلت على توصيل مجاني",
+    "notAvailable": "عذراً، التوصيل غير متاح حالياً لهذه المحافظة",
+    "notAvailableShort": "التوصيل غير متاح",
+    "productSubtotal": "إجمالي المنتجات",
+    "grandTotal": "المجموع النهائي",
+    "loadingFee": "جاري حساب رسوم التوصيل...",
+    "feeError": "تعذر حساب رسوم التوصيل",
+    "selectCityForDelivery": "اختر المحافظة لعرض رسوم التوصيل",
+    "changeLocation": "تغيير الموقع"
   }
 }

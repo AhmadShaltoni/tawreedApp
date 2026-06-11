@@ -1,5 +1,6 @@
 import { BorderRadius, Colors, FontSize, Spacing } from "@/src/constants/theme";
 import type { OrderDetail } from "@/src/types";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
@@ -11,10 +12,9 @@ interface OrderPricingCardProps {
 export default function OrderPricingCard({ order }: OrderPricingCardProps) {
   const { t } = useTranslation();
 
-  // Calculate subtotal with multiple fallbacks
-  const subtotal =
+  // Calculate subtotal from items
+  const itemsSubtotal =
     order.items?.reduce((sum, item) => {
-      // Use item.subtotal if available, otherwise calculate from price × quantity
       const itemTotal =
         item.subtotal && item.subtotal > 0
           ? item.subtotal
@@ -22,42 +22,62 @@ export default function OrderPricingCard({ order }: OrderPricingCardProps) {
       return sum + itemTotal;
     }, 0) ?? 0;
 
+  // Use backend subtotal if available, else calculated
+  const subtotal = order.subtotal ?? itemsSubtotal;
   const total = order.total ?? subtotal;
+  const deliveryFee = order.deliveryFee;
+  const isFreeDelivery = order.isFreeDelivery;
+  const discountAmount = order.discountAmount;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("orders.pricingSummary")}</Text>
 
+      {/* Product subtotal */}
       <View style={styles.row}>
-        <Text style={styles.label}>{t("checkout.subtotal")}</Text>
+        <Text style={styles.label}>{t("delivery.productSubtotal")}</Text>
         <Text style={styles.value}>
           {subtotal.toFixed(2)} {t("common.currency")}
         </Text>
       </View>
 
-      {subtotal !== total && (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={[styles.label, styles.adjustmentLabel]}>
-              {subtotal > total ? t("checkout.discount") : t("orders.fees")}
+      {/* Discount if any */}
+      {discountAmount != null && discountAmount > 0 && (
+        <View style={styles.row}>
+          <Text style={[styles.label, styles.discountLabel]}>
+            {t("checkout.discount")}
+            {order.couponCode ? ` (${order.couponCode})` : ""}
+          </Text>
+          <Text style={styles.discountValue}>
+            -{discountAmount.toFixed(2)} {t("common.currency")}
+          </Text>
+        </View>
+      )}
+
+      {/* Delivery fee */}
+      {deliveryFee != null && (
+        <View style={styles.row}>
+          <Text style={styles.label}>{t("delivery.deliveryFee")}</Text>
+          {isFreeDelivery || deliveryFee === 0 ? (
+            <View style={styles.freeRow}>
+              <Ionicons
+                name="checkmark-circle"
+                size={14}
+                color={Colors.success}
+              />
+              <Text style={styles.freeValue}>{t("delivery.free")}</Text>
+            </View>
+          ) : (
+            <Text style={styles.value}>
+              {deliveryFee.toFixed(2)} {t("common.currency")}
             </Text>
-            <Text
-              style={[
-                styles.value,
-                subtotal > total ? styles.discountValue : styles.feeValue,
-              ]}
-            >
-              {subtotal > total ? "-" : "+"}
-              {Math.abs(total - subtotal).toFixed(2)} {t("common.currency")}
-            </Text>
-          </View>
-        </>
+          )}
+        </View>
       )}
 
       <View style={styles.totalDivider} />
       <View style={styles.row}>
-        <Text style={styles.totalLabel}>{t("checkout.total")}</Text>
+        <Text style={styles.totalLabel}>{t("delivery.grandTotal")}</Text>
         <Text style={styles.totalValue}>
           {total.toFixed(2)} {t("common.currency")}
         </Text>
@@ -93,21 +113,23 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: "500",
   },
-  adjustmentLabel: {
-    fontStyle: "italic",
+  discountLabel: {
+    color: Colors.success,
   },
   discountValue: {
     color: Colors.success,
     fontWeight: "600",
+    fontSize: FontSize.sm,
   },
-  feeValue: {
-    color: Colors.textSecondary,
+  freeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.xs,
-    opacity: 0.5,
+  freeValue: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.success,
   },
   totalDivider: {
     height: 1,

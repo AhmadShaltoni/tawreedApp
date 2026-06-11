@@ -80,26 +80,29 @@ export default function ProductsListScreen() {
 
   // Determine the effective categoryId for product fetching
   const effectiveCategoryId = useMemo(() => {
-    if (params.categoryId && chipLevels.length > 0) {
+    if (chipLevels.length > 0) {
       // Find the deepest selected chip
       for (let i = chipLevels.length - 1; i >= 0; i--) {
         if (chipLevels[i].selectedId !== null) {
           return chipLevels[i].selectedId;
         }
       }
-      // All levels have "الكل" selected — use root parent
-      return params.categoryId;
+      // All sub-levels have "الكل" selected — use root parent
+      return params.categoryId ?? selectedCategory ?? undefined;
     }
     return selectedCategory ?? undefined;
   }, [params.categoryId, chipLevels, selectedCategory]);
 
   const effectiveIncludeDescendants = useMemo(() => {
     if (params.categoryId) {
-      // Always include descendants when browsing from a category
+      return true;
+    }
+    // Include descendants when a root category with sub-levels is selected
+    if (selectedCategory && chipLevels.length > 0) {
       return true;
     }
     return false;
-  }, [params.categoryId]);
+  }, [params.categoryId, selectedCategory, chipLevels]);
 
   // Find the selected category object to check hasChildren
   const selectedCategoryObj = useMemo(
@@ -265,10 +268,39 @@ export default function ProductsListScreen() {
     dispatch(setFilters({ search: search || undefined }));
   }, [dispatch, search]);
 
-  const handleCategoryFilter = useCallback((categoryId: string | null) => {
-    setSelectedCategory(categoryId);
-    setSelectedTag(null);
-  }, []);
+  const handleCategoryFilter = useCallback(
+    (categoryId: string | null) => {
+      setSelectedCategory(categoryId);
+      setSelectedTag(null);
+
+      if (categoryId === null) {
+        setChipLevels([]);
+        return;
+      }
+
+      // If the selected root category has children, fetch and show sub-level chips
+      const selectedCat = categories.find((c) => c.id === categoryId);
+      if (selectedCat?.hasChildren) {
+        categoryService
+          .getCategories(categoryId)
+          .then((result) => {
+            if (result.categories.length > 0) {
+              setChipLevels([
+                { categories: result.categories, selectedId: null },
+              ]);
+            } else {
+              setChipLevels([]);
+            }
+          })
+          .catch(() => {
+            setChipLevels([]);
+          });
+      } else {
+        setChipLevels([]);
+      }
+    },
+    [categories],
+  );
 
   const renderProduct = useCallback(
     ({ item }: { item: Product }) => (
@@ -314,66 +346,8 @@ export default function ProductsListScreen() {
           </View>
         ) : null}
 
-        {/* Multi-level hierarchical chip rows (when entering from a specific category) */}
-        {params.categoryId && chipLevels.length > 0 ? (
-          chipLevels.map((level, levelIndex) => (
-            <ScrollView
-              key={`chip-level-${levelIndex}`}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[
-                styles.categoryFilters,
-                levelIndex > 0 && styles.subLevelFilters,
-              ]}
-            >
-              <Pressable
-                style={[
-                  styles.categoryChip,
-                  levelIndex > 0 && styles.subLevelChip,
-                  level.selectedId === null &&
-                    (levelIndex === 0
-                      ? styles.categoryChipActive
-                      : styles.subLevelChipActive),
-                ]}
-                onPress={() => handleChipSelect(levelIndex, null)}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    level.selectedId === null && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {t("products.allFilter")}
-                </Text>
-              </Pressable>
-              {level.categories.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    levelIndex > 0 && styles.subLevelChip,
-                    level.selectedId === cat.id &&
-                      (levelIndex === 0
-                        ? styles.categoryChipActive
-                        : styles.subLevelChipActive),
-                  ]}
-                  onPress={() => handleChipSelect(levelIndex, cat.id)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      level.selectedId === cat.id &&
-                        styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          ))
-        ) : !params.categoryId && categories.length > 0 ? (
-          /* Category filters (when browsing all products) */
+        {/* Root category chips (when browsing all products) */}
+        {!params.categoryId && categories.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -417,6 +391,70 @@ export default function ProductsListScreen() {
             ))}
           </ScrollView>
         ) : null}
+
+        {/* Multi-level hierarchical sub-category chip rows */}
+        {chipLevels.length > 0
+          ? chipLevels.map((level, levelIndex) => {
+              const isSubLevel = !params.categoryId || levelIndex > 0;
+              return (
+                <ScrollView
+                  key={`chip-level-${levelIndex}`}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[
+                    styles.categoryFilters,
+                    isSubLevel && styles.subLevelFilters,
+                  ]}
+                >
+                  <Pressable
+                    style={[
+                      styles.categoryChip,
+                      isSubLevel && styles.subLevelChip,
+                      level.selectedId === null &&
+                        (isSubLevel
+                          ? styles.subLevelChipActive
+                          : styles.categoryChipActive),
+                    ]}
+                    onPress={() => handleChipSelect(levelIndex, null)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        level.selectedId === null &&
+                          styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {t("products.allFilter")}
+                    </Text>
+                  </Pressable>
+                  {level.categories.map((cat) => (
+                    <Pressable
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        isSubLevel && styles.subLevelChip,
+                        level.selectedId === cat.id &&
+                          (isSubLevel
+                            ? styles.subLevelChipActive
+                            : styles.categoryChipActive),
+                      ]}
+                      onPress={() => handleChipSelect(levelIndex, cat.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          level.selectedId === cat.id &&
+                            styles.categoryChipTextActive,
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              );
+            })
+          : null}
 
         {/* Tag filters - shown when a category is selected */}
         {selectedCategoryObj &&

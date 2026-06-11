@@ -61,6 +61,10 @@ export const API_ENDPOINTS = {
   LOCATIONS: {
     CITIES: "/api/v1/locations/cities",
   },
+  DELIVERY: {
+    ZONES: "/api/v1/delivery/zones",
+    FEE: "/api/v1/delivery/fee",
+  },
   USER: {
     UPDATE_LOCATION: "/api/v1/user/location",
   },

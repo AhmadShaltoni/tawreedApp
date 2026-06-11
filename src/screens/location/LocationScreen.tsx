@@ -1,10 +1,10 @@
 import Button from "@/src/components/ui/Button";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  FontSize,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch } from "@/src/store";
@@ -16,15 +16,15 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -176,6 +176,7 @@ export default function LocationScreen() {
 
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoDetectFailed, setAutoDetectFailed] = useState(false);
 
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
@@ -184,7 +185,8 @@ export default function LocationScreen() {
   const areas = selectedCity?.areas ?? [];
   const selectedArea = areas.find((a) => a.id === selectedAreaId) ?? null;
 
-  const canConfirm = selectedCityId !== null || coordinates !== null;
+  const canConfirm =
+    selectedCityId !== null && (areas.length === 0 || selectedAreaId !== null);
 
   // Fetch cities on mount
   useEffect(() => {
@@ -249,13 +251,11 @@ export default function LocationScreen() {
             setSelectedAreaId(null);
           }
         } else {
-          console.log("ℹ️ No match found - keeping coordinates only");
-          // Coordinates are set but no city/area match
-          // User can still proceed with just GPS coords
-          Alert.alert(
-            t("location.infoTitle"),
-            t("location.nearbyLocationInfo"),
-          );
+          console.log("ℹ️ No match found - forcing manual selection");
+          // Clear coordinates — force manual selection
+          setCoordinates(null);
+          setAutoDetectFailed(true);
+          Alert.alert(t("location.noMatchTitle"), t("location.noMatchMessage"));
         }
       } else {
         console.warn("⚠️ Cities not loaded yet - coordinates stored");
@@ -357,7 +357,7 @@ export default function LocationScreen() {
             }
             onPress={handleAutoDetect}
             loading={detectingLocation}
-            disabled={detectingLocation}
+            disabled={detectingLocation || autoDetectFailed}
             variant={coordinates ? "primary" : "accent"}
             style={styles.gpsButton}
           />

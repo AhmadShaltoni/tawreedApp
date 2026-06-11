@@ -5,8 +5,11 @@ import {
     Shadows,
     Spacing,
 } from "@/src/constants/theme";
+import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { clearError, sendOtp } from "@/src/store/slices/auth.slice";
+// OTP disabled temporarily - will re-enable later
+// import { clearError, sendOtp } from "@/src/store/slices/auth.slice";
+import { clearError, register } from "@/src/store/slices/auth.slice";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
@@ -48,7 +51,9 @@ export default function PhoneScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { otpSending, error } = useAppSelector((state) => state.auth);
+  // OTP disabled temporarily
+  // const { otpSending, error } = useAppSelector((state) => state.auth);
+  const { loading, error } = useAppSelector((state) => state.auth);
 
   const [username, setUsername] = useState("");
   const [storeName, setStoreName] = useState("");
@@ -112,28 +117,57 @@ export default function PhoneScreen() {
     return Object.keys(errors).length === 0;
   }, [username, storeName, phone, password, confirmPassword, t]);
 
+  // OTP disabled temporarily - register directly without OTP verification
+  // const handleContinue = useCallback(async () => {
+  //   if (!validate()) return;
+  //   dispatch(clearError());
+  //   const trimmedPhone = phone.trim();
+  //   const result = await dispatch(
+  //     sendOtp({ phone: trimmedPhone, channel: "whatsapp" }),
+  //   );
+  //   if (sendOtp.fulfilled.match(result)) {
+  //     router.push({
+  //       pathname: "/(auth)/otp",
+  //       params: {
+  //         phone: trimmedPhone,
+  //         username: username.trim(),
+  //         storeName: storeName.trim(),
+  //         password,
+  //         confirmPassword,
+  //         channel: result.payload.channel,
+  //         expiresIn: String(result.payload.expiresIn || 120),
+  //       },
+  //     });
+  //   }
+  // }, [dispatch, phone, username, storeName, password, confirmPassword, validate, router]);
+
   const handleContinue = useCallback(async () => {
     if (!validate()) return;
 
     dispatch(clearError());
-    const trimmedPhone = phone.trim();
     const result = await dispatch(
-      sendOtp({ phone: trimmedPhone, channel: "whatsapp" }),
+      register({
+        username: username.trim(),
+        phone: phone.trim(),
+        storeName: storeName.trim(),
+        password,
+        confirmPassword,
+      }),
     );
 
-    if (sendOtp.fulfilled.match(result)) {
-      router.push({
-        pathname: "/(auth)/otp",
-        params: {
-          phone: trimmedPhone,
-          username: username.trim(),
-          storeName: storeName.trim(),
-          password,
-          confirmPassword,
-          channel: result.payload.channel,
-          expiresIn: String(result.payload.expiresIn || 120),
-        },
-      });
+    if (register.fulfilled.match(result)) {
+      // Register device token after successful registration
+      try {
+        await notificationService.registerTokenAfterLogin();
+      } catch (err) {
+        console.error("[PhoneScreen] Failed to register device token:", err);
+      }
+      const user = result.payload.user;
+      if (!user.cityId && user.latitude == null) {
+        router.replace("/location");
+      } else {
+        router.replace("/(tabs)");
+      }
     }
   }, [
     dispatch,
@@ -423,14 +457,14 @@ export default function PhoneScreen() {
                   stiffness: 400,
                 });
               }}
-              disabled={otpSending || !isValid}
+              disabled={loading || !isValid}
               style={[
                 styles.ctaButton,
-                (!isValid || otpSending) && styles.ctaButtonDisabled,
+                (!isValid || loading) && styles.ctaButtonDisabled,
                 buttonAnimStyle,
               ]}
             >
-              {otpSending ? (
+              {loading ? (
                 <ActivityIndicator color={Colors.white} size="small" />
               ) : (
                 <Text style={styles.ctaText}>{t("auth.createAccount")}</Text>

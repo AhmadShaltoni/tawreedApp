@@ -10,6 +10,8 @@ import {
   Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
+import { deliveryService } from "@/src/services/delivery.service";
+import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   clearCartAsync,
@@ -17,14 +19,28 @@ import {
   removeFromCartAsync,
   updateCartItemAsync,
 } from "@/src/store/slices/cart.slice";
-import type { CartItem } from "@/src/types";
+import type {
+  Area,
+  CartItem,
+  City,
+  DeliveryFeeResponse,
+  DeliveryZone,
+} from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Pressable,
   RefreshControl,
@@ -39,12 +55,33 @@ export default function CartScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isArabic = i18n.language === "ar";
   const { isAuthenticated, requireAuth, showLoginModal, setShowLoginModal } =
     useAuthGuard();
   const { items, loading, updating, error } = useAppSelector(
     (state) => state.cart,
   );
+  const { user } = useAppSelector((state) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Delivery state
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryFeeResponse | null>(
+    null,
+  );
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+
+  // Delivery zone (for freeDeliveryThreshold)
+  const [userZone, setUserZone] = useState<DeliveryZone | null>(null);
+
+  // User's selected city and area (auto-loaded from last order or registration)
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
+
+  // Free delivery celebration animation
+  const celebrationAnim = useRef(new Animated.Value(0)).current;
+  const [showCelebration, setShowCelebration] = useState(false);
+  const wasFreeRef = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -69,6 +106,169 @@ export default function CartScreen() {
     }, 0);
     return { subtotal, itemCount: items.length };
   }, [items]);
+
+  // Free delivery threshold from zones API (not from fee API)
+  const freeDeliveryThreshold = userZone?.freeDeliveryThreshold ?? null;
+  const isFreeDelivery =
+    freeDeliveryThreshold != null && totals.subtotal >= freeDeliveryThreshold;
+  const effectiveDeliveryFee = isFreeDelivery ? 0 : (deliveryInfo?.fee ?? 0);
+  const grandTotal = totals.subtotal + effectiveDeliveryFee;
+  const remainingForFree =
+    freeDeliveryThreshold != null
+      ? Math.max(0, freeDeliveryThreshold - totals.subtotal)
+      : null;
+  const freeDeliveryProgress =
+    freeDeliveryThreshold != null && freeDeliveryThreshold > 0
+      ? Math.min(1, totals.subtotal / freeDeliveryThreshold)
+      : null;
+
+  // Auto-load user's city and area from last order or registration data
+  useEffect(() => {
+    if (!user?.cityId) {
+      setSelectedCity(null);
+      setSelectedArea(null);
+      return;
+    }
+
+    // If city object already exists in user data, use it directly (already loaded from last order)
+    if (user.city) {
+      setSelectedCity({
+        id: user.city.id,
+        name: user.city.name,
+        nameEn: user.city.nameEn,
+        areas: user.area ? [user.area] : [],
+      });
+      if (user.area) {
+        setSelectedArea(user.area);
+      }
+      return;
+    }
+
+    // If city object is not in user data, fetch all cities and find the matching one
+    let cancelled = false;
+    (async () => {
+      try {
+        const allCities = await locationService.getCities();
+        if (!cancelled) {
+          const matchedCity = allCities.find((c) => c.id === user.cityId);
+          if (matchedCity) {
+            setSelectedCity(matchedCity);
+            // Find and set the area if user has areaId
+            if (user.areaId && matchedCity.areas) {
+              const matchedArea = matchedCity.areas.find(
+                (a) => a.id === user.areaId,
+              );
+              if (matchedArea) {
+                setSelectedArea(matchedArea);
+              }
+            }
+          }
+        }
+      } catch {
+        // silent — location auto-loading is non-critical
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.cityId, user?.city, user?.area, user?.areaId]);
+
+  // Fetch delivery zones once to get freeDeliveryThreshold for user's city
+  useEffect(() => {
+    if (!user?.cityId) {
+      setUserZone(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const zones = await deliveryService.getZones();
+        if (!cancelled) {
+          const zone = zones.find((z) => z.cityId === user.cityId) ?? null;
+          setUserZone(zone);
+        }
+      } catch {
+        // silent — zone info is supplementary
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.cityId]);
+
+  // Fetch delivery fee when user's city is available and subtotal changes
+  useEffect(() => {
+    if (!user?.cityId || items.length === 0) {
+      setDeliveryInfo(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchFee = async () => {
+      setDeliveryLoading(true);
+      setDeliveryError(null);
+      try {
+        const data = await deliveryService.getFee(
+          user.cityId!,
+          totals.subtotal,
+        );
+        if (!cancelled) setDeliveryInfo(data);
+      } catch {
+        if (!cancelled) setDeliveryError(t("delivery.feeError"));
+      } finally {
+        if (!cancelled) setDeliveryLoading(false);
+      }
+    };
+    fetchFee();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.cityId, totals.subtotal, items.length, t]);
+
+  // Free delivery celebration animation trigger
+  useEffect(() => {
+    if (isFreeDelivery && !wasFreeRef.current && userZone) {
+      // Transition from paid to free
+      setShowCelebration(true);
+      celebrationAnim.setValue(0);
+      Animated.sequence([
+        Animated.spring(celebrationAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 60,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2500),
+        Animated.timing(celebrationAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setShowCelebration(false));
+    }
+    wasFreeRef.current = isFreeDelivery;
+  }, [isFreeDelivery, userZone, celebrationAnim]);
+
+  // Format estimated days
+  const formatEstimatedDays = useCallback(
+    (days: number) => {
+      if (days === 1) return t("delivery.oneDay");
+      if (days === 2) return t("delivery.twoDays");
+      return t("delivery.days", { count: days });
+    },
+    [t],
+  );
+
+  // Get user's city/area display (auto-loaded from last order or registration)
+  const userLocationText = useMemo(() => {
+    if (!selectedCity) return null;
+    const cityName = isArabic ? selectedCity.name : selectedCity.nameEn;
+    if (selectedArea) {
+      const areaName = isArabic ? selectedArea.name : selectedArea.nameEn;
+      return `${cityName} - ${areaName}`;
+    }
+    return cityName;
+  }, [selectedCity, selectedArea, isArabic]);
 
   const handleIncrement = useCallback(
     (item: CartItem) => {
@@ -374,19 +574,200 @@ export default function CartScreen() {
           }
         />
 
-        {/* Bottom summary */}
+        {/* Bottom summary with delivery */}
         <View
           style={[
             styles.bottomBar,
             { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
           ]}
         >
+          {/* Delivery Address Card */}
+          {userLocationText ? (
+            <View style={styles.deliveryAddressCard}>
+              <View style={styles.deliveryAddressRow}>
+                <Ionicons name="location" size={18} color={Colors.primary} />
+                <View style={styles.deliveryAddressInfo}>
+                  <Text style={styles.deliveryAddressLabel}>
+                    {t("delivery.title")}
+                  </Text>
+                  <Text style={styles.deliveryAddressText}>
+                    {userLocationText}
+                  </Text>
+                </View>
+                <Pressable onPress={() => router.push("/location")} hitSlop={8}>
+                  <Text style={styles.changeLocationText}>
+                    {t("delivery.changeLocation")}
+                  </Text>
+                </Pressable>
+              </View>
+              {/* Estimated delivery days */}
+              {deliveryInfo && deliveryInfo.available && !deliveryLoading ? (
+                <View style={styles.estimatedDaysRow}>
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={Colors.textSecondary}
+                  />
+                  <Text style={styles.estimatedDaysText}>
+                    {t("delivery.estimatedDays")}:{" "}
+                    {formatEstimatedDays(deliveryInfo.estimatedDays)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <Pressable
+              style={styles.selectCityCard}
+              onPress={() => router.push("/location")}
+            >
+              <Ionicons
+                name="location-outline"
+                size={18}
+                color={Colors.primary}
+              />
+              <Text style={styles.selectCityText}>
+                {t("delivery.selectCityForDelivery")}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={Colors.textSecondary}
+              />
+            </Pressable>
+          )}
+
+          {/* Free Delivery Progress Banner */}
+          {freeDeliveryThreshold != null &&
+          !isFreeDelivery &&
+          remainingForFree != null &&
+          remainingForFree > 0 &&
+          deliveryInfo?.available ? (
+            <View style={styles.freeDeliveryBanner}>
+              <Text style={styles.freeDeliveryBannerText}>
+                🚚{" "}
+                {t("delivery.addMoreForFree", {
+                  amount: remainingForFree.toFixed(2),
+                  currency: t("common.currency"),
+                })}
+              </Text>
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${(freeDeliveryProgress ?? 0) * 100}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {totals.subtotal.toFixed(2)} /{" "}
+                {freeDeliveryThreshold.toFixed(2)} {t("common.currency")}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Free Delivery Achieved Banner */}
+          {isFreeDelivery && deliveryInfo?.available ? (
+            <View style={styles.freeDeliveryAchievedBanner}>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={Colors.success}
+              />
+              <Text style={styles.freeDeliveryAchievedText}>
+                🎉 {t("delivery.congratsFree")}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Celebration Animation Overlay */}
+          {showCelebration ? (
+            <Animated.View
+              style={[
+                styles.celebrationOverlay,
+                {
+                  opacity: celebrationAnim,
+                  transform: [
+                    {
+                      scale: celebrationAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.celebrationText}>
+                🎉 {t("delivery.congratsFree")} 🎉
+              </Text>
+            </Animated.View>
+          ) : null}
+
+          {/* Delivery not available warning */}
+          {deliveryInfo && !deliveryInfo.available ? (
+            <View style={styles.deliveryNotAvailableBanner}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={Colors.warning}
+              />
+              <Text style={styles.deliveryNotAvailableText}>
+                {t("delivery.notAvailableShort")}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Price Summary */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t("cart.subtotal")}</Text>
-            <Text style={styles.totalValue}>
+            <Text style={styles.summaryLabel}>
+              {t("delivery.productSubtotal")}
+            </Text>
+            <Text style={styles.summaryValue}>
               {totals.subtotal.toFixed(2)} {t("common.currency")}
             </Text>
           </View>
+
+          {/* Delivery Fee Row */}
+          {deliveryLoading ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.summaryLabel}>
+                {t("delivery.deliveryFee")}
+              </Text>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : deliveryInfo?.available ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.summaryLabel}>
+                {t("delivery.deliveryFee")}
+              </Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  isFreeDelivery && styles.freeDeliveryFeeText,
+                ]}
+              >
+                {isFreeDelivery
+                  ? t("delivery.free")
+                  : `${effectiveDeliveryFee.toFixed(2)} ${t("common.currency")}`}
+              </Text>
+            </View>
+          ) : null}
+
+          {deliveryError ? (
+            <Text style={styles.deliveryErrorText}>{deliveryError}</Text>
+          ) : null}
+
+          {/* Divider */}
+          <View style={styles.summaryDivider} />
+
+          {/* Grand Total */}
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>{t("delivery.grandTotal")}</Text>
+            <Text style={styles.totalValue}>
+              {grandTotal.toFixed(2)} {t("common.currency")}
+            </Text>
+          </View>
+
           <Button
             title={t("cart.proceedToCheckout")}
             onPress={() => requireAuth(() => router.push("/checkout"))}
@@ -528,15 +909,172 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     ...Shadows.lg,
   },
+  deliveryAddressCard: {
+    backgroundColor: Colors.primaryXLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  deliveryAddressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  deliveryAddressInfo: {
+    flex: 1,
+  },
+  deliveryAddressLabel: {
+    fontSize: FontSize.xxs,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
+  deliveryAddressText: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    fontWeight: "700",
+    marginTop: 1,
+  },
+  changeLocationText: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  estimatedDaysRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  estimatedDaysText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+  selectCityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.primaryXLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  selectCityText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  freeDeliveryBanner: {
+    backgroundColor: "#ecfdf5",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  freeDeliveryBannerText: {
+    fontSize: FontSize.xs,
+    color: Colors.success,
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: "#d1fae5",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: Colors.success,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: FontSize.xxs,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Spacing.xs,
+  },
+  freeDeliveryAchievedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: "#ecfdf5",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.success,
+  },
+  freeDeliveryAchievedText: {
+    fontSize: FontSize.sm,
+    color: Colors.success,
+    fontWeight: "700",
+  },
+  celebrationOverlay: {
+    position: "absolute",
+    top: -50,
+    left: Spacing.xxl,
+    right: Spacing.xxl,
+    backgroundColor: Colors.success,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: "center",
+    zIndex: 10,
+    ...Shadows.md,
+  },
+  celebrationText: {
+    fontSize: FontSize.md,
+    color: Colors.white,
+    fontWeight: "800",
+  },
+  deliveryNotAvailableBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: "#fffbeb",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  deliveryNotAvailableText: {
+    fontSize: FontSize.xs,
+    color: Colors.warning,
+    fontWeight: "600",
+  },
+  summaryLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  freeDeliveryFeeText: {
+    color: Colors.success,
+    fontWeight: "700",
+  },
+  deliveryErrorText: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+    marginBottom: Spacing.sm,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.sm,
+  },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   totalLabel: {
     fontSize: FontSize.md,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Colors.text,
   },
   totalValue: {

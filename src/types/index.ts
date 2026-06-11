@@ -251,8 +251,13 @@ export interface StatusHistoryEntry {
 
 export interface CreateOrderPayload {
   deliveryAddress: string;
+  deliveryAddressDetails?: string;
   deliveryCity: string;
+  deliveryArea?: string;
+  deliveryFee?: number;
+  deliveryEstimatedDays?: number;
   buyerNotes?: string;
+  notes?: string;
   couponCode?: string;
   itemNotes?: { cartItemId: string; note: string }[];
 }
@@ -476,6 +481,26 @@ export interface CartValidationResponse {
   valid: boolean;
   invalidItems?: InvalidCartItem[];
   message?: string;
+}
+
+// ============================================
+// Delivery
+// ============================================
+export interface DeliveryFeeResponse {
+  fee: number;
+  isFree: boolean;
+  available: boolean;
+  originalFee: number;
+  freeThreshold: number | null;
+  remainingForFree: number | null;
+  estimatedDays: number;
+}
+
+export interface DeliveryZone {
+  cityId: string;
+  fee: number;
+  estimatedDays: number;
+  freeDeliveryThreshold: number | null;
 }
 
 // ============================================

@@ -95,6 +95,12 @@ function mapOrderDetail(raw: any): OrderDetail {
     notes: raw.buyerNotes ?? raw.notes,
     updatedAt: raw.updatedAt ?? raw.createdAt,
     statusHistory: raw.statusHistory,
+    // Delivery fee data from backend
+    subtotal: raw.subtotal ?? raw.productsTotal,
+    deliveryFee: raw.deliveryFee ?? raw.shippingFee,
+    isFreeDelivery: raw.isFreeDelivery ?? raw.deliveryFee === 0,
+    discountAmount: raw.discountAmount ?? raw.discount,
+    couponCode: raw.couponCode,
   };
 }
 

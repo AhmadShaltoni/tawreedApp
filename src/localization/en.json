@@ -218,7 +218,13 @@
     "insufficientStockMessage": "Some products are not available in the requested quantity. Please update your cart.",
     "requestedVsAvailable": "Requested: {{requested}} | Available: {{available}}",
     "backToCart": "Back to Cart",
-    "availableStock": "✓ Available: {{count}} items"
+    "availableStock": "✓ Available: {{count}} items",
+    "deliveryFee": "Delivery Fee",
+    "free": "Free",
+    "freeDeliveryApplied": "Free delivery!",
+    "freeDeliveryAt": "Free delivery when you add JOD {{amount}} more",
+    "grandTotal": "Grand Total",
+    "deliveryFeeError": "Error calculating delivery fee"
   },
   "orders": {
     "title": "Order History",
@@ -310,7 +316,9 @@
     "detected": "Location detected successfully ✓",
     "loadingCities": "Loading cities...",
     "infoTitle": "Info",
-    "nearbyLocationInfo": "No matching city found. The current location will be used."
+    "nearbyLocationInfo": "No matching city found. The current location will be used.",
+    "noMatchTitle": "Could not determine your location accurately",
+    "noMatchMessage": "Please select from the list below.\nYou can choose the nearest area to you."
   },
   "contact": {
     "title": "Contact Us",
@@ -453,5 +461,30 @@
       "campaignProgress": "You're now {{percent}}% toward {{campaign}}",
       "milestoneUnlocked": "Congratulations! Milestone Unlocked"
     }
+  },
+  "delivery": {
+    "title": "Delivery",
+    "summary": "Delivery Summary",
+    "fee": "Delivery Fee",
+    "deliveryFee": "Delivery Fee",
+    "free": "Free",
+    "freeDelivery": "Free Delivery",
+    "freeDeliveryAbove": "Free delivery for orders above {{amount}} {{currency}}",
+    "estimatedDays": "Estimated Delivery",
+    "oneDay": "1 day",
+    "twoDays": "2 days",
+    "days": "{{count}} days",
+    "governorate": "Governorate",
+    "addMoreForFree": "Add {{amount}} {{currency}} more to get free delivery",
+    "freeAbove": "Free delivery above",
+    "congratsFree": "Congratulations! You got free delivery",
+    "notAvailable": "Sorry, delivery is not currently available for this governorate",
+    "notAvailableShort": "Delivery not available",
+    "productSubtotal": "Product Subtotal",
+    "grandTotal": "Grand Total",
+    "loadingFee": "Calculating delivery fee...",
+    "feeError": "Could not calculate delivery fee",
+    "selectCityForDelivery": "Select a city to see delivery fees",
+    "changeLocation": "Change Location"
   }
 }
