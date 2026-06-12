@@ -53,6 +53,11 @@ export interface Product {
   variants: ProductVariant[];
   /** Convenience: derived from default variant's default unit */
   price: number;
+  /** Original price before discount (shown as strikethrough) */
+  compareAtPrice?: number | null;
+  /** Campaign discount percentage from API */
+  discountPercent?: number | null;
+  /** @deprecated Use compareAtPrice instead */
   discountPrice?: number;
   /** Convenience: derived from default variant */
   stock: number;
@@ -102,6 +107,10 @@ export interface ApiProduct {
     slug: string;
   };
   variants?: ApiProductVariant[];
+  /** Discount percentage from campaign (new) */
+  discountPercent?: number | null;
+  /** Whether this product has an active discount */
+  hasDiscount?: boolean;
   /** @deprecated Old flat fields — kept for backward compat */
   price?: number;
   compareAtPrice?: number | null;

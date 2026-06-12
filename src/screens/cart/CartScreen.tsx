@@ -3,50 +3,50 @@ import Button from "@/src/components/ui/Button";
 import EmptyState from "@/src/components/ui/EmptyState";
 import Loader from "@/src/components/ui/Loader";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { useAuthGuard } from "@/src/hooks/useAuthGuard";
 import { deliveryService } from "@/src/services/delivery.service";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  clearCartAsync,
-  fetchCart,
-  removeFromCartAsync,
-  updateCartItemAsync,
+    clearCartAsync,
+    fetchCart,
+    removeFromCartAsync,
+    updateCartItemAsync,
 } from "@/src/store/slices/cart.slice";
 import type {
-  Area,
-  CartItem,
-  City,
-  DeliveryFeeResponse,
-  DeliveryZone,
+    Area,
+    CartItem,
+    City,
+    DeliveryFeeResponse,
+    DeliveryZone,
 } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -101,7 +101,7 @@ export default function CartScreen() {
         ? item.selectedOption.priceOverride
         : item.selectedUnit
           ? item.selectedUnit.price
-          : (item.product.discountPrice ?? item.product.price);
+          : item.product.price;
       return sum + price * item.quantity;
     }, 0);
     return { subtotal, itemCount: items.length };
@@ -371,7 +371,13 @@ export default function CartScreen() {
         ? item.selectedOption.priceOverride
         : item.selectedUnit
           ? item.selectedUnit.price
-          : (item.product.discountPrice ?? item.product.price);
+          : item.product.price;
+      const originalUnitPrice =
+        item.selectedUnit?.compareAtPrice ??
+        item.product.compareAtPrice ??
+        null;
+      const hasItemDiscount =
+        originalUnitPrice != null && originalUnitPrice > unitPrice;
       const lineTotal = unitPrice * item.quantity;
       const isUpdating = updating[item.cartItemId];
       const isArabic = i18n.language === "ar";
@@ -451,9 +457,16 @@ export default function CartScreen() {
                 {t("cart.itemNote", { note: item.note })}
               </Text>
             ) : null}
-            <Text style={styles.itemPrice}>
-              {unitPrice.toFixed(2)} {t("common.currency")} / {unitLabel}
-            </Text>
+            <View style={styles.itemPriceRow}>
+              <Text style={styles.itemPrice}>
+                {unitPrice.toFixed(2)} {t("common.currency")} / {unitLabel}
+              </Text>
+              {hasItemDiscount && (
+                <Text style={styles.itemOriginalPrice}>
+                  {originalUnitPrice!.toFixed(2)} {t("common.currency")}
+                </Text>
+              )}
+            </View>
             <View style={styles.itemActions}>
               <View style={styles.qtySelector}>
                 <Pressable
@@ -484,9 +497,16 @@ export default function CartScreen() {
                   />
                 </Pressable>
               </View>
-              <Text style={styles.lineTotal}>
-                {lineTotal.toFixed(2)} {t("common.currency")}
-              </Text>
+              <View style={styles.lineTotalWrap}>
+                <Text style={styles.lineTotal}>
+                  {lineTotal.toFixed(2)} {t("common.currency")}
+                </Text>
+                {hasItemDiscount && (
+                  <Text style={styles.lineOriginalTotal}>
+                    {(originalUnitPrice! * item.quantity).toFixed(2)}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
           <Pressable
@@ -893,10 +913,29 @@ const styles = StyleSheet.create({
     minWidth: 28,
     textAlign: "center",
   },
+  lineTotalWrap: {
+    alignItems: "flex-end",
+  },
   lineTotal: {
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.primary,
+  },
+  lineOriginalTotal: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    textDecorationLine: "line-through",
+  },
+  itemPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: 2,
+  },
+  itemOriginalPrice: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    textDecorationLine: "line-through",
   },
   removeBtn: {
     paddingLeft: Spacing.sm,

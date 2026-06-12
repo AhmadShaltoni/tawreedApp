@@ -126,9 +126,7 @@ function ProductCard({
   const activePrice = selectedUnit ? selectedUnit.price : product.price;
   const activeComparePrice = selectedUnit
     ? selectedUnit.compareAtPrice
-    : product.discountPrice != null
-      ? product.price
-      : null;
+    : (product.compareAtPrice ?? null);
 
   const hasDiscount =
     activeComparePrice != null && activeComparePrice > activePrice;

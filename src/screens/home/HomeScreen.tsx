@@ -27,6 +27,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
+  I18nManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -73,7 +74,8 @@ export default function HomeScreen() {
   );
   const dynamicHeaderSearchBarStyle = useMemo<ViewStyle>(
     () => ({
-      flexDirection: isRTL ? "row-reverse" : "row",
+      // Correct start side when app language changes before a full RTL restart.
+      flexDirection: isRTL !== I18nManager.isRTL ? "row-reverse" : "row",
     }),
     [isRTL],
   );
@@ -667,6 +669,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.sm,
     color: Colors.textLight,
+  textAlign: "right",
+  writingDirection: "rtl",
   },
   /* Location / Guest Bar */
   locationBar: {

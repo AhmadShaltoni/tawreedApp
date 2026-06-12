@@ -43,8 +43,8 @@ export function ModernProductCard({
   const [isPressed, setIsPressed] = useState(false);
 
   // Calculate discount percentage if applicable
-  const currentPrice = product.discountPrice ?? product.price;
-  const originalPrice = product.discountPrice ? product.price : null;
+  const currentPrice = product.price;
+  const originalPrice = product.compareAtPrice ?? null;
   const discountPercent = originalPrice
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;

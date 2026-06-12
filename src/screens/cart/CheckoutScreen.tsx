@@ -2,11 +2,11 @@ import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { couponService } from "@/src/services/coupon.service";
 import { deliveryService } from "@/src/services/delivery.service";
@@ -15,33 +15,33 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
 import {
-  createOrder,
-  fetchLastDeliveryAddress,
-  setLastDeliveryAddress,
-  validateCartBeforeCheckout,
+    createOrder,
+    fetchLastDeliveryAddress,
+    setLastDeliveryAddress,
+    validateCartBeforeCheckout,
 } from "@/src/store/slices/orders.slice";
 import type {
-  City,
-  CouponValidateSuccess,
-  DeliveryFeeResponse,
-  DeliveryZone,
-  InvalidCartItem,
+    City,
+    CouponValidateSuccess,
+    DeliveryFeeResponse,
+    DeliveryZone,
+    InvalidCartItem,
 } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -197,7 +197,7 @@ export default function CheckoutScreen() {
         ? item.selectedOption.priceOverride
         : item.selectedUnit
           ? item.selectedUnit.price
-          : (item.product.discountPrice ?? item.product.price);
+          : item.product.price;
       return sum + price * item.quantity;
     }, 0);
     return {
@@ -507,7 +507,12 @@ export default function CheckoutScreen() {
               ? item.selectedOption.priceOverride
               : item.selectedUnit
                 ? item.selectedUnit.price
-                : (item.product.discountPrice ?? item.product.price);
+                : item.product.price;
+            const origPrice =
+              item.selectedUnit?.compareAtPrice ??
+              item.product.compareAtPrice ??
+              null;
+            const hasItemDiscount = origPrice != null && origPrice > price;
             // Use selected unit label if available, otherwise use product unit
             const unitLabel = item.selectedUnit
               ? isArabic
@@ -570,9 +575,17 @@ export default function CheckoutScreen() {
                     ✓ {t("checkout.availableStock", { count: availableStock })}
                   </Text>
                 </View>
-                <Text style={styles.summaryItemPrice}>
-                  {(price * item.quantity).toFixed(2)} {t("common.currency")}
-                </Text>
+                <View style={styles.summaryPriceWrap}>
+                  <Text style={styles.summaryItemPrice}>
+                    {(price * item.quantity).toFixed(2)} {t("common.currency")}
+                  </Text>
+                  {hasItemDiscount && (
+                    <Text style={styles.summaryOriginalPrice}>
+                      {(origPrice! * item.quantity).toFixed(2)}{" "}
+                      {t("common.currency")}
+                    </Text>
+                  )}
+                </View>
               </View>
             );
           })}
@@ -1108,6 +1121,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.text,
+  },
+  summaryPriceWrap: {
+    alignItems: "flex-end",
+  },
+  summaryOriginalPrice: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    textDecorationLine: "line-through",
   },
   divider: {
     height: 1,

@@ -1,13 +1,13 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import type {
-  ApiProduct,
-  ApiProductsResponse,
-  Product,
-  ProductFilters,
-  ProductsResponse,
-  ProductUnit,
-  ProductVariant,
-  VariantOption,
+    ApiProduct,
+    ApiProductsResponse,
+    Product,
+    ProductFilters,
+    ProductsResponse,
+    ProductUnit,
+    ProductVariant,
+    VariantOption,
 } from "@/src/types";
 import apiClient from "./api";
 
@@ -103,20 +103,19 @@ export function mapProduct(raw: ApiProduct): Product {
     defaultVariant?.units[0] ??
     null;
 
-  const price = defaultUnit
+  // price = the displayed price (after discount if any)
+  // compareAtPrice = the original price before discount (strikethrough)
+  const price = defaultUnit ? defaultUnit.price : (raw.price ?? 0);
+  const compareAtPrice = defaultUnit
     ? defaultUnit.compareAtPrice != null &&
       defaultUnit.compareAtPrice > defaultUnit.price
       ? defaultUnit.compareAtPrice
-      : defaultUnit.price
-    : (raw.price ?? 0);
-  const discountPrice = defaultUnit
-    ? defaultUnit.compareAtPrice != null &&
-      defaultUnit.compareAtPrice > defaultUnit.price
-      ? defaultUnit.price
-      : undefined
+      : null
     : raw.compareAtPrice != null && raw.compareAtPrice > (raw.price ?? 0)
-      ? raw.price
-      : undefined;
+      ? raw.compareAtPrice
+      : null;
+  // discountPrice kept for backward compat (= price after discount, same as price now)
+  const discountPrice = compareAtPrice != null ? price : undefined;
 
   return {
     id: raw.id,
@@ -132,6 +131,8 @@ export function mapProduct(raw: ApiProduct): Product {
     variants,
     // Convenience fields from default variant
     price,
+    compareAtPrice,
+    discountPercent: raw.discountPercent ?? null,
     discountPrice,
     sku: defaultVariant?.sku ?? raw.sku ?? "",
     stock: defaultVariant?.stock ?? raw.stock ?? 0,
