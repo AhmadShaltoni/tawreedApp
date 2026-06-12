@@ -324,7 +324,7 @@ export default function OrderDetailScreen() {
                 {t("checkout.shippingAddress")}
               </Text>
               <TextInput
-                style={styles.fieldInput}
+                style={[styles.fieldInput, isAr && styles.fieldInputRTL]}
                 value={editAddress}
                 onChangeText={setEditAddress}
                 placeholder={t("checkout.addressPlaceholder")}
@@ -334,7 +334,7 @@ export default function OrderDetailScreen() {
 
               <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
               <TextInput
-                style={styles.fieldInput}
+                style={[styles.fieldInput, isAr && styles.fieldInputRTL]}
                 value={editCity}
                 onChangeText={setEditCity}
                 placeholder={t("checkout.selectCity")}
@@ -343,7 +343,11 @@ export default function OrderDetailScreen() {
 
               <Text style={styles.fieldLabel}>{t("orders.buyerNotes")}</Text>
               <TextInput
-                style={[styles.fieldInput, { minHeight: 80 }]}
+                style={[
+                  styles.fieldInput,
+                  { minHeight: 80 },
+                  isAr && styles.fieldInputRTL,
+                ]}
                 value={editNotes}
                 onChangeText={setEditNotes}
                 placeholder={t("checkout.notesPlaceholder")}
@@ -560,6 +564,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.text,
     textAlignVertical: "top",
+  },
+  fieldInputRTL: {
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   submitButton: {
     backgroundColor: Colors.primary,

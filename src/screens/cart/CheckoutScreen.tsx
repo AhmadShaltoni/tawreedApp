@@ -146,39 +146,40 @@ export default function CheckoutScreen() {
     dispatch(fetchLastDeliveryAddress());
   }, [dispatch]);
 
-  // Pre-fill from last order's delivery address, fallback to user's saved location
+  // Pre-fill address and location. User saved location is source of truth
+  // so any change from the location screen appears everywhere, including checkout.
   useEffect(() => {
     if (cities.length === 0) return;
 
-    // Priority 1: last order's delivery address
+    // Reuse last typed address text for convenience.
     if (lastDeliveryAddress) {
-      // Pre-fill address text
       if (lastDeliveryAddress.address) {
         setAddress(lastDeliveryAddress.address);
       }
-      // Pre-fill city/area from last order if available, otherwise from user profile
-      const cityId = lastDeliveryAddress.cityId ?? user?.cityId;
-      const areaId = lastDeliveryAddress.areaId ?? user?.areaId;
-      if (cityId) {
-        const cityExists = cities.some((c) => c.id === cityId);
-        if (cityExists) {
-          setSelectedCityId(cityId);
-          if (areaId) {
-            setSelectedAreaId(areaId);
-          }
-        }
-      }
-      return;
     }
 
-    // Priority 2: user's saved location (registration / profile)
-    if (!loadingLastAddress && user?.cityId) {
+    // Always prioritize current user profile location.
+    if (user?.cityId) {
       const cityExists = cities.some((c) => c.id === user.cityId);
       if (cityExists) {
         setSelectedCityId(user.cityId);
         if (user.areaId) {
           setSelectedAreaId(user.areaId);
+        } else {
+          setSelectedAreaId(null);
         }
+        return;
+      }
+    }
+
+    // Fallback to last order location if profile location is missing.
+    if (!loadingLastAddress && lastDeliveryAddress?.cityId) {
+      const cityExists = cities.some(
+        (c) => c.id === lastDeliveryAddress.cityId,
+      );
+      if (cityExists) {
+        setSelectedCityId(lastDeliveryAddress.cityId);
+        setSelectedAreaId(lastDeliveryAddress.areaId ?? null);
       }
     }
   }, [
@@ -873,7 +874,7 @@ export default function CheckoutScreen() {
           <>
             <View style={styles.couponRow}>
               <TextInput
-                style={styles.couponInput}
+                style={[styles.couponInput, isArabic && styles.couponInputRTL]}
                 placeholder={t("checkout.discountCodePlaceholder")}
                 placeholderTextColor={Colors.textLight}
                 value={couponCode}
@@ -1224,6 +1225,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md + 2,
     fontSize: FontSize.md,
     color: Colors.text,
+  },
+  couponInputRTL: {
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   couponButton: {
     backgroundColor: Colors.primary,

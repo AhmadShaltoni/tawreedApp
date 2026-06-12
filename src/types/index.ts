@@ -504,6 +504,23 @@ export interface DeliveryZone {
 }
 
 // ============================================
+// Marketing Sections
+// ============================================
+export interface MarketingSection {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  slug: string;
+  description: string | null;
+  descriptionEn: string | null;
+  image: string | null;
+  showOnHome: boolean;
+  sortOrder: number;
+  productCount: number;
+  products?: Product[];
+}
+
+// ============================================
 // Loyalty & Rewards System
 // ============================================
 export * from "./loyalty";

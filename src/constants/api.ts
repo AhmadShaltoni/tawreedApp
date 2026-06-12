@@ -54,6 +54,10 @@ export const API_ENDPOINTS = {
   NOTICES: {
     LIST: "/api/v1/notices",
   },
+  MARKETING_SECTIONS: {
+    LIST: "/api/v1/marketing-sections",
+    DETAIL: (slug: string) => `/api/v1/marketing-sections/${slug}`,
+  },
   COUPONS: {
     VALIDATE: "/api/v1/coupons/validate",
     CONFIRM: "/api/v1/coupons/confirm",

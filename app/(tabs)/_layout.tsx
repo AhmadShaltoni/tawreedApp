@@ -47,7 +47,8 @@ export default function TabLayout() {
           shadowOpacity: 0.06,
           shadowRadius: 8,
           height: Platform.OS === "ios" ? 88 : tabBarHeightAndroid,
-          paddingBottom: Platform.OS === "ios" ? insets.bottom : bottomPaddingAndroid,
+          paddingBottom:
+            Platform.OS === "ios" ? insets.bottom : bottomPaddingAndroid,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -60,6 +61,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t("home.title"),
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),

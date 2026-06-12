@@ -71,10 +71,12 @@
   "home": {
     "title": "الرئيسية",
     "welcomeBack": "مرحبا بعودتك،",
-    "browseAsGuest": "تصفح كضيف",
-    "browseAsGuestSubtitle": "سجل الدخول للوصول الى جميع الخدمات",
+    "browseAsGuest": "أنت الآن تتصفح كضيف",
+    "browseAsGuestSubtitle": "قم بتسجيل الدخول للتطبيق للحصول على جميع الميزات",
+    "searchPlaceholder": "ابحث عن منتج أو علامة تجارية...",
+    "yourLocation": "موقعك",
     "categories": "الأقسام الرئيسية",
-    "featuredProducts": "الأكثر مبيعآ",
+    "featuredProducts": "منتجات مخصصة لك",
     "recentOrders": "الطلبات الأخيرة",
     "allOrders": "كل الطلبات",
     "noRecentOrders": "لا توجد طلبات حديثة"
@@ -152,7 +154,7 @@
     "viewAllProducts": "عرض كل المنتجات مع الفروع"
   },
   "brands": {
-    "title": "العلامات التجارية",
+    "title": "تسوق بالعلامات التجارية",
     "viewAll": "عرض كل العلامات",
     "productsCount": "{{count}} منتج"
   },
@@ -528,5 +530,12 @@
       "whatsappMessage": "مرحباً، واجهت مشكلة في تطبيق توريد. رمز الخطأ: {{code}}",
       "whatsappMessageDefault": "مرحباً، واجهت مشكلة في تطبيق توريد وأحتاج مساعدة."
     }
+  },
+  "marketingSections": {
+    "shopNow": "تسوق الآن",
+    "new": "جديد",
+    "products": "{{count}} منتج",
+    "noProducts": "لا توجد منتجات في هذا القسم",
+    "noProductsMessage": "سيتم إضافة منتجات قريباً"
   }
 }

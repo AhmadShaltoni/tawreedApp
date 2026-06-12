@@ -552,6 +552,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
+    textAlign: I18nManager.isRTL ? "right" : "left",
+    writingDirection: I18nManager.isRTL ? "rtl" : "ltr",
   },
   eyeIcon: {
     paddingHorizontal: Spacing.lg,

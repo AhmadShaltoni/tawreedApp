@@ -9,6 +9,7 @@ import brandsReducer from "./slices/brands.slice";
 import cartReducer from "./slices/cart.slice";
 import categoriesReducer from "./slices/categories.slice";
 import loyaltyReducer from "./slices/loyalty.slice";
+import marketingSectionsReducer from "./slices/marketingSections.slice";
 import noticesReducer from "./slices/notices.slice";
 import notificationsReducer from "./slices/notifications.slice";
 import ordersReducer from "./slices/orders.slice";
@@ -25,6 +26,7 @@ export const store = configureStore({
     notices: noticesReducer,
     notifications: notificationsReducer,
     loyalty: loyaltyReducer,
+    marketingSections: marketingSectionsReducer,
   },
 });
 

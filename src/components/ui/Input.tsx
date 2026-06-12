@@ -7,7 +7,9 @@ import {
 } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
+    I18nManager,
     Pressable,
     StyleSheet,
     Text,
@@ -36,6 +38,8 @@ export default function Input({
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === "ar" || I18nManager.isRTL;
   const borderColor = useSharedValue<string>(Colors.border);
 
   const animBorder = useAnimatedStyle(() => ({
@@ -59,13 +63,14 @@ export default function Input({
       <Animated.View
         style={[
           styles.inputContainer,
+          isRTL && styles.inputContainerRTL,
           isFocused && styles.inputFocused,
           error ? styles.inputError : undefined,
           animBorder,
         ]}
       >
         <TextInput
-          style={[styles.input, style]}
+          style={[styles.input, isRTL && styles.inputRTL, style]}
           placeholderTextColor={Colors.textLight}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -110,6 +115,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
+  inputContainerRTL: {
+    flexDirection: "row-reverse",
+  },
   inputFocused: {
     borderColor: Colors.primary,
     backgroundColor: Colors.white,
@@ -125,6 +133,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md + 2,
     fontSize: FontSize.md,
     color: Colors.text,
+  },
+  inputRTL: {
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   eyeIcon: {
     paddingHorizontal: Spacing.lg,

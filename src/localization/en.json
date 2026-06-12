@@ -71,8 +71,10 @@
   "home": {
     "title": "Home",
     "welcomeBack": "Welcome back,",
-    "browseAsGuest": "Browsing as Guest",
-    "browseAsGuestSubtitle": "Sign in to access all features",
+    "browseAsGuest": "You are browsing as a guest",
+    "browseAsGuestSubtitle": "Sign in to the app to access all features",
+    "searchPlaceholder": "Search for a product or brand...",
+    "yourLocation": "Your location",
     "categories": "Categories",
     "featuredProducts": "Featured Products",
     "recentOrders": "Recent Orders",
@@ -529,5 +531,12 @@
       "whatsappMessage": "Hello, I encountered an issue in the Tawreed app. Error code: {{code}}",
       "whatsappMessageDefault": "Hello, I encountered an issue in the Tawreed app and need help."
     }
+  },
+  "marketingSections": {
+    "shopNow": "Shop Now",
+    "new": "New",
+    "products": "{{count}} products",
+    "noProducts": "No products in this section",
+    "noProductsMessage": "Products will be added soon"
   }
 }

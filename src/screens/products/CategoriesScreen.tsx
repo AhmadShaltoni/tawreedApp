@@ -28,6 +28,7 @@ export default function CategoriesScreen() {
     parentId?: string;
   }>();
   const isArabic = i18n.language === "ar";
+  const isRTL = isArabic || I18nManager.isRTL;
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([]);
@@ -198,11 +199,16 @@ export default function CategoriesScreen() {
       {currentParentId && parentHasProducts && !search && (
         <View style={styles.productsActions}>
           <Pressable
-            style={styles.viewProductsBtn}
+            style={[styles.viewProductsBtn, isRTL && styles.productsBtnRTL]}
             onPress={() => handleViewProducts(false)}
           >
             <Ionicons name="cube-outline" size={16} color={Colors.primary} />
-            <Text style={styles.viewProductsBtnText}>
+            <Text
+              style={[
+                styles.viewProductsBtnText,
+                isRTL && styles.productsBtnTextRTL,
+              ]}
+            >
               {t("categories.viewProducts", {
                 count: currentCategory?.productsCount ?? 0,
               })}
@@ -215,11 +221,16 @@ export default function CategoriesScreen() {
           </Pressable>
 
           <Pressable
-            style={styles.viewAllProductsBtn}
+            style={[styles.viewAllProductsBtn, isRTL && styles.productsBtnRTL]}
             onPress={() => handleViewProducts(true)}
           >
             <Ionicons name="layers-outline" size={16} color={Colors.white} />
-            <Text style={styles.viewAllProductsBtnText}>
+            <Text
+              style={[
+                styles.viewAllProductsBtnText,
+                isRTL && styles.productsBtnTextRTL,
+              ]}
+            >
               {t("categories.viewAllProducts")}
             </Text>
             <Ionicons
@@ -310,6 +321,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary,
   },
+  productsBtnRTL: {
+    flexDirection: "row-reverse",
+  },
   viewProductsBtnText: {
     flex: 1,
     fontSize: FontSize.sm,
@@ -330,6 +344,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.white,
+  },
+  productsBtnTextRTL: {
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   listContent: {
     paddingHorizontal: Spacing.lg,

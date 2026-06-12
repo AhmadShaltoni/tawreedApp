@@ -1,5 +1,3 @@
-import { BrandCard, BrandCardSkeleton } from "@/src/components/BrandCard";
-import CategoryCard from "@/src/components/CategoryCard";
 import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
@@ -16,18 +14,19 @@ import {
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { fetchBrands } from "@/src/store/slices/brands.slice";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
+import { fetchHomeSections } from "@/src/store/slices/marketingSections.slice";
 import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
 import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
-import type { Brand, Category, Product } from "@/src/types";
+import type { Brand, Category, MarketingSection, Product } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
-  I18nManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -36,18 +35,13 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const {
@@ -62,6 +56,7 @@ export default function HomeScreen() {
   const { items: notices, currentIndex } = useAppSelector(
     (state) => state.notices,
   );
+  const { homeSections } = useAppSelector((state) => state.marketingSections);
   const unreadCount = useAppSelector(
     (state) => state.notifications.unreadCount,
   );
@@ -69,76 +64,32 @@ export default function HomeScreen() {
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
 
   // Dynamic RTL styles
-  const isRTL = I18nManager.isRTL;
-  const dynamicHeaderStyle = useMemo<ViewStyle>(
-    () => ({
-      flexDirection: isRTL ? "row-reverse" : "row",
-    }),
-    [isRTL],
-  );
-  const dynamicHeaderActionsStyle = useMemo<ViewStyle>(
-    () => ({
-      marginLeft: isRTL ? 0 : Spacing.md,
-      marginRight: isRTL ? Spacing.md : 0,
-    }),
-    [isRTL],
-  );
+  const isRTL = i18n.language === "ar";
   const dynamicNotifBadgeStyle = useMemo<ViewStyle>(
     () => ({
       ...(isRTL ? { left: -2 } : { right: -2 }),
     }),
     [isRTL],
   );
-  const dynamicHeroButtonStyle = useMemo<ViewStyle>(
-    () => ({
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignSelf: isRTL ? "flex-end" : "flex-start",
-    }),
-    [isRTL],
-  );
-  const dynamicQuickActionsStyle = useMemo<ViewStyle>(
+  const dynamicHeaderSearchBarStyle = useMemo<ViewStyle>(
     () => ({
       flexDirection: isRTL ? "row-reverse" : "row",
     }),
     [isRTL],
   );
-
-  // Quick action buttons for the home screen
-  const QUICK_ACTIONS = [
-    {
-      icon: "grid-outline" as const,
-      label: t("quickActions.categories"),
-      route: "/categories",
-      bg: Colors.primaryXLight,
-      color: Colors.primary,
-    },
-    {
-      icon: "pricetag-outline" as const,
-      label: t("quickActions.products"),
-      route: "/products",
-      bg: Colors.secondaryLight,
-      color: Colors.secondary,
-    },
-    {
-      icon: "receipt-outline" as const,
-      label: t("quickActions.orders"),
-      route: "/(tabs)/orders",
-      bg: "#f0fdf4",
-      color: Colors.success,
-    },
-    {
-      icon: "cart-outline" as const,
-      label: t("quickActions.cart"),
-      route: "/(tabs)/cart",
-      bg: "#faf5ff",
-      color: "#7c3aed",
-    },
-  ];
+  const dynamicHeaderSearchPlaceholderStyle = useMemo(
+    () => ({
+      textAlign: isRTL ? ("right" as const) : ("left" as const),
+      writingDirection: isRTL ? ("rtl" as const) : ("ltr" as const),
+    }),
+    [isRTL],
+  );
 
   const loadData = useCallback(
     (force = false) => {
       dispatch(fetchNotices());
       dispatch(fetchBrands());
+      dispatch(fetchHomeSections());
       dispatch(fetchFeaturedProducts({ force }));
       dispatch(fetchCategories(undefined));
       if (isAuthenticated) {
@@ -159,6 +110,7 @@ export default function HomeScreen() {
     await Promise.all([
       dispatch(fetchNotices()),
       dispatch(fetchBrands()),
+      dispatch(fetchHomeSections()),
       dispatch(fetchFeaturedProducts({ force: true })),
       dispatch(fetchCategories(undefined)),
     ]);
@@ -192,6 +144,13 @@ export default function HomeScreen() {
     [router],
   );
 
+  const handleSectionPress = useCallback(
+    (section: MarketingSection) => {
+      router.push(`/marketing-section/${section.slug}`);
+    },
+    [router],
+  );
+
   if (productsLoading && !refreshing && featured.length === 0) {
     return <Loader />;
   }
@@ -213,7 +172,8 @@ export default function HomeScreen() {
       />
     );
   }
-
+  console.log("HOME SECTIONS STATE", homeSections);
+  console.log("HOME SECTIONS LENGTH", homeSections.length);
   return (
     <View style={styles.container}>
       <ScrollView
@@ -227,6 +187,303 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* ===== NEW HEADER ===== */}
+        <View style={[styles.headerContainer, { paddingTop: insets.top + 8 }]}>
+          {/* Top Row: Menu - Title - Actions */}
+          <View style={styles.headerTopRow}>
+            {/* Right side (RTL): Menu button */}
+            <Pressable
+              style={styles.headerIconButton}
+              onPress={() => {
+                /* future menu drawer */
+              }}
+              hitSlop={8}
+            >
+              <Ionicons name="menu-outline" size={26} color={Colors.white} />
+            </Pressable>
+
+            {/* Center: App logo */}
+            <Image
+              source={require("@/assets/images/TawreedHeaderLogo.png")}
+              style={styles.headerLogo}
+              contentFit="contain"
+            />
+
+            {/* Left side (RTL): Notifications + Login */}
+            <View style={styles.headerRightActions}>
+              <Pressable
+                style={styles.headerIconButton}
+                onPress={() => router.push("/notifications")}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color={Colors.white}
+                />
+                {unreadCount > 0 && (
+                  <View
+                    style={[styles.headerNotifBadge, dynamicNotifBadgeStyle]}
+                  >
+                    <Text style={styles.headerNotifBadgeText}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+              {!isAuthenticated && (
+                <Pressable
+                  style={styles.headerIconButton}
+                  onPress={() => router.push("/(auth)/login")}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={26}
+                    color={Colors.white}
+                  />
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <Pressable
+            style={[styles.headerSearchBar, dynamicHeaderSearchBarStyle]}
+            onPress={() => router.push("/products")}
+          >
+            <Ionicons
+              name="search-outline"
+              size={20}
+              color={Colors.textLight}
+            />
+            <Text
+              style={[
+                styles.headerSearchPlaceholder,
+                dynamicHeaderSearchPlaceholderStyle,
+              ]}
+            >
+              {t("home.searchPlaceholder")}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Location / Guest Bar */}
+        <View style={styles.locationBar}>
+          {isAuthenticated ? (
+            <Pressable
+              style={styles.locationContent}
+              onPress={() => router.push("/location")}
+            >
+              <Ionicons
+                name="location-sharp"
+                size={18}
+                color={Colors.primary}
+              />
+              <Text style={styles.locationText} numberOfLines={1}>
+                {user?.city?.name
+                  ? `${user.city.name}${user?.area?.name ? ` - ${user.area.name}` : ""}`
+                  : t("home.yourLocation")}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.guestBar}
+              onPress={() => router.push("/(auth)/login")}
+            >
+              <View style={styles.guestBarIcon}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={Colors.primary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.guestBarTitle}>
+                  {t("home.browseAsGuest")}
+                </Text>
+                <Text style={styles.guestBarSubtitle}>
+                  {t("home.browseAsGuestSubtitle")}
+                </Text>
+              </View>
+              <Ionicons
+                name="log-in-outline"
+                size={22}
+                color={Colors.primary}
+              />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Top: Categories & Brands directly under location/guest */}
+        <View style={styles.topSectionsContainer}>
+          {categories.length > 0 ? (
+            <View style={styles.topSectionCard}>
+              <View style={styles.topSectionHeader}>
+                <View style={styles.topSectionTitleRow}>
+                  <View style={styles.topSectionAccent} />
+                  <Text style={styles.topSectionTitle}>
+                    {t("home.categories")}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.topSectionAction}
+                  onPress={() => router.push("/categories")}
+                >
+                  <Text style={styles.topSectionActionText}>
+                    {t("common.viewAll")}
+                  </Text>
+                  <Ionicons
+                    name={isRTL ? "chevron-back" : "chevron-forward"}
+                    size={14}
+                    color={Colors.secondary}
+                  />
+                </Pressable>
+              </View>
+
+              <FlatList
+                data={categories.slice(0, 8)}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                removeClippedSubviews={false}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.topSectionList}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.topCategoryItem}
+                    onPress={() => handleCategoryPress(item)}
+                  >
+                    <View style={styles.topCategoryImageWrap}>
+                      <Image
+                        source={
+                          item.image?.url
+                            ? { uri: item.image.url }
+                            : require("@/assets/images/icon2.png")
+                        }
+                        accessibilityLabel={item.image?.alt || item.name}
+                        style={styles.topCategoryImage}
+                        contentFit="contain"
+                        transition={200}
+                        recyclingKey={`${item.id}-${item.image?.url ?? "fallback"}`}
+                      />
+                    </View>
+                    <Text style={styles.topSectionItemLabel} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                  </Pressable>
+                )}
+                ListFooterComponent={
+                  <Pressable
+                    style={styles.topMoreItem}
+                    onPress={() => router.push("/categories")}
+                  >
+                    <View style={styles.topMoreThumb}>
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={20}
+                        color={Colors.textSecondary}
+                      />
+                    </View>
+                    <Text style={styles.topSectionItemLabel} numberOfLines={1}>
+                      {t("common.viewMore")}
+                    </Text>
+                  </Pressable>
+                }
+              />
+            </View>
+          ) : null}
+
+          {brands.length > 0 || brandsLoading ? (
+            <View style={styles.topSectionCard}>
+              <View style={styles.topSectionHeader}>
+                <View style={styles.topSectionTitleRow}>
+                  <View style={styles.topSectionAccent} />
+                  <Text style={styles.topSectionTitle}>
+                    {t("brands.title")}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.topSectionAction}
+                  onPress={() => router.push("/products")}
+                >
+                  <Text style={styles.topSectionActionText}>
+                    {t("common.viewAll")}
+                  </Text>
+                  <Ionicons
+                    name={isRTL ? "chevron-back" : "chevron-forward"}
+                    size={14}
+                    color={Colors.secondary}
+                  />
+                </Pressable>
+              </View>
+
+              {brandsLoading && brands.length === 0 ? (
+                <View style={styles.brandSkeletonRow}>
+                  <View style={styles.brandSkeletonItem} />
+                  <View style={styles.brandSkeletonItem} />
+                  <View style={styles.brandSkeletonItem} />
+                </View>
+              ) : (
+                <FlatList
+                  data={brands.slice(0, 8)}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  removeClippedSubviews={false}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.topSectionList}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.topBrandItem}
+                      onPress={() => handleBrandPress(item)}
+                    >
+                      <View style={styles.topBrandLogoWrap}>
+                        {item.logo ? (
+                          <Image
+                            source={{ uri: item.logo }}
+                            style={styles.topBrandLogo}
+                            contentFit="contain"
+                            transition={200}
+                            recyclingKey={`${item.id}-${item.logo ?? "fallback"}`}
+                          />
+                        ) : (
+                          <Text style={styles.topBrandFallback}>
+                            {item.name.charAt(0).toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                      <Text
+                        style={styles.topSectionItemLabel}
+                        numberOfLines={1}
+                      >
+                        {item.name}
+                      </Text>
+                    </Pressable>
+                  )}
+                  ListFooterComponent={
+                    <Pressable
+                      style={styles.topMoreItem}
+                      onPress={() => router.push("/products")}
+                    >
+                      <View style={styles.topMoreThumb}>
+                        <Text style={styles.topMoreText}>
+                          {t("common.viewMore")}
+                        </Text>
+                      </View>
+                      <Text
+                        style={styles.topSectionItemLabel}
+                        numberOfLines={1}
+                      >
+                        {t("common.viewMore")}
+                      </Text>
+                    </Pressable>
+                  }
+                />
+              )}
+            </View>
+          ) : null}
+        </View>
+
         {/* Notice Banner */}
         {notices.length > 0 && (
           <NoticeCarousel
@@ -236,156 +493,33 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Welcome Header */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(50)}
-          style={[styles.header, dynamicHeaderStyle]}
-        >
-          <View style={{ flex: 1 }}>
-            {isAuthenticated && (
-              <Text style={styles.greeting}>
-                {t("home.welcomeBack")} {user?.username ?? user?.storeName}
-              </Text>
-            )}
-            <Text style={styles.storeName}>
-              {isAuthenticated
-                ? (user?.storeName ?? user?.username)
-                : t("home.browseAsGuest")}
-            </Text>
-            {!isAuthenticated && (
-              <Text style={styles.browseAsGuestSubtitle}>
-                {t("home.browseAsGuestSubtitle")}
-              </Text>
-            )}
-          </View>
-          <View
-            style={[styles.headerActionsContainer, dynamicHeaderActionsStyle]}
+        {/* Marketing Sections Cards */}
+        {homeSections.length > 0 && (
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(100)}
+            style={styles.marketingRow}
           >
-            {!isAuthenticated && (
+            {homeSections.slice(0, 2).map((section) => (
               <Pressable
-                style={styles.loginButton}
-                onPress={() => router.push("/(auth)/login")}
-                hitSlop={8}
+                key={section.id}
+                style={styles.marketingCard}
+                onPress={() => handleSectionPress(section)}
               >
-                <Ionicons name="log-in-outline" size={22} color={Colors.text} />
-              </Pressable>
-            )}
-            <Pressable
-              style={styles.notifButton}
-              onPress={() => router.push("/notifications")}
-              hitSlop={8}
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={22}
-                color={Colors.text}
-              />
-              {unreadCount > 0 && (
-                <View style={[styles.notifBadge, dynamicNotifBadgeStyle]}>
-                  <Text style={styles.notifBadgeText}>
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
-        </Animated.View>
-
-        {/* Hero Banner */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(100)}
-          style={styles.heroBanner}
-        >
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTag}>{t("home.featuredProducts")}</Text>
-            <Text style={styles.heroTitle}>{t("quickActions.products")}</Text>
-            <Pressable
-              style={[styles.heroButton, dynamicHeroButtonStyle]}
-              onPress={() => router.push("/products")}
-            >
-              <Text style={styles.heroButtonText}>{t("common.viewAll")}</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.white} />
-            </Pressable>
-          </View>
-          <View style={styles.heroBg}>
-            <Ionicons
-              name="storefront"
-              size={80}
-              color="rgba(255,255,255,0.15)"
-            />
-          </View>
-        </Animated.View>
-
-        {/* Quick Actions */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(200)}
-          style={[styles.quickActions, dynamicQuickActionsStyle]}
-        >
-          {QUICK_ACTIONS.map((action, i) => (
-            <QuickActionTile
-              key={action.label}
-              action={action}
-              index={i}
-              router={router}
-            />
-          ))}
-        </Animated.View>
-
-        {/* Categories */}
-        {categories.length > 0 ? (
-          <>
-            <SectionHeader
-              title={t("home.categories")}
-              actionLabel={t("common.seeAll")}
-              onAction={() => router.push("/categories")}
-            />
-            <FlatList
-              data={categories}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.horizontalList}
-              renderItem={({ item }) => (
-                <CategoryCard category={item} onPress={handleCategoryPress} />
-              )}
-            />
-          </>
-        ) : null}
-
-        {/* Brands */}
-        {brands.length > 0 || brandsLoading ? (
-          <>
-            <SectionHeader
-              title={t("brands.title")}
-              actionLabel={t("common.seeAll")}
-              onAction={() => router.push("/products")}
-            />
-            <Animated.View entering={FadeInDown.duration(400).delay(250)}>
-              {brandsLoading && brands.length === 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalList}
-                >
-                  <BrandCardSkeleton />
-                  <BrandCardSkeleton />
-                  <BrandCardSkeleton />
-                </ScrollView>
-              ) : (
-                <FlatList
-                  data={brands}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={styles.horizontalList}
-                  renderItem={({ item }) => (
-                    <BrandCard brand={item} onPress={handleBrandPress} />
-                  )}
+                <Image
+                  source={
+                    section.image
+                      ? { uri: section.image }
+                      : require("@/assets/images/icon2.png")
+                  }
+                  style={styles.marketingImage}
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={`ms-${section.id}`}
                 />
-              )}
-            </Animated.View>
-          </>
-        ) : null}
+              </Pressable>
+            ))}
+          </Animated.View>
+        )}
 
         {/* Featured Products - 2 Column Grid */}
         {featured.length > 0 ? (
@@ -445,7 +579,7 @@ export default function HomeScreen() {
                       {t("common.viewAll")}
                     </Text>
                     <Ionicons
-                      name="arrow-forward"
+                      name={isRTL ? "arrow-back" : "arrow-forward"}
                       size={16}
                       color={Colors.white}
                       style={{ marginStart: 8 }}
@@ -463,93 +597,48 @@ export default function HomeScreen() {
   );
 }
 
-/** Quick action tile with animated press */
-function QuickActionTile({
-  action,
-  index,
-  router,
-}: {
-  action: any;
-  index: number;
-  router: any;
-}) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <AnimatedPressable
-      style={[styles.quickAction, animStyle]}
-      onPressIn={() => {
-        scale.value = withSpring(0.94, { damping: 15, stiffness: 400 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-      }}
-      onPress={() => router.push(action.route as any)}
-    >
-      <View style={[styles.quickActionIcon, { backgroundColor: action.bg }]}>
-        <Ionicons name={action.icon} size={22} color={action.color} />
-      </View>
-      <Text style={styles.quickActionLabel}>{action.label}</Text>
-    </AnimatedPressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.xxl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
+  /* ===== NEW HEADER STYLES ===== */
+  headerContainer: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xxl,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  headerActionsContainer: {
+  headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    justifyContent: "space-between",
+    marginBottom: Spacing.lg,
+    position: "relative",
   },
-  loginButton: {
-    width: 42,
-    height: 42,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...Shadows.sm,
-  },
-  browseAsGuestSubtitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  greeting: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
-  storeName: {
-    fontSize: FontSize.xl,
-    fontWeight: "700",
-    color: Colors.text,
-    marginTop: 2,
-  },
-  notifButton: {
-    width: 42,
-    height: 42,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...Shadows.sm,
-  },
-  notifBadge: {
+  headerLogo: {
+    width: 100,
+    height: 36,
     position: "absolute",
-    top: -2,
+    left: "50%",
+    marginLeft: -50,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  headerNotifBadge: {
+    position: "absolute",
+    top: 2,
     backgroundColor: Colors.secondary,
     borderRadius: 10,
     minWidth: 18,
@@ -558,86 +647,226 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: Colors.surface,
+    borderColor: Colors.primary,
   },
-  notifBadgeText: {
+  headerNotifBadgeText: {
     color: Colors.white,
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  /* Hero banner */
-  heroBanner: {
-    marginHorizontal: Spacing.xxl,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.primary,
-    padding: Spacing.xl,
-    overflow: "hidden",
-    minHeight: 130,
-    justifyContent: "center",
-  },
-  heroContent: {
-    zIndex: 1,
-  },
-  heroTag: {
-    fontSize: FontSize.xxs,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.7)",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: FontSize.xxl,
+    fontSize: 9,
     fontWeight: "800",
-    color: Colors.white,
-    marginBottom: Spacing.md,
   },
-  heroButton: {
+  headerSearchBar: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    gap: 6,
-  },
-  heroButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.white,
-  },
-  heroBg: {
-    position: "absolute",
-    right: 16,
-    bottom: 10,
-    opacity: 0.6,
-  },
-  /* Quick actions */
-  quickActions: {
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
+    height: 48,
     gap: Spacing.sm,
   },
-  quickAction: {
+  headerSearchPlaceholder: {
     flex: 1,
-    alignItems: "center",
+    fontSize: FontSize.sm,
+    color: Colors.textLight,
+  },
+  /* Location / Guest Bar */
+  locationBar: {
+    paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
+  },
+  locationContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    alignSelf: "center",
+    maxWidth: "95%",
+  },
+  locationText: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.primary,
+    textAlign: "center",
+  },
+  guestBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.primaryXLight,
     borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "rgba(30, 58, 138, 0.1)",
+  },
+  guestBarIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  guestBarTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  guestBarSubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  topSectionsContainer: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  topSectionCard: {
     backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: Spacing.sm,
     ...Shadows.sm,
   },
-  quickActionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: BorderRadius.full,
+  topSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  topSectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  topSectionAccent: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: Colors.secondary,
+  },
+  topSectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  topSectionAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  topSectionActionText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.secondary,
+  },
+  topSectionList: {
+    paddingHorizontal: Spacing.md,
+  },
+  topCategoryItem: {
+    width: 96,
+    marginEnd: Spacing.sm,
+    alignItems: "center",
+  },
+  topCategoryImageWrap: {
+    width: 86,
+    height: 74,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    padding: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  topCategoryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  topBrandItem: {
+    width: 96,
+    marginEnd: Spacing.sm,
+    alignItems: "center",
+  },
+  topBrandLogoWrap: {
+    width: 86,
+    height: 74,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  topBrandLogo: {
+    width: "92%",
+    height: "92%",
+  },
+  topBrandFallback: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  topSectionItemLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.text,
+    textAlign: "center",
+  },
+  topMoreItem: {
+    width: 96,
+    marginEnd: Spacing.sm,
+    alignItems: "center",
+  },
+  topMoreThumb: {
+    width: 86,
+    height: 74,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.xs,
   },
-  quickActionLabel: {
-    fontSize: FontSize.xxs,
-    fontWeight: "600",
-    color: Colors.text,
+  topMoreText: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+  },
+  brandSkeletonRow: {
+    flexDirection: "row",
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  brandSkeletonItem: {
+    width: 86,
+    height: 74,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.inputBackground,
+  },
+  /* Marketing Sections */
+  marketingRow: {
+    flexDirection: "row",
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  marketingCard: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    height: 120,
+  },
+  marketingImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
   },
   horizontalList: {
     paddingHorizontal: Spacing.xxl,
