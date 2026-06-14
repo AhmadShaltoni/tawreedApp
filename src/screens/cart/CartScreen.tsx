@@ -97,11 +97,10 @@ export default function CartScreen() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
-      const price = item.selectedOption?.priceOverride
-        ? item.selectedOption.priceOverride
-        : item.selectedUnit
-          ? item.selectedUnit.price
-          : item.product.price;
+const price = item.selectedUnit
+  ? item.selectedUnit.price
+  : item.selectedOption?.priceOverride ??
+    item.product.price;
       return sum + price * item.quantity;
     }, 0);
     return { subtotal, itemCount: items.length };
@@ -367,11 +366,10 @@ export default function CartScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: CartItem }) => {
-      const unitPrice = item.selectedOption?.priceOverride
-        ? item.selectedOption.priceOverride
-        : item.selectedUnit
-          ? item.selectedUnit.price
-          : item.product.price;
+    const unitPrice = item.selectedUnit
+  ? item.selectedUnit.price
+  : item.selectedOption?.priceOverride ??
+    item.product.price;
       const originalUnitPrice =
         item.selectedUnit?.compareAtPrice ??
         item.product.compareAtPrice ??

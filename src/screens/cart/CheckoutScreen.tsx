@@ -193,11 +193,10 @@ export default function CheckoutScreen() {
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
       // Use selected unit price if available (for dozen/box/carton), otherwise use product price
-      const price = item.selectedOption?.priceOverride
-        ? item.selectedOption.priceOverride
-        : item.selectedUnit
-          ? item.selectedUnit.price
-          : item.product.price;
+          const price = item.selectedUnit
+        ? item.selectedUnit.price
+        : item.selectedOption?.priceOverride ??
+          item.product.price;
       return sum + price * item.quantity;
     }, 0);
     return {
@@ -503,11 +502,10 @@ export default function CheckoutScreen() {
         <View style={styles.summaryCard}>
           {items.map((item) => {
             // Use option priceOverride if available, then unit price, then product price
-            const price = item.selectedOption?.priceOverride
-              ? item.selectedOption.priceOverride
-              : item.selectedUnit
-                ? item.selectedUnit.price
-                : item.product.price;
+            const price = item.selectedUnit
+              ? item.selectedUnit.price
+              : item.selectedOption?.priceOverride ??
+                item.product.price;
             const origPrice =
               item.selectedUnit?.compareAtPrice ??
               item.product.compareAtPrice ??

@@ -276,7 +276,14 @@ export default function ProductOptionsBottomSheet({
       // Reset state
       setSelectedVariant(defaultVariant);
       setSelectedUnit(defaultUnit);
-      setSelectedOption(null);
+      // Auto-select first available option from default variant
+      const defOptions =
+        defaultVariant?.options?.filter((o) => o.isActive !== false) ?? [];
+      const autoOption =
+        defOptions.length > 0
+          ? (defOptions.find((o) => o.stock > 0) ?? defOptions[0])
+          : null;
+      setSelectedOption(autoOption);
       setQuantity(1);
       setItemNote("");
       setShowSuccess(false);
