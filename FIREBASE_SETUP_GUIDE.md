@@ -60,7 +60,7 @@
 
 ```
 1. في Firebase Console، انقر على "Android" من "Add app"
-2. أدخل Package Name: "com.tawreed.app" (من app.json)
+2. أدخل Package Name: "tawreedApp.com.jo" (من app.json)
 3. انقر على "Download google-services.json"
 4. ضع الملف في: android/app/google-services.json
 ```
@@ -112,7 +112,7 @@ eas build --platform android --profile production
 
 ```
 1. في Firebase Console، انقر على "iOS" من "Add app"
-2. أدخل Bundle ID: "com.tawreed.app" (من app.json)
+2. أدخل Bundle ID: "tawreedApp.com.jo" (من app.json)
 3. انقر على "Download GoogleService-Info.plist"
 ```
 
@@ -213,6 +213,7 @@ npx expo run:ios
 ### الخطأ: "Firebase not initialized"
 
 **الحل:**
+
 ```
 1. تأكد من وضع google-services.json (Android)
 2. تأكد من وضع GoogleService-Info.plist (iOS)
@@ -222,6 +223,7 @@ npx expo run:ios
 ### الخطأ: "MissingPluginException: No implementation found"
 
 **الحل:**
+
 ```
 1. حذف build folders: rm -rf build/ dist/ .next
 2. إعادة تثبيت dependencies: npm install
@@ -231,6 +233,7 @@ npx expo run:ios
 ### الخطأ: "No sender ID found"
 
 **الحل:**
+
 ```
 1. تأكد من وجود Project Number في Firebase Console
 2. تأكد من تفعيل Cloud Messaging
@@ -240,6 +243,7 @@ npx expo run:ios
 ### الخطأ: "Invalid APK"
 
 **الحل:**
+
 ```
 1. تأكد من استخدام Build Profile الصحيح
 2. تأكد من توقيع APK
@@ -276,7 +280,7 @@ curl -X POST https://api.tawreed.com/api/v1/notifications/send \
 - [ ] GoogleService-Info.plist موجود (iOS)
 - [ ] @react-native-firebase مثبت
 - [ ] notificationService.ts محدث
-- [ ] app/_layout.tsx محدث
+- [ ] app/\_layout.tsx محدث
 - [ ] APK/IPA تم بناؤه
 - [ ] اختبار على جهاز حقيقي ✅
 - [ ] رسالة تجريبية وصلت ✅

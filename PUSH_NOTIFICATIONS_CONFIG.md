@@ -69,7 +69,7 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
 
     "ios": {
       "supportsTabletMode": true,
-      "bundleIdentifier": "com.tawreed.app",
+      "bundleIdentifier": "tawreedApp.com.jo",
       "usesNonExemptEncryption": false,
       "entitlements": {
         "aps-environment": "development"
@@ -81,7 +81,7 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
         "foregroundImage": "./assets/adaptive-icon2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.tawreed.app"
+      "package": "tawreedApp.com.jo"
     },
 
     "web": {
