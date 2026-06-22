@@ -9,13 +9,17 @@
     "scheme": "tawreedapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "tawreed.app.com",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
-
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
@@ -29,13 +33,12 @@
       "package": "tawreedApp.com.jo",
       "versionCode": 39
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
+      "./withModularHeaders",
       "expo-router",
       [
         "expo-splash-screen",
@@ -51,12 +54,10 @@
       "@react-native-firebase/app",
       "@react-native-firebase/messaging"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-
     "extra": {
       "router": {},
       "eas": {
