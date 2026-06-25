@@ -9,7 +9,7 @@ import {
 import { changeLanguage, getCurrentLanguage } from "@/src/localization/i18n";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { logout } from "@/src/store/slices/auth.slice";
+import { deleteAccount, logout } from "@/src/store/slices/auth.slice";
 import { fetchBalance } from "@/src/store/slices/loyalty.slice";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -30,7 +30,9 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, deletingAccount } = useAppSelector(
+    (state) => state.auth,
+  );
   const { balance, balanceLoading } = useAppSelector((state) => state.loyalty);
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
 
@@ -70,6 +72,31 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t("profile.deleteAccountTitle"),
+      t("profile.deleteAccountMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("profile.deleteAccount"),
+          style: "destructive",
+          onPress: () => {
+            dispatch(deleteAccount())
+              .unwrap()
+              .then(() => {
+                Alert.alert("", t("profile.deleteAccountSuccess"));
+                router.replace("/(auth)/login");
+              })
+              .catch((error: string) => {
+                Alert.alert(t("common.error"), error);
+              });
+          },
+        },
+      ],
+    );
   };
 
   const renderRow = (
@@ -239,12 +266,34 @@ export default function ProfileScreen() {
       {/* Auth Actions */}
       <View style={styles.actions}>
         {isAuthenticated ? (
-          <Button
-            title={t("profile.signOut")}
-            onPress={handleLogout}
-            variant="outline"
-            style={styles.logoutButton}
-          />
+          <>
+            <Button
+              title={t("profile.signOut")}
+              onPress={handleLogout}
+              variant="outline"
+              style={styles.logoutButton}
+            />
+            <Pressable
+              style={styles.deleteAccountButton}
+              onPress={handleDeleteAccount}
+              disabled={deletingAccount}
+            >
+              {deletingAccount ? (
+                <ActivityIndicator size="small" color={Colors.error} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color={Colors.error}
+                  />
+                  <Text style={styles.deleteAccountText}>
+                    {t("profile.deleteAccount")}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </>
         ) : (
           <Button
             title={t("auth.goToLogin")}
@@ -395,6 +444,19 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     width: "100%",
+  },
+  deleteAccountButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  deleteAccountText: {
+    fontSize: FontSize.sm,
+    color: Colors.error,
+    fontWeight: "600",
   },
   bottomSpacer: {
     height: Spacing.xxxl,

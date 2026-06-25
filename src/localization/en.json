@@ -293,6 +293,11 @@
     "signOut": "Sign Out",
     "signOutTitle": "Sign Out",
     "signOutMessage": "Are you sure you want to sign out?",
+    "deleteAccount": "Delete Account",
+    "deleteAccountTitle": "Confirm Account Deletion",
+    "deleteAccountMessage": "If you delete your account, you will not be able to recover it later.\n\nYou can create a new account with the same number in the future, but Tawreed will not retain any of your data or personal information after the account is deleted.\n\nAre you sure you want to delete your account?",
+    "deleteAccountSuccess": "Your account has been deleted successfully.\n\nWe hope to see you again in the future.",
+    "deleting": "Deleting account...",
     "guestUser": "Guest User",
     "loginForMore": "Sign in to access all features"
   },

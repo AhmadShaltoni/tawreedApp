@@ -9,6 +9,7 @@ import {
 } from "@/src/services/auth.service";
 import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
+import { clearCache } from "@/src/utils/cache";
 import { getErrorMessage } from "@/src/utils/errorHandler";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
@@ -23,6 +24,7 @@ interface AuthState {
   otpSending: boolean;
   otpVerifying: boolean;
   verificationToken: string | null;
+  deletingAccount: boolean;
 }
 
 const initialState: AuthState = {
@@ -36,6 +38,7 @@ const initialState: AuthState = {
   otpSending: false,
   otpVerifying: false,
   verificationToken: null,
+  deletingAccount: false,
 };
 
 export const login = createAsyncThunk(
@@ -99,6 +102,35 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   // Clear JWT token from secure storage
   await removeToken();
 });
+
+export const deleteAccount = createAsyncThunk(
+  "auth/deleteAccount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authService.deleteAccount();
+
+      // Unregister FCM token
+      await notificationService.unregisterTokenOnLogout().catch(() => {});
+
+      // Clear JWT token from secure storage
+      await removeToken();
+
+      // Clear all cached data (products, categories, etc.)
+      await clearCache();
+
+      // Clear any remaining AsyncStorage data
+      const AsyncStorage = (
+        await import("@react-native-async-storage/async-storage")
+      ).default;
+      await AsyncStorage.clear();
+
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      return rejectWithValue(message);
+    }
+  },
+);
 
 export const sendOtp = createAsyncThunk(
   "auth/sendOtp",
@@ -277,6 +309,25 @@ const authSlice = createSlice({
       })
       .addCase(verifyOtp.rejected, (state, action) => {
         state.otpVerifying = false;
+        state.error = action.payload as string;
+      });
+
+    // Delete Account
+    builder
+      .addCase(deleteAccount.pending, (state) => {
+        state.deletingAccount = true;
+        state.error = null;
+      })
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.deletingAccount = false;
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.isGuest = true;
+        state.error = null;
+      })
+      .addCase(deleteAccount.rejected, (state, action) => {
+        state.deletingAccount = false;
         state.error = action.payload as string;
       });
   },

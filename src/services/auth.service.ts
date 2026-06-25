@@ -145,4 +145,12 @@ export const authService = {
     );
     return data;
   },
+
+  deleteAccount: async (): Promise<{ success: boolean; message: string }> => {
+    const { data } = await apiClient.delete<{
+      success: boolean;
+      message: string;
+    }>(API_ENDPOINTS.USER.DELETE_ACCOUNT);
+    return data;
+  },
 };

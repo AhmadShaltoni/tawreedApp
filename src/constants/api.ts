@@ -71,6 +71,7 @@ export const API_ENDPOINTS = {
   },
   USER: {
     UPDATE_LOCATION: "/api/v1/user/location",
+    DELETE_ACCOUNT: "/api/v1/user/account",
   },
   LOYALTY: {
     BALANCE: "/api/v1/loyalty/balance",
