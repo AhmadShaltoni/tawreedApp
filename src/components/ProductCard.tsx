@@ -16,6 +16,7 @@ import type {
     ProductVariant,
     VariantOption,
 } from "@/src/types";
+import { scaleFont } from "@/src/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -473,6 +474,7 @@ function ProductCard({
             <View style={styles.qtyControl}>
               <Pressable
                 style={styles.qtyBtn}
+                hitSlop={8}
                 onPress={() =>
                   setQuantity((q) =>
                     Math.min(q + 1, Math.max(1, availableStock)),
@@ -484,6 +486,7 @@ function ProductCard({
               <Text style={styles.qtyText}>{quantity}</Text>
               <Pressable
                 style={styles.qtyBtn}
+                hitSlop={8}
                 onPress={() => setQuantity((q) => Math.max(1, q - 1))}
               >
                 <Ionicons name="remove" size={14} color={Colors.text} />
@@ -561,7 +564,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
   },
-  badgeText: { color: Colors.white, fontSize: 10, fontWeight: "800" },
+  badgeText: {
+    color: Colors.white,
+    fontSize: scaleFont(10),
+    fontWeight: "800",
+  },
 
   favoriteIcon: {
     position: "absolute",
@@ -591,11 +598,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   name: {
-    fontSize: 13,
+    fontSize: scaleFont(13),
     fontWeight: "700",
     color: Colors.text,
     textAlign: "center",
-    lineHeight: 19,
+    lineHeight: scaleFont(13) * 1.45,
     marginBottom: 2,
   },
 
@@ -609,7 +616,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   selectorLabel: {
-    fontSize: 11,
+    fontSize: scaleFont(11),
     fontWeight: "700",
     color: Colors.text,
   },
@@ -636,14 +643,14 @@ const styles = StyleSheet.create({
   },
   chipDisabled: { opacity: 0.35 },
   chipText: {
-    fontSize: 10,
+    fontSize: scaleFont(10),
     fontWeight: "600",
     color: Colors.textSecondary,
     textAlign: "center",
   },
   chipTextSelected: { color: Colors.primary, fontWeight: "700" },
   chipPrice: {
-    fontSize: 9,
+    fontSize: scaleFont(9),
     fontWeight: "700",
     color: Colors.textLight,
     textAlign: "center",
@@ -651,7 +658,7 @@ const styles = StyleSheet.create({
   },
   chipPriceSelected: { color: Colors.primary },
   chipSub: {
-    fontSize: 9,
+    fontSize: scaleFont(9),
     fontWeight: "600",
     color: Colors.textLight,
     marginTop: 1,
@@ -687,12 +694,12 @@ const styles = StyleSheet.create({
   },
   priceBlock: { alignItems: "flex-start" },
   currentPrice: {
-    fontSize: 14,
+    fontSize: scaleFont(14),
     fontWeight: "800",
     color: Colors.primary,
   },
   originalPrice: {
-    fontSize: 9,
+    fontSize: scaleFont(9),
     color: Colors.textLight,
     textDecorationLine: "line-through",
     marginTop: 1,
@@ -713,7 +720,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qtyText: {
-    fontSize: 12,
+    fontSize: scaleFont(12),
     fontWeight: "700",
     color: Colors.text,
     minWidth: 22,
@@ -734,7 +741,7 @@ const styles = StyleSheet.create({
   cartBtnDisabled: { backgroundColor: Colors.textLight },
   cartBtnText: {
     color: Colors.white,
-    fontSize: 11,
+    fontSize: scaleFont(11),
     fontWeight: "700",
   },
 });

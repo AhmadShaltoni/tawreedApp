@@ -325,7 +325,8 @@
     "infoTitle": "Info",
     "nearbyLocationInfo": "No matching city found. The current location will be used.",
     "noMatchTitle": "Could not determine your location accurately",
-    "noMatchMessage": "Please select from the list below.\nYou can choose the nearest area to you."
+    "noMatchMessage": "Please select from the list below.\nYou can choose the nearest area to you.",
+    "manualSelectHint": "We couldn't pinpoint your exact area. Please pick the nearest city and area below."
   },
   "contact": {
     "title": "Contact Us",

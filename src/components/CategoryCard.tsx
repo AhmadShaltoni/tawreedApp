@@ -1,5 +1,6 @@
 import { Colors, FontSize, Shadows, Spacing } from "@/src/constants/theme";
 import type { Category } from "@/src/types";
+import { scaleFont } from "@/src/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: scaleFont(12),
     fontWeight: "700",
     color: Colors.white,
   },
@@ -127,12 +128,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   childrenCount: {
-    fontSize: 10,
+    fontSize: scaleFont(10),
     color: Colors.primary,
     fontWeight: "600",
   },
   count: {
-    fontSize: 10,
+    fontSize: scaleFont(10),
     color: Colors.textLight,
     textAlign: "center",
     marginTop: 2,

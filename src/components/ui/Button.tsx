@@ -5,6 +5,7 @@ import {
     Shadows,
     Spacing,
 } from "@/src/constants/theme";
+import { MIN_TOUCH_TARGET } from "@/src/utils/responsive";
 import * as Haptics from "expo-haptics";
 import React from "react";
 import {
@@ -110,7 +111,7 @@ const sizeStyles = StyleSheet.create({
   sm: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    minHeight: 38,
+    minHeight: MIN_TOUCH_TARGET,
   },
   md: {
     paddingVertical: Spacing.md + 2,

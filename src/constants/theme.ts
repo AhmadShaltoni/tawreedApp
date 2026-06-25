@@ -1,5 +1,7 @@
 import { I18nManager } from "react-native";
 
+import { moderateScale, scaleFont } from "@/src/utils/responsive";
+
 export const Colors = {
   // Primary — Deep Blue (trust & professionalism)
   primary: "#1e3a8a",
@@ -35,26 +37,30 @@ export const Colors = {
   primaryDark: "#1e40af",
 } as const;
 
+// Spacing scales gently with screen width (moderateScale) so layouts breathe
+// on large phones without blowing apart on small ones.
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
-  xxxxl: 40,
+  xs: moderateScale(4),
+  sm: moderateScale(8),
+  md: moderateScale(12),
+  lg: moderateScale(16),
+  xl: moderateScale(20),
+  xxl: moderateScale(24),
+  xxxl: moderateScale(32),
+  xxxxl: moderateScale(40),
 } as const;
 
+// Font sizes are width-scaled and clamped (0.9x–1.2x) so text stays legible on
+// iPhone SE / Android 360dp and isn't oversized on Pro Max / large Android.
 export const FontSize = {
-  xxs: 10,
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  xxs: scaleFont(10),
+  xs: scaleFont(12),
+  sm: scaleFont(14),
+  md: scaleFont(16),
+  lg: scaleFont(18),
+  xl: scaleFont(20),
+  xxl: scaleFont(24),
+  xxxl: scaleFont(32),
 } as const;
 
 export const BorderRadius = {

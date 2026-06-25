@@ -399,6 +399,8 @@ export interface Area {
   id: string;
   name: string;
   nameEn: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface City {
@@ -406,6 +408,8 @@ export interface City {
   name: string;
   nameEn: string;
   areas: Area[];
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface UpdateLocationPayload {

@@ -1,10 +1,10 @@
 import Button from "@/src/components/ui/Button";
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  Shadows,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    Shadows,
+    Spacing,
 } from "@/src/constants/theme";
 import { locationService } from "@/src/services/location.service";
 import { useAppDispatch } from "@/src/store";
@@ -16,143 +16,199 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ── Helper Functions ──────────────────────────────────────────────
 /**
- * Normalize string for matching: lowercase, trim, remove extra spaces
+ * Normalize a place name for matching: lowercase, trim, collapse spaces,
+ * strip Arabic diacritics and unify common letter variants so names from
+ * the geocoder line up with the names stored in the database.
  */
-function normalizeString(str: string): string {
-  return str.toLowerCase().trim().replace(/\s+/g, " ");
+function normalizeString(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[\u064B-\u065F\u0670]/g, "") // Arabic diacritics
+    .replace(/[\u0623\u0625\u0622]/g, "\u0627") // أ إ آ → ا
+    .replace(/\u0649/g, "\u064A") // ى → ي
+    .replace(/\u0629/g, "\u0647") // ة → ه
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
- * Match GPS coordinates to city and area IDs using reverse geocoding
- * Uses fuzzy matching with normalization to handle different naming conventions
+ * Whether two place names refer to the same place. Both must be non-empty
+ * and match either exactly or as a whole-word phrase inside the other.
+ * This deliberately avoids partial-word and empty-string matches, which
+ * previously caused every location to falsely match the first listed area.
+ */
+function namesMatch(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const phraseInside = (needle: string, haystack: string) =>
+    new RegExp(`(^|\\s)${escapeRegExp(needle)}(\\s|$)`).test(haystack);
+  return phraseInside(a, b) || phraseInside(b, a);
+}
+
+/**
+ * Haversine distance in kilometers between two GPS coordinates.
+ */
+function haversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371; // Earth radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Pick the nearest city (and nearest area within it) to the given GPS
+ * coordinates using stored lat/lng. Returns null when no city in the
+ * dataset has coordinates, so the caller can fall back to geocoding.
+ */
+function matchByCoordinates(
+  latitude: number,
+  longitude: number,
+  cities: City[],
+): { cityId: string; areaId?: string } | null {
+  let nearestCity: City | null = null;
+  let nearestCityDist = Infinity;
+
+  for (const city of cities) {
+    if (typeof city.latitude !== "number" || typeof city.longitude !== "number")
+      continue;
+    const dist = haversineKm(
+      latitude,
+      longitude,
+      city.latitude,
+      city.longitude,
+    );
+    if (dist < nearestCityDist) {
+      nearestCityDist = dist;
+      nearestCity = city;
+    }
+  }
+
+  if (!nearestCity) return null;
+
+  // Find the nearest area within the matched city that has coordinates
+  let nearestAreaId: string | undefined;
+  let nearestAreaDist = Infinity;
+  for (const area of nearestCity.areas ?? []) {
+    if (typeof area.latitude !== "number" || typeof area.longitude !== "number")
+      continue;
+    const dist = haversineKm(
+      latitude,
+      longitude,
+      area.latitude,
+      area.longitude,
+    );
+    if (dist < nearestAreaDist) {
+      nearestAreaDist = dist;
+      nearestAreaId = area.id;
+    }
+  }
+
+  return { cityId: nearestCity.id, areaId: nearestAreaId };
+}
+
+/**
+ * Resolve GPS coordinates to a city/area.
+ * 1. Prefer precise distance-based matching when the backend provides
+ *    coordinates for cities/areas.
+ * 2. Otherwise reverse-geocode and match names with strict whole-word
+ *    rules — only auto-selecting an area when we are confident, so the
+ *    user is never silently dropped into the wrong neighborhood.
  */
 async function matchLocationToCityAndArea(
   latitude: number,
   longitude: number,
   cities: City[],
 ): Promise<{ cityId: string; areaId?: string } | null> {
+  const byCoords = matchByCoordinates(latitude, longitude, cities);
+  if (byCoords) return byCoords;
+
   try {
-    console.log("🗺️ [Location Matching] Reverse geocoding coordinates:", {
-      latitude,
-      longitude,
-    });
+    const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (!results || results.length === 0) return null;
 
-    const results = await Location.reverseGeocodeAsync({
-      latitude,
-      longitude,
-    });
+    const result = results[0];
 
-    if (!results || results.length === 0) {
-      console.warn("⚠️ [Location Matching] No geocoding results found");
-      return null;
-    }
+    const cityCandidates = [result.city, result.region, result.subregion]
+      .map(normalizeString)
+      .filter(Boolean);
+    const areaCandidates = [
+      result.district,
+      result.name,
+      result.street,
+      result.subregion,
+    ]
+      .map(normalizeString)
+      .filter(Boolean);
 
-    const primaryResult = results[0];
-    console.log("📍 [Location Matching] Geocoding result:", {
-      city: primaryResult.city,
-      region: primaryResult.region,
-      district: primaryResult.district,
-      country: primaryResult.country,
-    });
-
-    // Extract and normalize potential city/area names
-    const geocodedCity = normalizeString(primaryResult.city || "");
-    const geocodedRegion = normalizeString(primaryResult.region || "");
-    const geocodedDistrict = normalizeString(primaryResult.district || "");
-
-    console.log("🔍 [Location Matching] Extracted normalized names:", {
-      city: geocodedCity,
-      region: geocodedRegion,
-      district: geocodedDistrict,
-    });
-
-    // Try to match with available cities
+    // Match a city using its Arabic or English name
+    let matchedCity: City | null = null;
     for (const city of cities) {
-      const cityNameAr = normalizeString(city.name);
-      const cityNameEn = normalizeString(city.nameEn);
-
-      // Multiple matching strategies for robustness
-      const cityMatched =
-        cityNameAr === geocodedCity ||
-        cityNameAr === geocodedRegion ||
-        cityNameEn === geocodedCity ||
-        cityNameEn === geocodedRegion ||
-        geocodedCity.includes(cityNameAr) ||
-        geocodedRegion.includes(cityNameAr) ||
-        cityNameAr.includes(geocodedCity) ||
-        cityNameAr.includes(geocodedRegion);
-
-      if (cityMatched) {
-        console.log(
-          "✅ [Location Matching] City matched:",
-          `${city.name} / ${city.nameEn}`,
-        );
-
-        // Try to match area within matched city
-        if (city.areas && city.areas.length > 0) {
-          for (const area of city.areas) {
-            const areaNormalizedAr = normalizeString(area.name);
-            const areaEnNormalized = normalizeString(area.nameEn);
-
-            const areaMatched =
-              areaNormalizedAr === geocodedDistrict ||
-              areaEnNormalized === geocodedDistrict ||
-              areaNormalizedAr === geocodedRegion ||
-              areaEnNormalized === geocodedRegion ||
-              geocodedDistrict.includes(areaNormalizedAr) ||
-              geocodedRegion.includes(areaNormalizedAr) ||
-              areaNormalizedAr.includes(geocodedDistrict);
-
-            if (areaMatched) {
-              console.log(
-                "✅ [Location Matching] Area matched:",
-                `${area.name} / ${area.nameEn}`,
-              );
-              return {
-                cityId: city.id,
-                areaId: area.id,
-              };
-            }
-          }
-
-          console.log(
-            "⚠️ [Location Matching] City matched but no area found - returning city only",
-          );
-        }
-
-        // Return city match even if area not found
-        return {
-          cityId: city.id,
-        };
+      const cityNames = [
+        normalizeString(city.name),
+        normalizeString(city.nameEn),
+      ].filter(Boolean);
+      const matched = cityCandidates.some((cand) =>
+        cityNames.some((cn) => namesMatch(cn, cand)),
+      );
+      if (matched) {
+        matchedCity = city;
+        break;
       }
     }
 
-    console.warn(
-      "❌ [Location Matching] No city match found for geocoded location",
-      {
-        geocodedCity,
-        geocodedRegion,
-        availableCities: cities.slice(0, 3).map((c) => c.name),
-      },
-    );
-    return null;
-  } catch (error) {
-    console.error("🚨 [Location Matching] Error during matching:", error);
+    if (!matchedCity) return null;
+
+    // Match an area only on a confident, non-empty name match
+    if (matchedCity.areas?.length) {
+      for (const area of matchedCity.areas) {
+        const areaNames = [
+          normalizeString(area.name),
+          normalizeString(area.nameEn),
+        ].filter(Boolean);
+        const matched = areaCandidates.some((cand) =>
+          areaNames.some((an) => namesMatch(an, cand)),
+        );
+        if (matched) {
+          return { cityId: matchedCity.id, areaId: area.id };
+        }
+      }
+    }
+
+    // City matched but no confident area → return city only so the user
+    // confirms the exact area manually instead of getting a wrong one.
+    return { cityId: matchedCity.id };
+  } catch {
     return null;
   }
 }
@@ -212,6 +268,7 @@ export default function LocationScreen() {
 
   const handleAutoDetect = useCallback(async () => {
     setDetectingLocation(true);
+    setAutoDetectFailed(false);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -220,7 +277,7 @@ export default function LocationScreen() {
       }
 
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
 
       const coords = {
@@ -228,13 +285,11 @@ export default function LocationScreen() {
         longitude: loc.coords.longitude,
       };
 
-      // Store coordinates first
+      // Keep the precise coordinates regardless of name matching so the
+      // backend can resolve the exact location server-side.
       setCoordinates(coords);
-      console.log("📍 GPS Coordinates obtained:", coords);
 
-      // Try to match coordinates to city and area
       if (cities.length > 0) {
-        console.log("🔄 Attempting to match coordinates to city/area...");
         const match = await matchLocationToCityAndArea(
           coords.latitude,
           coords.longitude,
@@ -242,26 +297,21 @@ export default function LocationScreen() {
         );
 
         if (match) {
-          console.log("🎯 Match successful - updating selections", match);
           setSelectedCityId(match.cityId);
-          if (match.areaId) {
-            setSelectedAreaId(match.areaId);
-          } else {
-            // Clear area if only city matched
-            setSelectedAreaId(null);
+          setSelectedAreaId(match.areaId ?? null);
+          if (!match.areaId) {
+            // City detected but the exact area is uncertain — ask the
+            // user to confirm the nearest area instead of guessing.
+            setShowAreaPicker(true);
           }
         } else {
-          console.log("ℹ️ No match found - forcing manual selection");
-          // Clear coordinates — force manual selection
-          setCoordinates(null);
+          // Could not confidently match — keep coordinates and let the
+          // user pick the nearest city/area manually.
           setAutoDetectFailed(true);
           Alert.alert(t("location.noMatchTitle"), t("location.noMatchMessage"));
         }
-      } else {
-        console.warn("⚠️ Cities not loaded yet - coordinates stored");
       }
-    } catch (error) {
-      console.error("💥 GPS detection error:", error);
+    } catch {
       Alert.alert("", t("location.fetchError"));
     } finally {
       setDetectingLocation(false);
@@ -357,11 +407,27 @@ export default function LocationScreen() {
             }
             onPress={handleAutoDetect}
             loading={detectingLocation}
-            disabled={detectingLocation || autoDetectFailed}
+            disabled={detectingLocation}
             variant={coordinates ? "primary" : "accent"}
             style={styles.gpsButton}
           />
         </Animated.View>
+
+        {/* Manual-selection hint shown when GPS could not pinpoint the area */}
+        {autoDetectFailed && (
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <View style={styles.hintRow}>
+              <Ionicons
+                name="information-circle"
+                size={16}
+                color={Colors.secondary}
+              />
+              <Text style={styles.hintText}>
+                {t("location.manualSelectHint")}
+              </Text>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Divider */}
         <Animated.View
@@ -575,6 +641,21 @@ const styles = StyleSheet.create({
   },
   gpsButton: {
     marginBottom: Spacing.lg,
+  },
+  hintRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    backgroundColor: "#fff7ed",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  hintText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   divider: {
     flexDirection: "row",
