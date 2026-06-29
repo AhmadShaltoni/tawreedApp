@@ -18,7 +18,8 @@
       },
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -63,6 +64,12 @@
       "eas": {
         "projectId": "6558d894-f677-4246-8392-31dd91f4213e"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6558d894-f677-4246-8392-31dd91f4213e"
     }
   }
 }

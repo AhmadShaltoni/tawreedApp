@@ -20,7 +20,7 @@
       }
     },
     "production": {
-      "autoIncrement": false,
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://tawreedportal-production.up.railway.app",
         "EXPO_PUBLIC_APP_ENV": "production"

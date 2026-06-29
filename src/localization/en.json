@@ -81,6 +81,12 @@
     "allOrders": "All Orders",
     "noRecentOrders": "No recent orders"
   },
+  "menu": {
+    "rewards": "Rewards",
+    "rewardsSub": "View your points and rewards",
+    "contactUs": "Contact Us",
+    "terms": "Terms & Conditions"
+  },
   "products": {
     "title": "Products",
     "featured": "Featured Products",

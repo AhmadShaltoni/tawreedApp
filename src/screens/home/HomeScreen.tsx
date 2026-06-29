@@ -1,6 +1,7 @@
 import { NoticeCarousel } from "@/src/components/NoticeCarousel";
 import ProductCard from "@/src/components/ProductCard";
 import SectionHeader from "@/src/components/SectionHeader";
+import SideMenuSheet from "@/src/components/SideMenuSheet";
 import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import ErrorScreen from "@/src/components/errors/ErrorScreen";
 import Loader from "@/src/components/ui/Loader";
@@ -63,6 +64,7 @@ export default function HomeScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // Dynamic RTL styles
   const isRTL = i18n.language === "ar";
@@ -196,9 +198,7 @@ export default function HomeScreen() {
             {/* Right side (RTL): Menu button */}
             <Pressable
               style={styles.headerIconButton}
-              onPress={() => {
-                /* future menu drawer */
-              }}
+              onPress={() => setMenuVisible(true)}
               hitSlop={8}
             >
               <Ionicons name="menu-outline" size={26} color={Colors.white} />
@@ -407,7 +407,7 @@ export default function HomeScreen() {
                 </View>
                 <Pressable
                   style={styles.topSectionAction}
-                  onPress={() => router.push("/products")}
+                  onPress={() => router.push("/brands")}
                 >
                   <Text style={styles.topSectionActionText}>
                     {t("common.viewAll")}
@@ -465,7 +465,7 @@ export default function HomeScreen() {
                   ListFooterComponent={
                     <Pressable
                       style={styles.topMoreItem}
-                      onPress={() => router.push("/products")}
+                      onPress={() => router.push("/brands")}
                     >
                       <View style={styles.topMoreThumb}>
                         <Text style={styles.topMoreText}>
@@ -514,7 +514,7 @@ export default function HomeScreen() {
                       : require("@/assets/images/icon2.png")
                   }
                   style={styles.marketingImage}
-                  contentFit="cover"
+                  contentFit="contain"
                   transition={200}
                   recyclingKey={`ms-${section.id}`}
                 />
@@ -595,6 +595,10 @@ export default function HomeScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
       <WhatsAppFAB />
+      <SideMenuSheet
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
     </View>
   );
 }
@@ -669,8 +673,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.sm,
     color: Colors.textLight,
-  textAlign: "right",
-  writingDirection: "rtl",
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   /* Location / Guest Bar */
   locationBar: {
@@ -752,8 +756,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
   },
   topSectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "800",
+    fontSize: FontSize.md,
+    fontWeight: "700",
     color: Colors.primary,
   },
   topSectionAction: {
@@ -865,7 +869,8 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: "hidden",
-    height: 120,
+    aspectRatio: 16 / 9,
+    backgroundColor: Colors.surface,
   },
   marketingImage: {
     width: "100%",

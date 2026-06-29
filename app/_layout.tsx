@@ -183,6 +183,18 @@ function AuthGate() {
           }}
         />
         <Stack.Screen
+          name="brands"
+          options={{
+            headerShown: true,
+            title: "العلامات التجارية",
+            animation: "slide_from_right",
+            headerTitleAlign: "center",
+            headerStyle: { backgroundColor: Colors.white },
+            headerTitleStyle: { fontWeight: "700", color: Colors.text },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="product/[id]"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />

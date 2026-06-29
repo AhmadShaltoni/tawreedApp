@@ -81,6 +81,12 @@
     "allOrders": "كل الطلبات",
     "noRecentOrders": "لا توجد طلبات حديثة"
   },
+  "menu": {
+    "rewards": "المكافآت",
+    "rewardsSub": "اعرض نقاطك ومكافآتك",
+    "contactUs": "تواصل معنا",
+    "terms": "الشروط والأحكام"
+  },
   "products": {
     "title": "المنتجات",
     "featured": "منتجات مميزة",
