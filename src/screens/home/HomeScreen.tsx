@@ -28,7 +28,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
-  I18nManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -76,8 +75,9 @@ export default function HomeScreen() {
   );
   const dynamicHeaderSearchBarStyle = useMemo<ViewStyle>(
     () => ({
-      // Correct start side when app language changes before a full RTL restart.
-      flexDirection: isRTL !== I18nManager.isRTL ? "row-reverse" : "row",
+      // Keep the search icon on the right and text starting from the right in Arabic,
+      // even on first launch before a full RTL restart applies.
+      flexDirection: isRTL ? "row-reverse" : "row",
     }),
     [isRTL],
   );
