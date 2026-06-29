@@ -128,6 +128,23 @@ export default function SideMenuSheet({
               />
             </Pressable>
 
+            {/* Terms */}
+            <Pressable style={styles.row} onPress={() => navigate("/terms")}>
+              <View style={styles.rowLeft}>
+                <Ionicons
+                  name="document-text-outline"
+                  size={22}
+                  color={Colors.textSecondary}
+                />
+                <Text style={styles.rowLabel}>{t("menu.terms")}</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={Colors.textLight}
+              />
+            </Pressable>
+
             {/* Contact us */}
             <Text style={styles.sectionTitle}>{t("menu.contactUs")}</Text>
             <View style={styles.card}>
@@ -157,23 +174,6 @@ export default function SideMenuSheet({
                 isLast
               />
             </View>
-
-            {/* Terms */}
-            <Pressable style={styles.row} onPress={() => navigate("/terms")}>
-              <View style={styles.rowLeft}>
-                <Ionicons
-                  name="document-text-outline"
-                  size={22}
-                  color={Colors.textSecondary}
-                />
-                <Text style={styles.rowLabel}>{t("menu.terms")}</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={Colors.textLight}
-              />
-            </Pressable>
           </ScrollView>
         </Animated.View>
       </View>

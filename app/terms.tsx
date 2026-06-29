@@ -2,7 +2,7 @@ import { Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { Stack } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { I18nManager, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Section {
@@ -54,13 +54,23 @@ const SECTIONS_AR: Section[] = [
 ];
 
 export default function TermsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const align = I18nManager.isRTL ? "right" : "left";
+  const align = i18n.language === "ar" ? "right" : "left";
+  const dir = i18n.language === "ar" ? "rtl" : "ltr";
 
   return (
     <>
-      <Stack.Screen options={{ title: t("menu.terms") }} />
+      <Stack.Screen
+        options={{
+          title: t("menu.terms"),
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerStyle: { backgroundColor: Colors.white },
+          headerTitleStyle: { fontWeight: "700", color: Colors.text },
+          headerShadowVisible: false,
+        }}
+      />
       <ScrollView
         style={styles.container}
         contentContainerStyle={{
@@ -69,15 +79,28 @@ export default function TermsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.intro, { textAlign: align }]}>
+        <Text
+          style={[styles.intro, { textAlign: align, writingDirection: dir }]}
+        >
           مرحباً بك في تطبيق توريد. باستخدامك للتطبيق فإنك توافق على الالتزام
           بالشروط والأحكام التالية، وفي حال عدم موافقتك على أي من هذه الشروط،
           يرجى عدم استخدام التطبيق.
         </Text>
         {SECTIONS_AR.map((s) => (
           <View key={s.title} style={styles.section}>
-            <Text style={[styles.title, { textAlign: align }]}>{s.title}</Text>
-            <Text style={[styles.body, { textAlign: align }]}>{s.body}</Text>
+            <Text
+              style={[
+                styles.title,
+                { textAlign: align, writingDirection: dir },
+              ]}
+            >
+              {s.title}
+            </Text>
+            <Text
+              style={[styles.body, { textAlign: align, writingDirection: dir }]}
+            >
+              {s.body}
+            </Text>
           </View>
         ))}
       </ScrollView>
