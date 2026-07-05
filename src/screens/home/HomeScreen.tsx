@@ -20,11 +20,12 @@ import { fetchNotices, nextNotice } from "@/src/store/slices/notices.slice";
 import { fetchNotifications } from "@/src/store/slices/notifications.slice";
 import { fetchFeaturedProducts } from "@/src/store/slices/products.slice";
 import type { Brand, Category, MarketingSection, Product } from "@/src/types";
+import { textAlignStart, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -34,7 +35,6 @@ import {
   StyleSheet,
   Text,
   View,
-  ViewStyle,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -65,29 +65,8 @@ export default function HomeScreen() {
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Dynamic RTL styles
+  // Directional icons (chevrons/arrows) don't auto-flip in RTL
   const isRTL = i18n.language === "ar";
-  const dynamicNotifBadgeStyle = useMemo<ViewStyle>(
-    () => ({
-      ...(isRTL ? { left: -2 } : { right: -2 }),
-    }),
-    [isRTL],
-  );
-  const dynamicHeaderSearchBarStyle = useMemo<ViewStyle>(
-    () => ({
-      // Keep the search icon on the right and text starting from the right in Arabic,
-      // even on first launch before a full RTL restart applies.
-      flexDirection: isRTL ? "row-reverse" : "row",
-    }),
-    [isRTL],
-  );
-  const dynamicHeaderSearchPlaceholderStyle = useMemo(
-    () => ({
-      textAlign: isRTL ? ("right" as const) : ("left" as const),
-      writingDirection: isRTL ? ("rtl" as const) : ("ltr" as const),
-    }),
-    [isRTL],
-  );
 
   const loadData = useCallback(
     (force = false) => {
@@ -224,9 +203,7 @@ export default function HomeScreen() {
                   color={Colors.white}
                 />
                 {unreadCount > 0 && (
-                  <View
-                    style={[styles.headerNotifBadge, dynamicNotifBadgeStyle]}
-                  >
+                  <View style={styles.headerNotifBadge}>
                     <Text style={styles.headerNotifBadgeText}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </Text>
@@ -251,7 +228,7 @@ export default function HomeScreen() {
 
           {/* Search Bar */}
           <Pressable
-            style={[styles.headerSearchBar, dynamicHeaderSearchBarStyle]}
+            style={styles.headerSearchBar}
             onPress={() => router.push("/products")}
           >
             <Ionicons
@@ -259,12 +236,7 @@ export default function HomeScreen() {
               size={20}
               color={Colors.textLight}
             />
-            <Text
-              style={[
-                styles.headerSearchPlaceholder,
-                dynamicHeaderSearchPlaceholderStyle,
-              ]}
-            >
+            <Text style={styles.headerSearchPlaceholder}>
               {t("home.searchPlaceholder")}
             </Text>
           </Pressable>
@@ -645,6 +617,7 @@ const styles = StyleSheet.create({
   headerNotifBadge: {
     position: "absolute",
     top: 2,
+    end: -2,
     backgroundColor: Colors.secondary,
     borderRadius: 10,
     minWidth: 18,
@@ -673,8 +646,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.sm,
     color: Colors.textLight,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: textAlignStart,
+    writingDirection,
   },
   /* Location / Guest Bar */
   locationBar: {

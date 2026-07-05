@@ -5,11 +5,10 @@ import {
     Shadows,
     Spacing,
 } from "@/src/constants/theme";
+import { inputTextAlign, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
-    I18nManager,
     Pressable,
     StyleSheet,
     Text,
@@ -38,8 +37,6 @@ export default function Input({
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { i18n } = useTranslation();
-  const isRTL = i18n.language === "ar" || I18nManager.isRTL;
   const borderColor = useSharedValue<string>(Colors.border);
 
   const animBorder = useAnimatedStyle(() => ({
@@ -63,14 +60,13 @@ export default function Input({
       <Animated.View
         style={[
           styles.inputContainer,
-          isRTL && styles.inputContainerRTL,
           isFocused && styles.inputFocused,
           error ? styles.inputError : undefined,
           animBorder,
         ]}
       >
         <TextInput
-          style={[styles.input, isRTL && styles.inputRTL, style]}
+          style={[styles.input, style]}
           placeholderTextColor={Colors.textLight}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -107,6 +103,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
+  // "row" follows the layout direction; in RTL the eye icon lands on the left.
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -114,9 +111,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.border,
-  },
-  inputContainerRTL: {
-    flexDirection: "row-reverse",
   },
   inputFocused: {
     borderColor: Colors.primary,
@@ -133,10 +127,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md + 2,
     fontSize: FontSize.md,
     color: Colors.text,
-  },
-  inputRTL: {
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: inputTextAlign,
+    writingDirection,
   },
   eyeIcon: {
     paddingHorizontal: Spacing.lg,

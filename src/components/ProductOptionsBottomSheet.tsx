@@ -61,7 +61,7 @@ export default function ProductOptionsBottomSheet({
   const isArabic = i18n.language === "ar";
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
-  const { requireAuth, showLoginModal, setShowLoginModal } = useAuthGuard();
+  const { isAuthenticated, showLoginModal, setShowLoginModal } = useAuthGuard();
   const cartItems = useAppSelector((s) => s.cart.items);
 
   // Animation refs
@@ -336,6 +336,17 @@ export default function ProductOptionsBottomSheet({
   const handleAddToCart = useCallback(() => {
     if (isOutOfStock || availableStock <= 0) return;
 
+    // Guest user: iOS cannot present a second Modal while this sheet's Modal
+    // is up, so close the sheet fully first, then show the login modal.
+    if (!isAuthenticated) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      animateOut(() => {
+        onClose();
+        setTimeout(() => setShowLoginModal(true), 350);
+      });
+      return;
+    }
+
     if (quantity > availableStock) {
       Alert.alert(
         "",
@@ -348,46 +359,44 @@ export default function ProductOptionsBottomSheet({
       return;
     }
 
-    requireAuth(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      dispatch(
-        addToCartAsync({
-          product,
-          quantity,
-          selectedUnit: selectedUnit ?? undefined,
-          selectedVariant: selectedVariant ?? undefined,
-          selectedOption: selectedOption ?? undefined,
-          note: itemNote.trim() || undefined,
-        }),
-      ).then((result) => {
-        if (result.meta.requestStatus === "fulfilled") {
-          // Show success
-          setShowSuccess(true);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Animated.spring(successAnim, {
-            toValue: 1,
-            tension: 80,
-            friction: 8,
-            useNativeDriver: true,
-          }).start();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    dispatch(
+      addToCartAsync({
+        product,
+        quantity,
+        selectedUnit: selectedUnit ?? undefined,
+        selectedVariant: selectedVariant ?? undefined,
+        selectedOption: selectedOption ?? undefined,
+        note: itemNote.trim() || undefined,
+      }),
+    ).then((result) => {
+      if (result.meta.requestStatus === "fulfilled") {
+        // Show success
+        setShowSuccess(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Animated.spring(successAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
 
-          setTimeout(() => {
-            successAnim.setValue(0);
-            setShowSuccess(false);
-            animateOut(() => {
-              onClose();
-              onAdded?.();
-            });
-          }, 1200);
-        } else {
-          const message =
-            typeof result.payload === "string"
-              ? result.payload
-              : t("cart.validationError");
-          Alert.alert("", message);
-          dispatch(fetchCart());
-        }
-      });
+        setTimeout(() => {
+          successAnim.setValue(0);
+          setShowSuccess(false);
+          animateOut(() => {
+            onClose();
+            onAdded?.();
+          });
+        }, 1200);
+      } else {
+        const message =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("cart.validationError");
+        Alert.alert("", message);
+        dispatch(fetchCart());
+      }
     });
   }, [
     dispatch,
@@ -401,7 +410,8 @@ export default function ProductOptionsBottomSheet({
     availableStock,
     currentStock,
     quantityInCart,
-    requireAuth,
+    isAuthenticated,
+    setShowLoginModal,
     animateOut,
     onClose,
     onAdded,
@@ -409,7 +419,10 @@ export default function ProductOptionsBottomSheet({
     t,
   ]);
 
-  if (!modalVisible) return null;
+  // Keep the component mounted even when the sheet is closed so the
+  // LoginRequiredModal (a sibling Modal) can present after the sheet
+  // fully dismisses — iOS cannot show two sibling Modals at once.
+  if (!modalVisible && !showLoginModal) return null;
 
   const productDescription = isArabic
     ? (product.descriptionAr ?? product.description)

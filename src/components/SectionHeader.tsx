@@ -1,4 +1,5 @@
 import { Colors, FontSize, Spacing } from "@/src/constants/theme";
+import { textAlignStart, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -22,13 +23,11 @@ export default function SectionHeader({
     <View style={styles.container}>
       <View style={styles.titleRow}>
         <View style={styles.accent} />
-        <Text style={[styles.title, isRTL && styles.titleRTL]}>{title}</Text>
+        <Text style={styles.title}>{title}</Text>
       </View>
       {actionLabel && onAction ? (
         <Pressable onPress={onAction} style={styles.action} hitSlop={8}>
-          <Text style={[styles.actionText, isRTL && styles.actionTextRTL]}>
-            {actionLabel}
-          </Text>
+          <Text style={styles.actionText}>{actionLabel}</Text>
           <Ionicons
             name={isRTL ? "chevron-back" : "chevron-forward"}
             size={14}
@@ -64,10 +63,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: "700",
     color: Colors.text,
-  },
-  titleRTL: {
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: textAlignStart,
+    writingDirection,
   },
   action: {
     flexDirection: "row",
@@ -78,8 +75,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.secondary,
-  },
-  actionTextRTL: {
-    writingDirection: "rtl",
+    writingDirection,
   },
 });

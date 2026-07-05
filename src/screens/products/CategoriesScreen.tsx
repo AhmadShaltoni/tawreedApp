@@ -5,13 +5,13 @@ import SearchBar from "@/src/components/ui/SearchBar";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/src/constants/theme";
 import { categoryService } from "@/src/services/category.service";
 import type { BreadcrumbItem, Category } from "@/src/types";
+import { textAlignStart, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     FlatList,
-    I18nManager,
     Pressable,
     RefreshControl,
     StyleSheet,
@@ -28,7 +28,6 @@ export default function CategoriesScreen() {
     parentId?: string;
   }>();
   const isArabic = i18n.language === "ar";
-  const isRTL = isArabic || I18nManager.isRTL;
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([]);
@@ -199,42 +198,32 @@ export default function CategoriesScreen() {
       {currentParentId && parentHasProducts && !search && (
         <View style={styles.productsActions}>
           <Pressable
-            style={[styles.viewProductsBtn, isRTL && styles.productsBtnRTL]}
+            style={styles.viewProductsBtn}
             onPress={() => handleViewProducts(false)}
           >
             <Ionicons name="cube-outline" size={16} color={Colors.primary} />
-            <Text
-              style={[
-                styles.viewProductsBtnText,
-                isRTL && styles.productsBtnTextRTL,
-              ]}
-            >
+            <Text style={styles.viewProductsBtnText}>
               {t("categories.viewProducts", {
                 count: currentCategory?.productsCount ?? 0,
               })}
             </Text>
             <Ionicons
-              name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"}
+              name={isArabic ? "chevron-back" : "chevron-forward"}
               size={14}
               color={Colors.primary}
             />
           </Pressable>
 
           <Pressable
-            style={[styles.viewAllProductsBtn, isRTL && styles.productsBtnRTL]}
+            style={styles.viewAllProductsBtn}
             onPress={() => handleViewProducts(true)}
           >
             <Ionicons name="layers-outline" size={16} color={Colors.white} />
-            <Text
-              style={[
-                styles.viewAllProductsBtnText,
-                isRTL && styles.productsBtnTextRTL,
-              ]}
-            >
+            <Text style={styles.viewAllProductsBtnText}>
               {t("categories.viewAllProducts")}
             </Text>
             <Ionicons
-              name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"}
+              name={isArabic ? "chevron-back" : "chevron-forward"}
               size={14}
               color={Colors.white}
             />
@@ -321,14 +310,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary,
   },
-  productsBtnRTL: {
-    flexDirection: "row-reverse",
-  },
   viewProductsBtnText: {
     flex: 1,
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.primary,
+    textAlign: textAlignStart,
+    writingDirection,
   },
   viewAllProductsBtn: {
     flexDirection: "row",
@@ -344,10 +332,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.white,
-  },
-  productsBtnTextRTL: {
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: textAlignStart,
+    writingDirection,
   },
   listContent: {
     paddingHorizontal: Spacing.lg,

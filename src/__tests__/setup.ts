@@ -5,6 +5,12 @@ jest.mock("react-native", () => ({
   Platform: { OS: "ios", select: (obj: any) => obj.ios },
   I18nManager: { isRTL: true, allowRTL: jest.fn(), forceRTL: jest.fn() },
   Alert: { alert: jest.fn() },
+  DevSettings: { reload: jest.fn() },
+}));
+
+// Mock expo-updates (used by i18n to apply RTL direction changes)
+jest.mock("expo-updates", () => ({
+  reloadAsync: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock AsyncStorage

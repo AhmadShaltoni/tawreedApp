@@ -19,7 +19,7 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "buildNumber": "4"
+      "buildNumber": "5"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -60,6 +60,7 @@
       "reactCompiler": true
     },
     "extra": {
+      "supportsRTL": true,
       "router": {},
       "eas": {
         "projectId": "6558d894-f677-4246-8392-31dd91f4213e"

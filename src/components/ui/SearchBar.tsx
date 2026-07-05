@@ -5,11 +5,10 @@ import {
   Shadows,
   Spacing,
 } from "@/src/constants/theme";
+import { inputTextAlign, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  I18nManager,
   Pressable,
   StyleSheet,
   TextInput,
@@ -29,25 +28,17 @@ export default function SearchBar({
   ...props
 }: SearchBarProps) {
   const [focused, setFocused] = useState(false);
-  const { i18n } = useTranslation();
-  const isRTL = i18n.language === "ar" || I18nManager.isRTL;
 
   return (
-    <View
-      style={[
-        styles.container,
-        focused && styles.containerFocused,
-        isRTL && styles.containerRTL,
-      ]}
-    >
+    <View style={[styles.container, focused && styles.containerFocused]}>
       <Ionicons
         name="search-outline"
         size={18}
         color={focused ? Colors.primary : Colors.textLight}
-        style={[styles.icon, isRTL && styles.iconRTL]}
+        style={styles.icon}
       />
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -60,11 +51,7 @@ export default function SearchBar({
         {...props}
       />
       {value ? (
-        <Pressable
-          onPress={onClear}
-          hitSlop={8}
-          style={[styles.clearButton, isRTL && styles.clearButtonRTL]}
-        >
+        <Pressable onPress={onClear} hitSlop={8} style={styles.clearButton}>
           <Ionicons name="close-circle" size={18} color={Colors.textLight} />
         </Pressable>
       ) : null}
@@ -73,6 +60,8 @@ export default function SearchBar({
 }
 
 const styles = StyleSheet.create({
+  // flexDirection "row" follows the layout direction automatically:
+  // in RTL the search icon (first child) renders on the right.
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -83,36 +72,23 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  containerRTL: {
-    flexDirection: "row-reverse",
-  },
   containerFocused: {
     backgroundColor: Colors.white,
     borderColor: Colors.primary,
     ...Shadows.sm,
   },
   icon: {
-    marginRight: Spacing.sm,
-  },
-  iconRTL: {
-    marginRight: 0,
-    marginLeft: Spacing.sm,
+    marginEnd: Spacing.sm,
   },
   input: {
     flex: 1,
     fontSize: FontSize.sm,
     color: Colors.text,
     paddingVertical: 0,
-  },
-  inputRTL: {
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: inputTextAlign,
+    writingDirection,
   },
   clearButton: {
-    marginLeft: Spacing.sm,
-  },
-  clearButtonRTL: {
-    marginLeft: 0,
-    marginRight: Spacing.sm,
+    marginStart: Spacing.sm,
   },
 });

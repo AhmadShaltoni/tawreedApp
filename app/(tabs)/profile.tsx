@@ -47,14 +47,9 @@ export default function ProfileScreen() {
 
   const handleLanguageToggle = async () => {
     const newLang = currentLang === "ar" ? "en" : "ar";
-    await changeLanguage(newLang);
     setCurrentLang(newLang);
-    Alert.alert(
-      newLang === "ar" ? "تغيير اللغة" : "Language Changed",
-      newLang === "ar"
-        ? "يرجى إعادة تشغيل التطبيق لتطبيق اتجاه RTL بالكامل"
-        : "Please restart the app to fully apply RTL direction",
-    );
+    // Applies the new layout direction and reloads the app automatically
+    await changeLanguage(newLang);
   };
 
   const handleLogout = () => {
