@@ -232,7 +232,14 @@
     "freeDeliveryApplied": "Free delivery!",
     "freeDeliveryAt": "Free delivery when you add JOD {{amount}} more",
     "grandTotal": "Grand Total",
-    "deliveryFeeError": "Error calculating delivery fee"
+    "deliveryFeeError": "Error calculating delivery fee",
+    "yourRewards": "Your rewards",
+    "useReward": "Use",
+    "rewardApplied": "Reward applied",
+    "rewardDiscount": "Reward discount",
+    "rewardError": "Could not apply the reward, please try again",
+    "prize": "Prize",
+    "freeDeliveryReward": "Free delivery — your points reward!"
   },
   "orders": {
     "title": "Order History",
@@ -261,7 +268,9 @@
     "placedOn": "Placed on",
     "pricingSummary": "Pricing Summary",
     "fees": "Additional Fees",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "prize": "Loyalty prize",
+    "prizeFree": "Free"
   },
   "notifications": {
     "title": "Notifications",
@@ -474,7 +483,12 @@
       "loyaltyHint": "Loyalty points will be added after delivery",
       "campaignProgress": "You're now {{percent}}% toward {{campaign}}",
       "milestoneUnlocked": "Congratulations! Milestone Unlocked"
-    }
+    },
+    "freeDelivery": "Free delivery",
+    "freeProduct": "Free product",
+    "noRewards": "No rewards available yet",
+    "noRewardsMessage": "Earn points from your orders and redeemable rewards will appear here 🎁",
+    "rewardsHint": "Redeem your points for great rewards — just collect enough points and tap redeem!"
   },
   "delivery": {
     "title": "Delivery",

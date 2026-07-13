@@ -11,9 +11,11 @@ import {
 import { couponService } from "@/src/services/coupon.service";
 import { deliveryService } from "@/src/services/delivery.service";
 import { locationService } from "@/src/services/location.service";
+import { loyaltyService } from "@/src/services/loyalty.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
+import { fetchCoupons } from "@/src/store/slices/loyalty.slice";
 import {
     createOrder,
     fetchLastDeliveryAddress,
@@ -27,6 +29,9 @@ import type {
     DeliveryZone,
     InvalidCartItem,
 } from "@/src/types";
+import type { Coupon, ValidateCouponResponse } from "@/src/types/loyalty";
+import { CouponStatus, RewardType } from "@/src/types/loyalty";
+import { saveLocation } from "@/src/utils/locationStorage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -92,6 +97,16 @@ export default function CheckoutScreen() {
     useState<CouponValidateSuccess | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  // Loyalty reward coupon state
+  const { coupons: loyaltyCoupons } = useAppSelector((state) => state.loyalty);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const [appliedReward, setAppliedReward] = useState<{
+    coupon: Coupon;
+    validation: ValidateCouponResponse;
+  } | null>(null);
+  const [rewardLoadingId, setRewardLoadingId] = useState<string | null>(null);
+  const [rewardError, setRewardError] = useState<string | null>(null);
+
   // Delivery fee state
   const [deliveryFee, setDeliveryFee] = useState<DeliveryFeeResponse | null>(
     null,
@@ -146,44 +161,53 @@ export default function CheckoutScreen() {
     dispatch(fetchLastDeliveryAddress());
   }, [dispatch]);
 
-  // Pre-fill address and location. User saved location is source of truth
-  // so any change from the location screen appears everywhere, including checkout.
+  // Fetch user's loyalty coupons so active rewards can be applied at checkout
   useEffect(() => {
-    if (cities.length === 0) return;
+    if (isAuthenticated) {
+      dispatch(fetchCoupons());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  // Pre-fill the default delivery location. The profile location (user.cityId)
+  // is kept in sync with the LAST place the customer chose to deliver to — it is
+  // updated both when an order is placed and when the location is changed from
+  // the location screen — so it is the correct default. For the very first order
+  // it holds the registration location. Priority:
+  //   1. Profile location (latest chosen delivery location / registration)
+  //   2. Last order's delivery location (fallback if profile is missing)
+  // Runs once; skipped after the user manually changes the selection here.
+  const [prefilled, setPrefilled] = useState(false);
+  useEffect(() => {
+    if (cities.length === 0 || prefilled) return;
+    // Wait for the last-address fetch so the address text / fallback are ready.
+    if (loadingLastAddress) return;
 
     // Reuse last typed address text for convenience.
-    if (lastDeliveryAddress) {
-      if (lastDeliveryAddress.address) {
-        setAddress(lastDeliveryAddress.address);
-      }
+    if (lastDeliveryAddress?.address) {
+      setAddress(lastDeliveryAddress.address);
     }
 
-    // Always prioritize current user profile location.
-    if (user?.cityId) {
-      const cityExists = cities.some((c) => c.id === user.cityId);
-      if (cityExists) {
-        setSelectedCityId(user.cityId);
-        if (user.areaId) {
-          setSelectedAreaId(user.areaId);
-        } else {
-          setSelectedAreaId(null);
-        }
-        return;
-      }
+    const applyLocation = (cityId?: string | null, areaId?: string | null) => {
+      if (!cityId) return false;
+      if (!cities.some((c) => c.id === cityId)) return false;
+      setSelectedCityId(cityId);
+      setSelectedAreaId(areaId ?? null);
+      return true;
+    };
+
+    // 1) Latest chosen delivery location (registration for the first order).
+    if (applyLocation(user?.cityId, user?.areaId)) {
+      setPrefilled(true);
+      return;
     }
 
-    // Fallback to last order location if profile location is missing.
-    if (!loadingLastAddress && lastDeliveryAddress?.cityId) {
-      const cityExists = cities.some(
-        (c) => c.id === lastDeliveryAddress.cityId,
-      );
-      if (cityExists) {
-        setSelectedCityId(lastDeliveryAddress.cityId);
-        setSelectedAreaId(lastDeliveryAddress.areaId ?? null);
-      }
+    // 2) Fall back to the last order's delivery location.
+    if (applyLocation(lastDeliveryAddress?.cityId, lastDeliveryAddress?.areaId)) {
+      setPrefilled(true);
     }
   }, [
     cities,
+    prefilled,
     lastDeliveryAddress,
     loadingLastAddress,
     user?.cityId,
@@ -215,12 +239,18 @@ export default function CheckoutScreen() {
       ? Math.max(0, freeDeliveryThreshold - totals.subtotal)
       : null;
 
-  // The final total to display (with or without coupon) + delivery fee
+  // Loyalty reward derived values
+  const loyaltyDiscount = appliedReward?.validation.discountAmount ?? 0;
+  const rewardFreeDelivery = appliedReward?.validation.freeDelivery === true;
+  const rewardFreeProduct = appliedReward?.validation.freeProduct ?? null;
+  const finalDeliveryFee = rewardFreeDelivery ? 0 : effectiveDeliveryFee;
+
+  // The final total to display (discount code → loyalty reward → delivery fee)
   const displayTotal = useMemo(() => {
-    let base = appliedCoupon ? appliedCoupon.finalTotal : totals.subtotal;
-    base += effectiveDeliveryFee;
-    return base;
-  }, [appliedCoupon, totals.subtotal, effectiveDeliveryFee]);
+    const base = appliedCoupon ? appliedCoupon.finalTotal : totals.subtotal;
+    const afterReward = Math.max(0, base - loyaltyDiscount);
+    return afterReward + finalDeliveryFee;
+  }, [appliedCoupon, totals.subtotal, loyaltyDiscount, finalDeliveryFee]);
 
   const handleApplyCoupon = useCallback(async () => {
     const code = couponCode.replace(/\s/g, "").toUpperCase();
@@ -256,6 +286,54 @@ export default function CheckoutScreen() {
     setCouponCode("");
     setCouponError(null);
   }, []);
+
+  // ===== Loyalty reward coupons =====
+  const activeRewardCoupons = useMemo(
+    () =>
+      loyaltyCoupons.items.filter(
+        (c) => c.status === CouponStatus.ACTIVE,
+      ),
+    [loyaltyCoupons.items],
+  );
+
+  const handleApplyReward = useCallback(
+    async (coupon: Coupon) => {
+      setRewardError(null);
+      setRewardLoadingId(coupon.id);
+      try {
+        const response = await loyaltyService.validateCoupon({
+          couponCode: coupon.code,
+          orderTotal: appliedCoupon ? appliedCoupon.finalTotal : totals.subtotal,
+        });
+        if (response.valid) {
+          setAppliedReward({ coupon, validation: response });
+        } else {
+          setAppliedReward(null);
+          setRewardError(response.error || t("checkout.rewardError"));
+        }
+      } catch (err: any) {
+        setAppliedReward(null);
+        const msg = err?.response?.data?.error || t("checkout.rewardError");
+        setRewardError(msg);
+      } finally {
+        setRewardLoadingId(null);
+      }
+    },
+    [appliedCoupon, totals.subtotal, t],
+  );
+
+  const handleRemoveReward = useCallback(() => {
+    setAppliedReward(null);
+    setRewardError(null);
+  }, []);
+
+  // Re-validate the applied reward when the base total changes
+  // (e.g. discount code added/removed or cart total changed)
+  useEffect(() => {
+    if (!appliedReward) return;
+    handleApplyReward(appliedReward.coupon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedCoupon?.finalTotal, totals.subtotal]);
 
   // Calculate delivery fee based on city and order total
   const calculateDeliveryFee = useCallback(
@@ -387,6 +465,10 @@ export default function CheckoutScreen() {
       deliveryAddress: address.trim() || "No address provided",
       deliveryAddressDetails: address.trim() || undefined,
       deliveryCity: cityDisplayText,
+      // Send the resolved IDs so the order records exactly which city/area was
+      // chosen — this is what powers the "last delivery location" default.
+      deliveryCityId: selectedCityId ?? undefined,
+      deliveryAreaId: selectedAreaId ?? undefined,
       deliveryArea: selectedArea
         ? isArabic
           ? selectedArea.name
@@ -395,7 +477,8 @@ export default function CheckoutScreen() {
       buyerNotes: notes.trim() || undefined,
       notes: notes.trim() || undefined,
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
-      deliveryFee: effectiveDeliveryFee,
+      loyaltyCouponCode: appliedReward ? appliedReward.coupon.code : undefined,
+      deliveryFee: finalDeliveryFee,
       deliveryEstimatedDays: deliveryFee?.estimatedDays ?? 0,
       itemNotes: items
         .filter((item) => item.note)
@@ -419,7 +502,7 @@ export default function CheckoutScreen() {
       console.log("✅ SUCCESS: Order created successfully!");
       console.log("🎉 Order payload:", result.payload);
 
-      // Save location to user profile
+      // Save location to user profile (also persisted to device by the thunk)
       if (selectedCityId) {
         console.log("📍 Saving user location...");
         dispatch(
@@ -430,7 +513,7 @@ export default function CheckoutScreen() {
         );
       }
 
-      // Save delivery address for next checkout pre-fill
+      // Save delivery address for next checkout pre-fill (in-session Redux)
       dispatch(
         setLastDeliveryAddress({
           address: address.trim(),
@@ -438,6 +521,28 @@ export default function CheckoutScreen() {
           areaId: selectedAreaId ?? undefined,
         }),
       );
+
+      // Persist the chosen delivery location + address on the device so it
+      // becomes the default next time and survives restarts/logout.
+      void saveLocation({
+        cityId: selectedCityId ?? null,
+        areaId: selectedAreaId ?? null,
+        address: address.trim() || null,
+        city: selectedCity
+          ? {
+              id: selectedCity.id,
+              name: selectedCity.name,
+              nameEn: selectedCity.nameEn,
+            }
+          : null,
+        area: selectedArea
+          ? {
+              id: selectedArea.id,
+              name: selectedArea.name,
+              nameEn: selectedArea.nameEn,
+            }
+          : null,
+      });
 
       console.log("🗑️ Clearing cart...");
       dispatch(clearCart());
@@ -479,10 +584,13 @@ export default function CheckoutScreen() {
     selectedCityId,
     selectedAreaId,
     selectedArea,
+    selectedCity,
     appliedCoupon,
+    appliedReward,
     items,
     deliveryFee,
     effectiveDeliveryFee,
+    finalDeliveryFee,
     isArabic,
   ]);
 
@@ -630,6 +738,42 @@ export default function CheckoutScreen() {
             </View>
           )}
 
+          {/* Loyalty Reward Summary */}
+          {appliedReward ? (
+            <>
+              {loyaltyDiscount > 0 && (
+                <View style={styles.summaryItem}>
+                  <Text style={styles.discountLabel}>
+                    🎁 {t("checkout.rewardDiscount")}
+                  </Text>
+                  <Text style={styles.discountValue}>
+                    -{loyaltyDiscount.toFixed(2)} {t("common.currency")}
+                  </Text>
+                </View>
+              )}
+              {rewardFreeProduct ? (
+                <View style={[styles.summaryItem, styles.prizeRow]}>
+                  <View style={styles.summaryItemDetails}>
+                    <Text style={styles.summaryItemName} numberOfLines={2}>
+                      🎁{" "}
+                      {isArabic
+                        ? (rewardFreeProduct.name ?? t("checkout.prize"))
+                        : (rewardFreeProduct.nameEn ??
+                          rewardFreeProduct.name ??
+                          t("checkout.prize"))}
+                    </Text>
+                    <Text style={styles.prizeBadgeText}>
+                      {t("checkout.prize")}
+                    </Text>
+                  </View>
+                  <Text style={[styles.summaryItemPrice, styles.prizePrice]}>
+                    0.00 {t("common.currency")}
+                  </Text>
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
           {/* Delivery Fee Section */}
           {selectedCityId && (
             <>
@@ -647,7 +791,7 @@ export default function CheckoutScreen() {
                     <Text style={styles.totalLabel}>
                       {t("checkout.deliveryFee")}
                     </Text>
-                    {isFreeDelivery ? (
+                    {isFreeDelivery || rewardFreeDelivery ? (
                       <Text
                         style={[
                           styles.summaryItemPrice,
@@ -658,16 +802,22 @@ export default function CheckoutScreen() {
                       </Text>
                     ) : (
                       <Text style={styles.summaryItemPrice}>
-                        {effectiveDeliveryFee.toFixed(2)} {t("common.currency")}
+                        {finalDeliveryFee.toFixed(2)} {t("common.currency")}
                       </Text>
                     )}
                   </View>
-                  {isFreeDelivery && (
+                  {rewardFreeDelivery && (
+                    <Text style={styles.freeDeliveryNote}>
+                      🎁 {t("checkout.freeDeliveryReward")}
+                    </Text>
+                  )}
+                  {isFreeDelivery && !rewardFreeDelivery && (
                     <Text style={styles.freeDeliveryNote}>
                       🎉 {t("checkout.freeDeliveryApplied")}
                     </Text>
                   )}
                   {!isFreeDelivery &&
+                    !rewardFreeDelivery &&
                     remainingForFree != null &&
                     remainingForFree > 0 && (
                       <Text style={styles.deliveryThresholdNote}>
@@ -921,6 +1071,110 @@ export default function CheckoutScreen() {
             ) : null}
           </>
         )}
+
+        {/* Loyalty Rewards (redeemed coupons) */}
+        {isAuthenticated && (activeRewardCoupons.length > 0 || appliedReward) ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="gift-outline" size={18} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>
+                {t("checkout.yourRewards")}
+              </Text>
+            </View>
+
+            {appliedReward ? (
+              <View style={styles.rewardAppliedCard}>
+                <View style={styles.couponAppliedRow}>
+                  <Text style={styles.couponAppliedText}>
+                    🎁 {t("checkout.rewardApplied")}
+                  </Text>
+                  <Pressable onPress={handleRemoveReward} hitSlop={8}>
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color={Colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+                <Text style={styles.couponCodeText}>
+                  {isArabic
+                    ? (appliedReward.coupon.rewardNameAr ??
+                      appliedReward.coupon.rewardName)
+                    : (appliedReward.coupon.rewardNameEn ??
+                      appliedReward.coupon.rewardName)}{" "}
+                  · {appliedReward.coupon.code}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.rewardsList}>
+                {activeRewardCoupons.map((coupon) => {
+                  const rewardName = isArabic
+                    ? (coupon.rewardNameAr ?? coupon.rewardName)
+                    : (coupon.rewardNameEn ?? coupon.rewardName);
+                  const isLoading = rewardLoadingId === coupon.id;
+                  const detail =
+                    coupon.rewardType === RewardType.FREE_DELIVERY
+                      ? `🚚 ${t("loyalty.freeDelivery")}`
+                      : coupon.rewardType === RewardType.FREE_PRODUCT
+                        ? `🎁 ${t("loyalty.freeProduct")}${
+                            coupon.freeProduct?.name
+                              ? `: ${
+                                  isArabic
+                                    ? coupon.freeProduct.name
+                                    : (coupon.freeProduct.nameEn ??
+                                      coupon.freeProduct.name)
+                                }`
+                              : ""
+                          }`
+                        : coupon.discountPercentage != null
+                          ? `${t("loyalty.discount")} ${coupon.discountPercentage}%`
+                          : coupon.discountValue != null
+                            ? `${t("loyalty.discount")} ${coupon.discountValue} ${t("common.currency")}`
+                            : "";
+                  return (
+                    <View key={coupon.id} style={styles.rewardCouponCard}>
+                      <View style={styles.rewardCouponInfo}>
+                        <Text
+                          style={styles.rewardCouponName}
+                          numberOfLines={1}
+                        >
+                          {rewardName}
+                        </Text>
+                        {detail ? (
+                          <Text style={styles.rewardCouponDetail}>
+                            {detail}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Pressable
+                        style={[
+                          styles.couponButton,
+                          isLoading && styles.couponButtonDisabled,
+                        ]}
+                        onPress={() => handleApplyReward(coupon)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={Colors.surface}
+                          />
+                        ) : (
+                          <Text style={styles.couponButtonText}>
+                            {t("checkout.useReward")}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+            {rewardError ? (
+              <Text style={styles.couponErrorText}>{rewardError}</Text>
+            ) : null}
+          </>
+        ) : null}
 
         {error ? <Text style={styles.apiError}>{error}</Text> : null}
 
@@ -1292,6 +1546,55 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  rewardAppliedCard: {
+    backgroundColor: "#fff7ed",
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: "#fb923c",
+    padding: Spacing.md,
+  },
+  rewardsList: {
+    gap: Spacing.sm,
+  },
+  rewardCouponCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  rewardCouponInfo: {
+    flex: 1,
+  },
+  rewardCouponName: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  rewardCouponDetail: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  prizeRow: {
+    backgroundColor: "#fff7ed",
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  prizeBadgeText: {
+    fontSize: FontSize.xs,
+    color: "#ea580c",
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  prizePrice: {
+    color: "#ea580c",
+    fontWeight: "800",
   },
   discountLabel: {
     fontSize: FontSize.sm,

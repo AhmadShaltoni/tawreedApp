@@ -3,8 +3,36 @@
  * Must be called before using any Firebase services
  */
 
-import { getApp, getApps } from "@react-native-firebase/app";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
+
+/**
+ * ⚠️ Firebase native modules are NOT available in Expo Go.
+ * Lazily require @react-native-firebase/app so importing this file
+ * never crashes in Expo Go.
+ */
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+type FirebaseAppModule = typeof import("@react-native-firebase/app");
+
+let firebaseAppModule: FirebaseAppModule | null = null;
+
+function getFirebaseAppModule(): FirebaseAppModule | null {
+  if (isExpoGo) return null;
+  if (!firebaseAppModule) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      firebaseAppModule = require("@react-native-firebase/app");
+    } catch (error) {
+      console.warn(
+        "[Firebase Init] App native module unavailable. Use a development build for Firebase.",
+        error,
+      );
+      return null;
+    }
+  }
+  return firebaseAppModule;
+}
 
 let firebaseInitialized = false;
 
@@ -18,10 +46,18 @@ export async function initializeFirebase(): Promise<void> {
     return;
   }
 
+  const firebaseApp = getFirebaseAppModule();
+  if (!firebaseApp) {
+    console.warn(
+      "[Firebase Init] Skipping — native module unavailable (Expo Go?).",
+    );
+    return;
+  }
+
   try {
     console.log("[Firebase Init] Starting Firebase initialization...");
 
-    const apps = getApps();
+    const apps = firebaseApp.getApps();
     if (apps.length === 0) {
       console.error(
         "[Firebase Init] No Firebase apps found. Check google-services.json/GoogleService-Info.plist and package name.",
@@ -35,7 +71,7 @@ export async function initializeFirebase(): Promise<void> {
       "app(s)",
     );
 
-    const app = getApp();
+    const app = firebaseApp.getApp();
 
     console.log("[Firebase Init] ✅ Firebase initialized successfully!");
     console.log("[Firebase Init] App name:", app.name);
@@ -52,18 +88,21 @@ export async function initializeFirebase(): Promise<void> {
  * Check if Firebase is initialized
  */
 export function isFirebaseInitialized(): boolean {
-  return firebaseInitialized || getApps().length > 0;
+  const firebaseApp = getFirebaseAppModule();
+  if (!firebaseApp) return false;
+  return firebaseInitialized || firebaseApp.getApps().length > 0;
 }
 
 /**
  * Get Firebase app instance (throws if not initialized)
  */
 export function getFirebaseApp() {
-  if (!isFirebaseInitialized()) {
+  const firebaseApp = getFirebaseAppModule();
+  if (!firebaseApp || !isFirebaseInitialized()) {
     throw new Error(
       "Firebase not initialized. Call initializeFirebase() first.",
     );
   }
 
-  return getApp();
+  return firebaseApp.getApp();
 }

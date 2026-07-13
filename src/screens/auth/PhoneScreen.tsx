@@ -164,7 +164,7 @@ export default function PhoneScreen() {
       }
       const user = result.payload.user;
       if (!user.cityId && user.latitude == null) {
-        router.replace("/location");
+        router.replace("/location?flow=onboarding");
       } else {
         router.replace("/(tabs)");
       }

@@ -232,7 +232,14 @@
     "freeDeliveryApplied": "التوصيل مجاني!",
     "freeDeliveryAt": "التوصيل مجاني عند إضافة {{amount}} د.أ أخرى",
     "grandTotal": "الإجمالي النهائي",
-    "deliveryFeeError": "خطأ في حساب رسوم التوصيل"
+    "deliveryFeeError": "خطأ في حساب رسوم التوصيل",
+    "yourRewards": "مكافآتك",
+    "useReward": "استخدام",
+    "rewardApplied": "تم تطبيق المكافأة",
+    "rewardDiscount": "خصم المكافأة",
+    "rewardError": "تعذر تطبيق المكافأة، حاول مرة أخرى",
+    "prize": "جائزة",
+    "freeDeliveryReward": "توصيل مجاني — مكافأة نقاطك!"
   },
   "orders": {
     "title": "سجل الطلبات",
@@ -261,7 +268,9 @@
     "placedOn": "تاريخ الطلب",
     "pricingSummary": "ملخص الأسعار",
     "fees": "رسوم إضافية",
-    "viewDetails": "عرض التفاصيل"
+    "viewDetails": "عرض التفاصيل",
+    "prize": "جائزة مكافآت",
+    "prizeFree": "مجاناً"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -473,7 +482,12 @@
       "loyaltyHint": "سيتم إضافة نقاط الولاء بعد تسليم الطلب",
       "campaignProgress": "أنت الآن {{percent}}% نحو {{campaign}}",
       "milestoneUnlocked": "تهانينا! فتحت مرحلة جديدة"
-    }
+    },
+    "freeDelivery": "توصيل مجاني",
+    "freeProduct": "منتج مجاني",
+    "noRewards": "لا توجد مكافآت متاحة حالياً",
+    "noRewardsMessage": "اجمع النقاط من طلباتك وستظهر هنا المكافآت التي يمكنك استبدالها 🎁",
+    "rewardsHint": "استبدل نقاطك بمكافآت رائعة — كل ما عليك جمع النقاط الكافية ثم الضغط على استبدل!"
   },
   "delivery": {
     "title": "التوصيل",

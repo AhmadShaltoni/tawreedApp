@@ -241,6 +241,7 @@ export interface OrderItem {
   unitLabelEn?: string;
   piecesPerUnit?: number;
   note?: string;
+  isReward?: boolean;
 }
 
 export interface OrderDetail extends Order {
@@ -250,6 +251,11 @@ export interface OrderDetail extends Order {
   notes?: string;
   updatedAt: string;
   statusHistory?: StatusHistoryEntry[];
+  subtotal?: number;
+  deliveryFee?: number;
+  isFreeDelivery?: boolean;
+  discountAmount?: number;
+  couponCode?: string;
 }
 
 export interface StatusHistoryEntry {
@@ -262,12 +268,15 @@ export interface CreateOrderPayload {
   deliveryAddress: string;
   deliveryAddressDetails?: string;
   deliveryCity: string;
+  deliveryCityId?: string;
+  deliveryAreaId?: string;
   deliveryArea?: string;
   deliveryFee?: number;
   deliveryEstimatedDays?: number;
   buyerNotes?: string;
   notes?: string;
   couponCode?: string;
+  loyaltyCouponCode?: string;
   itemNotes?: { cartItemId: string; note: string }[];
 }
 

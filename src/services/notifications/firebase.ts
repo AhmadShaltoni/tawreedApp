@@ -11,18 +11,40 @@
 
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-    AuthorizationStatus,
-    getMessaging,
-    getToken,
-    onTokenRefresh,
-    requestPermission,
-} from "@react-native-firebase/messaging";
 import axios from "axios";
+import Constants from "expo-constants";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import apiClient from "../api";
 import { getToken as getJwtToken } from "../tokenStorage";
+
+/**
+ * ⚠️ Firebase native modules (RNFBAppModule) are NOT available in Expo Go.
+ * Lazily require the messaging module so importing this file never crashes
+ * in Expo Go — FCM is simply disabled there.
+ */
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+type MessagingModule = typeof import("@react-native-firebase/messaging");
+
+let messagingModule: MessagingModule | null = null;
+
+function getMessagingModule(): MessagingModule | null {
+  if (isExpoGo) return null;
+  if (!messagingModule) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      messagingModule = require("@react-native-firebase/messaging");
+    } catch (error) {
+      console.warn(
+        "[FCM] Messaging native module unavailable. Use a development build for push notifications.",
+        error,
+      );
+      return null;
+    }
+  }
+  return messagingModule;
+}
 
 const STORAGE_KEYS = {
   FCM_TOKEN: "fcm_token",
@@ -46,16 +68,24 @@ class FirebaseMessagingService {
    * Initialize Firebase Messaging and request permissions
    */
   async initialize(): Promise<void> {
+    const messaging = getMessagingModule();
+    if (!messaging) {
+      console.warn(
+        "[FCM] Skipping initialization — native module unavailable (Expo Go?). Use a development build for push notifications.",
+      );
+      return;
+    }
+
     try {
       console.log("[FCM] Initializing Firebase Messaging...");
 
-      const messaging = getMessaging();
+      const messagingInstance = messaging.getMessaging();
 
       // Request notification permission from user
-      const authStatus = await requestPermission(messaging);
+      const authStatus = await messaging.requestPermission(messagingInstance);
       const hasPermission =
-        authStatus === AuthorizationStatus.AUTHORIZED ||
-        authStatus === AuthorizationStatus.PROVISIONAL;
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
       if (!hasPermission) {
         console.warn("[FCM] Notification permission denied");
@@ -82,9 +112,12 @@ class FirebaseMessagingService {
    * Called during app initialization
    */
   private async getAndStoreFCMToken(): Promise<string | null> {
+    const messaging = getMessagingModule();
+    if (!messaging) return null;
+
     try {
-      const messaging = getMessaging();
-      const fcmToken = await getToken(messaging);
+      const messagingInstance = messaging.getMessaging();
+      const fcmToken = await messaging.getToken(messagingInstance);
 
       if (!fcmToken) {
         console.warn("[FCM] Failed to get FCM token");
@@ -111,11 +144,14 @@ class FirebaseMessagingService {
    * Called when token expires/refreshes
    */
   private setupTokenRefreshListener(): void {
-    try {
-      const messaging = getMessaging();
+    const messaging = getMessagingModule();
+    if (!messaging) return;
 
-      this.tokenRefreshUnsubscribe = onTokenRefresh(
-        messaging,
+    try {
+      const messagingInstance = messaging.getMessaging();
+
+      this.tokenRefreshUnsubscribe = messaging.onTokenRefresh(
+        messagingInstance,
         async (newToken) => {
           console.log(
             "[FCM] 🔄 Token refreshed:",

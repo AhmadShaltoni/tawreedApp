@@ -32,7 +32,7 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
   const displayImage = item.optionImage || item.productImage;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, item.isReward && styles.rewardContainer]}>
       {displayImage ? (
         <Image
           source={{ uri: displayImage }}
@@ -42,7 +42,11 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
         />
       ) : (
         <View style={[styles.image, styles.placeholder]}>
-          <Ionicons name="cube-outline" size={22} color={Colors.textLight} />
+          <Ionicons
+            name={item.isReward ? "gift-outline" : "cube-outline"}
+            size={22}
+            color={item.isReward ? "#ea580c" : Colors.textLight}
+          />
         </View>
       )}
 
@@ -50,16 +54,29 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
         <Text style={styles.name} numberOfLines={2}>
           {item.productName}
         </Text>
+        {item.isReward ? (
+          <View style={styles.rewardBadge}>
+            <Text style={styles.rewardBadgeText}>
+              🎁 {t("orders.prize")}
+            </Text>
+          </View>
+        ) : null}
         {variantSize ? (
           <Text style={styles.variantSize}>{variantSize}</Text>
         ) : null}
         {optionName ? (
           <Text style={styles.optionName}>{optionName}</Text>
         ) : null}
-        <Text style={styles.meta}>
-          {(item.price ?? 0).toFixed(2)} {t("common.currency")} ×{" "}
-          {item.quantity} {unitLabel}
-        </Text>
+        {item.isReward ? (
+          <Text style={styles.meta}>
+            {t("orders.prizeFree")} × {item.quantity}
+          </Text>
+        ) : (
+          <Text style={styles.meta}>
+            {(item.price ?? 0).toFixed(2)} {t("common.currency")} ×{" "}
+            {item.quantity} {unitLabel}
+          </Text>
+        )}
         {item.note ? (
           <Text style={styles.note} numberOfLines={2}>
             {item.note}
@@ -67,8 +84,10 @@ export default function OrderProductItem({ item }: OrderProductItemProps) {
         ) : null}
       </View>
 
-      <Text style={styles.subtotal}>
-        {(item.subtotal ?? 0).toFixed(2)} {t("common.currency")}
+      <Text style={[styles.subtotal, item.isReward && styles.rewardSubtotal]}>
+        {item.isReward
+          ? `0.00 ${t("common.currency")}`
+          : `${(item.subtotal ?? 0).toFixed(2)} ${t("common.currency")}`}
       </Text>
     </View>
   );
@@ -131,5 +150,26 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.primary,
+  },
+  rewardContainer: {
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fdba74",
+  },
+  rewardBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#ffedd5",
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 1,
+    marginTop: 2,
+  },
+  rewardBadgeText: {
+    fontSize: FontSize.xxs,
+    fontWeight: "700",
+    color: "#ea580c",
+  },
+  rewardSubtotal: {
+    color: "#ea580c",
   },
 });

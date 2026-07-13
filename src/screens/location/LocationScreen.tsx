@@ -7,12 +7,13 @@ import {
     Spacing,
 } from "@/src/constants/theme";
 import { locationService } from "@/src/services/location.service";
-import { useAppDispatch } from "@/src/store";
+import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUser } from "@/src/store/slices/auth.slice";
 import type { City, UpdateLocationPayload } from "@/src/types";
+import { saveLocation } from "@/src/utils/locationStorage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -87,18 +88,54 @@ function haversineKm(
 }
 
 /**
- * Pick the nearest city (and nearest area within it) to the given GPS
- * coordinates using stored lat/lng. Returns null when no city in the
- * dataset has coordinates, so the caller can fall back to geocoding.
+ * Pick the closest city/area to the given GPS coordinates using stored lat/lng.
+ *
+ * Areas are the more granular signal, so we search for the globally nearest
+ * AREA across every city and derive its parent city from that — this reliably
+ * lands the user on the closest neighborhood (or their own), even when the
+ * nearest city *centroid* belongs to a different city than the nearest area.
+ * We only fall back to nearest-city-by-centroid when no area has coordinates.
+ * Returns null when nothing in the dataset has coordinates so the caller can
+ * fall back to reverse geocoding.
  */
 function matchByCoordinates(
   latitude: number,
   longitude: number,
   cities: City[],
 ): { cityId: string; areaId?: string } | null {
+  // 1) Globally nearest area (with coordinates), across all cities.
+  let nearestAreaCityId: string | undefined;
+  let nearestAreaId: string | undefined;
+  let nearestAreaDist = Infinity;
+
+  for (const city of cities) {
+    for (const area of city.areas ?? []) {
+      if (
+        typeof area.latitude !== "number" ||
+        typeof area.longitude !== "number"
+      )
+        continue;
+      const dist = haversineKm(
+        latitude,
+        longitude,
+        area.latitude,
+        area.longitude,
+      );
+      if (dist < nearestAreaDist) {
+        nearestAreaDist = dist;
+        nearestAreaId = area.id;
+        nearestAreaCityId = city.id;
+      }
+    }
+  }
+
+  if (nearestAreaCityId && nearestAreaId) {
+    return { cityId: nearestAreaCityId, areaId: nearestAreaId };
+  }
+
+  // 2) No area coordinates anywhere — fall back to nearest city centroid.
   let nearestCity: City | null = null;
   let nearestCityDist = Infinity;
-
   for (const city of cities) {
     if (typeof city.latitude !== "number" || typeof city.longitude !== "number")
       continue;
@@ -115,26 +152,7 @@ function matchByCoordinates(
   }
 
   if (!nearestCity) return null;
-
-  // Find the nearest area within the matched city that has coordinates
-  let nearestAreaId: string | undefined;
-  let nearestAreaDist = Infinity;
-  for (const area of nearestCity.areas ?? []) {
-    if (typeof area.latitude !== "number" || typeof area.longitude !== "number")
-      continue;
-    const dist = haversineKm(
-      latitude,
-      longitude,
-      area.latitude,
-      area.longitude,
-    );
-    if (dist < nearestAreaDist) {
-      nearestAreaDist = dist;
-      nearestAreaId = area.id;
-    }
-  }
-
-  return { cityId: nearestCity.id, areaId: nearestAreaId };
+  return { cityId: nearestCity.id };
 }
 
 /**
@@ -219,12 +237,19 @@ export default function LocationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isArabic = i18n.language === "ar";
+  const user = useAppSelector((state) => state.auth.user);
+
+  // "onboarding" when opened during registration (no screen to go back to);
+  // otherwise the screen was pushed from Home/Cart and should return there.
+  const { flow } = useLocalSearchParams<{ flow?: string }>();
+  const isOnboarding = flow === "onboarding";
 
   const [cities, setCities] = useState<City[]>([]);
   const [loadingCities, setLoadingCities] = useState(true);
 
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
   const [coordinates, setCoordinates] = useState<{
     latitude: number;
     longitude: number;
@@ -262,9 +287,30 @@ export default function LocationScreen() {
     };
   }, []);
 
+  // Open with the customer's current/last delivery location pre-selected so
+  // confirming is one tap and changing feels closer to the user.
+  useEffect(() => {
+    if (prefilled || cities.length === 0) return;
+    if (user?.cityId && cities.some((c) => c.id === user.cityId)) {
+      setSelectedCityId(user.cityId);
+      setSelectedAreaId(user.areaId ?? null);
+    }
+    setPrefilled(true);
+  }, [cities, prefilled, user?.cityId, user?.areaId]);
+
+  // Return to wherever the user came from (Home/Cart), not the home tab —
+  // except during onboarding where there is no previous screen.
+  const goToOrigin = useCallback(() => {
+    if (!isOnboarding && router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
+  }, [isOnboarding, router]);
+
   const handleSkip = useCallback(() => {
-    router.replace("/(tabs)");
-  }, [router]);
+    goToOrigin();
+  }, [goToOrigin]);
 
   const handleAutoDetect = useCallback(async () => {
     setDetectingLocation(true);
@@ -277,7 +323,7 @@ export default function LocationScreen() {
       }
 
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Highest,
       });
 
       const coords = {
@@ -352,13 +398,23 @@ export default function LocationScreen() {
           area: response.user.area,
         }),
       );
-      router.replace("/(tabs)");
+      // Persist on the device so this becomes the default delivery location
+      // and survives restarts/logout.
+      void saveLocation({
+        cityId: response.user.cityId,
+        areaId: response.user.areaId,
+        latitude: response.user.latitude,
+        longitude: response.user.longitude,
+        city: response.user.city,
+        area: response.user.area,
+      });
+      goToOrigin();
     } catch {
       Alert.alert("", t("location.saveError"));
     } finally {
       setSaving(false);
     }
-  }, [selectedCityId, selectedAreaId, coordinates, dispatch, router, t]);
+  }, [selectedCityId, selectedAreaId, coordinates, dispatch, goToOrigin, t]);
 
   const getCityDisplayName = (city: City) =>
     isArabic ? city.name : city.nameEn;

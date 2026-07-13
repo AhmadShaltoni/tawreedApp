@@ -41,6 +41,7 @@ import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
+    Image as RNImage,
     Modal,
     Pressable,
     RefreshControl,
@@ -251,11 +252,12 @@ export default function LoyaltyScreen() {
   const getRewardTypeLabel = (type: RewardType) => {
     switch (type) {
       case RewardType.FIXED_DISCOUNT:
-        return t("loyalty.discount");
       case RewardType.PERCENTAGE_DISCOUNT:
         return t("loyalty.discount");
       case RewardType.FREE_DELIVERY:
-        return t("loyalty.rewards");
+        return t("loyalty.freeDelivery");
+      case RewardType.FREE_PRODUCT:
+        return t("loyalty.freeProduct");
       case RewardType.CUSTOM:
         return t("loyalty.rewards");
     }
@@ -391,11 +393,14 @@ export default function LoyaltyScreen() {
             ) : rewards.items.length === 0 ? (
               <EmptyState
                 icon="gift-outline"
-                title={t("loyalty.noTransactions")}
-                message={t("loyalty.noTransactionsMessage")}
+                title={t("loyalty.noRewards")}
+                message={t("loyalty.noRewardsMessage")}
               />
             ) : (
               <View style={styles.rewardsGrid}>
+                <Text style={styles.rewardsHint}>
+                  {t("loyalty.rewardsHint")}
+                </Text>
                 {rewards.items.map((reward) => (
                   <RewardCard
                     key={reward.id}
@@ -659,58 +664,139 @@ function RewardCard({
     ? (reward.descriptionAr ?? reward.description)
     : (reward.descriptionEn ?? reward.description);
   const canAfford = currentBalance >= reward.pointsCost;
-  const rarityColor =
-    RarityColors[reward.rarity]?.primary ?? Colors.textSecondary;
+  const rarity = RarityColors[reward.rarity] ?? RarityColors.COMMON;
+  const rarityColor = rarity.primary;
+
+  const rewardImage = reward.image ?? reward.product?.image ?? null;
+  const productName = reward.product
+    ? isArabic
+      ? reward.product.name
+      : (reward.product.nameEn ?? reward.product.name)
+    : null;
+
+  // Progress toward affording this reward (drives the engagement bar)
+  const progressPct = Math.min(
+    100,
+    Math.round(
+      (currentBalance / Math.max(1, reward.pointsCost)) * 100,
+    ),
+  );
+  const pointsRemaining = Math.max(0, reward.pointsCost - currentBalance);
+
+  // Reward value line + icon per type
+  let valueText = "";
+  let valueIcon = "🎁";
+  if (reward.type === RewardType.FIXED_DISCOUNT && reward.discountValue != null) {
+    valueText = `${t("loyalty.discount")} ${reward.discountValue} ${t("common.currency")}`;
+    valueIcon = "💵";
+  } else if (
+    reward.type === RewardType.PERCENTAGE_DISCOUNT &&
+    reward.discountPercentage != null
+  ) {
+    valueText = `${t("loyalty.discount")} ${reward.discountPercentage}%`;
+    valueIcon = "🏷️";
+  } else if (reward.type === RewardType.FREE_DELIVERY) {
+    valueText = t("loyalty.freeDelivery");
+    valueIcon = "🚚";
+  } else if (reward.type === RewardType.FREE_PRODUCT) {
+    valueText = productName
+      ? `${t("loyalty.freeProduct")}: ${productName}`
+      : t("loyalty.freeProduct");
+    valueIcon = "🎁";
+  }
 
   return (
-    <View style={[styles.rewardCard, !canAfford && styles.rewardCardLocked]}>
-      <View
-        style={[styles.rarityBadge, { backgroundColor: rarityColor + "15" }]}
-      >
-        <Text style={[styles.rarityText, { color: rarityColor }]}>
-          {t(`loyalty.${reward.rarity?.toLowerCase() ?? "common"}`)}
-        </Text>
+    <View
+      style={[
+        styles.rewardCard,
+        { borderColor: canAfford ? rarityColor + "55" : Colors.border },
+        !canAfford && styles.rewardCardLocked,
+      ]}
+    >
+      {/* Media header with rarity tint */}
+      <View style={[styles.rewardMedia, { backgroundColor: rarity.bg }]}>
+        {rewardImage ? (
+          <RNImage
+            source={{ uri: rewardImage }}
+            style={styles.rewardMediaImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Text style={styles.rewardMediaEmoji}>{valueIcon}</Text>
+        )}
+
+        {/* Points cost chip (top corner) */}
+        <View style={[styles.pointsChip, { backgroundColor: rarityColor }]}>
+          <Ionicons name="star" size={12} color={Colors.white} />
+          <Text style={styles.pointsChipText}>
+            {reward.pointsCost.toLocaleString()}
+          </Text>
+        </View>
+
+        {/* Locked overlay */}
+        {!canAfford && (
+          <View style={styles.lockedChip}>
+            <Ionicons name="lock-closed" size={11} color={Colors.white} />
+          </View>
+        )}
       </View>
-      <Text style={styles.rewardName} numberOfLines={2}>
-        {name}
-      </Text>
-      <Text style={styles.rewardDescription} numberOfLines={2}>
-        {description}
-      </Text>
 
-      {/* Reward value */}
-      {reward.discountValue != null && (
-        <Text style={styles.rewardValue}>
-          {reward.discountValue} {t("common.currency")} {t("loyalty.discount")}
-        </Text>
-      )}
-      {reward.discountPercentage != null && (
-        <Text style={styles.rewardValue}>
-          {reward.discountPercentage}% {t("loyalty.discount")}
-        </Text>
-      )}
+      {/* Body */}
+      <View style={styles.rewardBody}>
+        <View style={[styles.rarityBadge, { backgroundColor: rarityColor + "18" }]}>
+          <Text style={[styles.rarityText, { color: rarityColor }]}>
+            {valueIcon} {valueText || name}
+          </Text>
+        </View>
 
-      <View style={styles.rewardFooter}>
-        <Text
-          style={[styles.pointsCost, !canAfford && styles.pointsCostLocked]}
-        >
-          {t("loyalty.pointsCost", { points: reward.pointsCost })}
+        <Text style={styles.rewardName} numberOfLines={2}>
+          {name}
         </Text>
+        {description ? (
+          <Text style={styles.rewardDescription} numberOfLines={2}>
+            {description}
+          </Text>
+        ) : null}
+
+        {/* Affordability progress (only when locked) */}
+        {!canAfford && (
+          <View style={styles.progressWrap}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progressPct}%`, backgroundColor: rarityColor },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressLabel}>
+              {t("loyalty.needMorePoints", { points: pointsRemaining })}
+            </Text>
+          </View>
+        )}
+
+        {/* CTA */}
         <Pressable
           style={[
             styles.redeemButton,
+            { backgroundColor: canAfford ? rarityColor : Colors.background },
             !canAfford && styles.redeemButtonDisabled,
           ]}
           onPress={onRedeem}
           disabled={!canAfford || !reward.isActive}
         >
+          {canAfford && (
+            <Ionicons name="gift" size={15} color={Colors.white} />
+          )}
           <Text
             style={[
               styles.redeemButtonText,
               !canAfford && styles.redeemButtonTextDisabled,
             ]}
           >
-            {canAfford ? t("loyalty.redeem") : t("loyalty.insufficientPoints")}
+            {canAfford
+              ? t("loyalty.redeemNow")
+              : t("loyalty.pointsCost", { points: reward.pointsCost })}
           </Text>
         </Pressable>
       </View>
@@ -775,6 +861,19 @@ function CouponCard({
       {coupon.discountPercentage != null && (
         <Text style={styles.couponDiscount}>
           {coupon.discountPercentage}% {t("loyalty.discount")}
+        </Text>
+      )}
+      {coupon.rewardType === RewardType.FREE_DELIVERY && (
+        <Text style={styles.couponDiscount}>
+          🚚 {t("loyalty.freeDelivery")}
+        </Text>
+      )}
+      {coupon.rewardType === RewardType.FREE_PRODUCT && (
+        <Text style={styles.couponDiscount}>
+          🎁 {t("loyalty.freeProduct")}
+          {coupon.freeProduct?.name
+            ? `: ${isArabic ? coupon.freeProduct.name : (coupon.freeProduct.nameEn ?? coupon.freeProduct.name)}`
+            : ""}
         </Text>
       )}
 
@@ -1069,80 +1168,130 @@ const styles = StyleSheet.create({
 
   // Rewards grid
   rewardsGrid: {
-    gap: Spacing.md,
+    gap: Spacing.lg,
+  },
+  rewardsHint: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    lineHeight: 20,
   },
   rewardCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    ...Shadows.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    overflow: "hidden",
+    ...Shadows.md,
   },
   rewardCardLocked: {
-    opacity: 0.7,
+    opacity: 0.96,
+  },
+  rewardMedia: {
+    height: 130,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  rewardMediaImage: {
+    width: "78%",
+    height: "88%",
+  },
+  rewardMediaEmoji: {
+    fontSize: 52,
+  },
+  pointsChip: {
+    position: "absolute",
+    top: Spacing.sm,
+    insetInlineEnd: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    ...Shadows.sm,
+  },
+  pointsChipText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.white,
+  },
+  lockedChip: {
+    position: "absolute",
+    top: Spacing.sm,
+    insetInlineStart: Spacing.sm,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(17,24,39,0.55)",
+  },
+  rewardBody: {
+    padding: Spacing.lg,
   },
   rarityBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: BorderRadius.full,
     marginBottom: Spacing.sm,
+    maxWidth: "100%",
   },
   rarityText: {
     fontSize: FontSize.xxs,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: "800",
   },
   rewardName: {
     fontSize: FontSize.md,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
   rewardDescription: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
     lineHeight: 20,
   },
-  rewardValue: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
+  progressWrap: {
+    marginBottom: Spacing.md,
   },
-  rewardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-    paddingTop: Spacing.sm,
+  progressTrack: {
+    height: 7,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
+    marginBottom: 6,
   },
-  pointsCost: {
-    fontSize: FontSize.sm,
+  progressFill: {
+    height: "100%",
+    borderRadius: BorderRadius.full,
+  },
+  progressLabel: {
+    fontSize: FontSize.xxs,
     fontWeight: "700",
-    color: Colors.text,
-  },
-  pointsCostLocked: {
-    color: Colors.textLight,
+    color: Colors.textSecondary,
   },
   redeemButton: {
-    backgroundColor: Colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
   },
   redeemButtonDisabled: {
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.background,
   },
   redeemButtonText: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
+    fontSize: FontSize.sm,
+    fontWeight: "800",
     color: Colors.white,
   },
   redeemButtonTextDisabled: {
-    color: Colors.textLight,
+    color: Colors.textSecondary,
   },
 
   // Coupons list

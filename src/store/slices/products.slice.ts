@@ -15,6 +15,9 @@ interface ProductsState {
   loadingDetail: boolean;
   error: string | null;
   filters: ProductFilters;
+  // Guards against out-of-order responses: only the latest fetchProducts
+  // request may write results (slow networks can deliver stale responses last)
+  latestRequestId: string | null;
 }
 
 const initialState: ProductsState = {
@@ -28,6 +31,7 @@ const initialState: ProductsState = {
   loadingDetail: false,
   error: null,
   filters: { page: 1, limit: 20 },
+  latestRequestId: null,
 };
 
 export const fetchProducts = createAsyncThunk(
@@ -103,17 +107,20 @@ const productsSlice = createSlice({
   extraReducers: (builder) => {
     // Fetch products
     builder
-      .addCase(fetchProducts.pending, (state) => {
+      .addCase(fetchProducts.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.latestRequestId = action.meta.requestId;
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) return; // stale response
         state.loading = false;
         state.items = action.payload.products;
         state.total = action.payload.total;
         state.page = action.payload.page;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) return; // stale response
         state.loading = false;
         state.error = action.payload as string;
       });

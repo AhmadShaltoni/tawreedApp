@@ -11,7 +11,24 @@ import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
 import { clearCache } from "@/src/utils/cache";
 import { getErrorMessage } from "@/src/utils/errorHandler";
+import {
+  getSavedLocation,
+  saveLocation,
+  type SavedLocation,
+} from "@/src/utils/locationStorage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+/** Extract the persistable delivery-location fields from a user object. */
+function userToSavedLocation(user: User): SavedLocation {
+  return {
+    cityId: user.cityId ?? null,
+    areaId: user.areaId ?? null,
+    latitude: user.latitude ?? null,
+    longitude: user.longitude ?? null,
+    city: user.city ?? null,
+    area: user.area ?? null,
+  };
+}
 
 interface AuthState {
   user: User | null;
@@ -48,6 +65,12 @@ export const login = createAsyncThunk(
       const response = await authService.login(payload);
       await setToken(response.token);
 
+      // Persist the server's saved location so it survives cold starts even
+      // if a later /auth/me somehow omits it. Only persist a real location.
+      if (response.user?.cityId) {
+        void saveLocation(userToSavedLocation(response.user));
+      }
+
       // Register FCM token with backend now that user is authenticated
       await notificationService.registerTokenAfterLogin();
 
@@ -65,6 +88,10 @@ export const register = createAsyncThunk(
     try {
       const response = await authService.register(payload);
       await setToken(response.token);
+
+      if (response.user?.cityId) {
+        void saveLocation(userToSavedLocation(response.user));
+      }
 
       // Register FCM token with backend now that user is authenticated
       await notificationService.registerTokenAfterLogin();
@@ -87,7 +114,29 @@ export const restoreSession = createAsyncThunk(
       }
       const user = await authService.getMe();
       await notificationService.registerTokenAfterLogin();
-      return { token, user };
+
+      // Never "forget" the location on cold start: if the server didn't
+      // return a saved location, fall back to what we persisted locally.
+      // If the server did return one, keep the local copy in sync.
+      let restoredUser = user;
+      if (user.cityId == null) {
+        const saved = await getSavedLocation();
+        if (saved?.cityId) {
+          restoredUser = {
+            ...user,
+            cityId: saved.cityId,
+            areaId: saved.areaId ?? null,
+            latitude: saved.latitude ?? null,
+            longitude: saved.longitude ?? null,
+            city: saved.city ?? null,
+            area: saved.area ?? null,
+          };
+        }
+      } else {
+        void saveLocation(userToSavedLocation(user));
+      }
+
+      return { token, user: restoredUser };
     } catch {
       await removeToken();
       return null;
@@ -179,6 +228,11 @@ export const updateUserLocation = createAsyncThunk(
         payload.cityId,
         payload.areaId,
       );
+      // Persist so this becomes the default delivery location next time and
+      // survives restarts/logout on this device.
+      if (user?.cityId) {
+        void saveLocation(userToSavedLocation(user));
+      }
       return user;
     } catch (error: any) {
       const message = getErrorMessage(error);
@@ -276,7 +330,9 @@ const authSlice = createSlice({
     builder
       .addCase(updateUserLocation.fulfilled, (state, action) => {
         if (state.user) {
-          state.user = action.payload;
+          // Merge so we never drop existing profile fields if the response
+          // is partial — the location fields come from action.payload.
+          state.user = { ...state.user, ...action.payload };
         }
       })
       .addCase(updateUserLocation.rejected, (state, action) => {

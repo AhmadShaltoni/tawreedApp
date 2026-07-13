@@ -23,6 +23,7 @@ export enum RewardType {
   FIXED_DISCOUNT = "FIXED_DISCOUNT",
   PERCENTAGE_DISCOUNT = "PERCENTAGE_DISCOUNT",
   FREE_DELIVERY = "FREE_DELIVERY",
+  FREE_PRODUCT = "FREE_PRODUCT",
   CUSTOM = "CUSTOM",
 }
 
@@ -88,6 +89,14 @@ export interface Reward {
   expiryDays?: number; // Days until redeemed coupon expires
   minOrderAmount?: number; // Minimum order total to use coupon
 
+  // Free product prize (type = FREE_PRODUCT)
+  product?: {
+    id: string;
+    name: string;
+    nameEn?: string | null;
+    image?: string | null;
+  } | null;
+
   // UI state helpers
   isAffordable?: boolean; // Frontend-computed: currentBalance >= pointsCost
   isLocked?: boolean; // Frontend: not affordable or not active
@@ -100,6 +109,7 @@ export interface Coupon {
   rewardName: string;
   rewardNameAr?: string;
   rewardNameEn?: string;
+  rewardType?: RewardType;
   status: CouponStatus;
   discountValue?: number;
   discountPercentage?: number;
@@ -109,6 +119,12 @@ export interface Coupon {
   expiresAt?: string;
   usedAt?: string;
   usedInOrderId?: string;
+  freeProduct?: {
+    productId?: string | null;
+    name?: string | null;
+    nameEn?: string | null;
+    image?: string | null;
+  } | null;
 }
 
 export interface Campaign {
@@ -229,6 +245,17 @@ export interface ValidateCouponResponse {
   coupon?: Coupon;
   discountAmount?: number;
   finalTotal?: number;
+  couponId?: string;
+  rewardType?: RewardType;
+  rewardName?: string;
+  rewardNameEn?: string | null;
+  freeDelivery?: boolean;
+  freeProduct?: {
+    productId?: string | null;
+    name?: string | null;
+    nameEn?: string | null;
+    image?: string | null;
+  } | null;
   error?: string;
 }
 

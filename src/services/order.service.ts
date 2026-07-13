@@ -65,6 +65,7 @@ function mapItem(raw: any): OrderItem {
     optionName: raw.optionName ?? raw.variantOption?.name,
     optionNameEn: raw.optionNameEn ?? raw.variantOption?.nameEn,
     note: raw.note ?? raw.itemNote,
+    isReward: raw.isReward === true,
   };
 }
 

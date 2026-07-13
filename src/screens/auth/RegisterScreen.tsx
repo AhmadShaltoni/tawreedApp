@@ -92,7 +92,7 @@ export default function RegisterScreen() {
       // New user — check if location needs to be set
       const user = result.payload.user;
       if (!user.cityId && user.latitude == null) {
-        router.replace("/location");
+        router.replace("/location?flow=onboarding");
       } else {
         router.replace("/(tabs)");
       }

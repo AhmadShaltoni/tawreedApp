@@ -72,6 +72,9 @@ export default function ProductsListScreen() {
   const { items: brands } = useAppSelector((state) => state.brands);
 
   const [search, setSearch] = useState("");
+  // Debounced copy of `search` — fetching on every keystroke floods the API
+  // and lets slow responses arrive out of order
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     params.categoryId ?? null,
   );
@@ -120,6 +123,11 @@ export default function ProductsListScreen() {
     () => brands.find((b) => b.id === selectedBrand),
     [brands, selectedBrand],
   );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Load initial data — root categories for filter chips
   useEffect(() => {
@@ -196,7 +204,7 @@ export default function ProductsListScreen() {
     dispatch(
       fetchProducts({
         ...filters,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
@@ -206,7 +214,7 @@ export default function ProductsListScreen() {
     );
   }, [
     dispatch,
-    search,
+    debouncedSearch,
     effectiveCategoryId,
     selectedBrand,
     selectedTag,
@@ -218,7 +226,7 @@ export default function ProductsListScreen() {
     await dispatch(
       fetchProducts({
         ...filters,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
@@ -230,7 +238,7 @@ export default function ProductsListScreen() {
   }, [
     dispatch,
     filters,
-    search,
+    debouncedSearch,
     effectiveCategoryId,
     selectedBrand,
     selectedTag,
@@ -242,7 +250,7 @@ export default function ProductsListScreen() {
     dispatch(
       fetchMoreProducts({
         ...filters,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         categoryId: effectiveCategoryId ?? undefined,
         brandId: selectedBrand ?? undefined,
         tag: selectedTag ?? undefined,
@@ -253,7 +261,7 @@ export default function ProductsListScreen() {
   }, [
     dispatch,
     filters,
-    search,
+    debouncedSearch,
     effectiveCategoryId,
     selectedBrand,
     selectedTag,
@@ -272,6 +280,7 @@ export default function ProductsListScreen() {
   );
 
   const handleSearchSubmit = useCallback(() => {
+    setDebouncedSearch(search); // apply immediately, skip the debounce delay
     dispatch(setFilters({ search: search || undefined }));
   }, [dispatch, search]);
 
@@ -328,6 +337,7 @@ export default function ProductsListScreen() {
             onChangeText={setSearch}
             onClear={() => setSearch("")}
             onSubmitEditing={handleSearchSubmit}
+            placeholder={t("products.search")}
           />
         </View>
 
@@ -500,15 +510,6 @@ export default function ProductsListScreen() {
     ],
   );
 
-  if (loading && !refreshing && items.length === 0) {
-    return (
-      <View style={styles.container}>
-        {Header}
-        <Loader />
-      </View>
-    );
-  }
-
   if (productsError && items.length === 0) {
     return (
       <ErrorScreen
@@ -528,16 +529,23 @@ export default function ProductsListScreen() {
         renderItem={renderProduct}
         ListHeaderComponent={Header}
         ListEmptyComponent={
-          <EmptyState
-            icon="cube-outline"
-            title={t("products.noProducts")}
-            message={t("products.noProductsMessage")}
-            actionLabel="Clear Filters"
-            onAction={() => {
-              setSearch("");
-              setSelectedCategory(null);
-            }}
-          />
+          // Swapping the whole screen for a loader would unmount the search
+          // bar and dismiss the keyboard mid-typing — keep the list mounted
+          // and show loading/empty states inside it instead.
+          loading && !refreshing ? (
+            <Loader />
+          ) : (
+            <EmptyState
+              icon="cube-outline"
+              title={t("products.noProducts")}
+              message={t("products.noProductsMessage")}
+              actionLabel="Clear Filters"
+              onAction={() => {
+                setSearch("");
+                setSelectedCategory(null);
+              }}
+            />
+          )
         }
         ListFooterComponent={
           loadingMore ? (
@@ -548,6 +556,7 @@ export default function ProductsListScreen() {
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}

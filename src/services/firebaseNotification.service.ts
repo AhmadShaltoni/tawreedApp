@@ -1,18 +1,39 @@
 import { API_ENDPOINTS } from "@/src/constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  AuthorizationStatus,
-  getInitialNotification,
-  getMessaging,
-  getToken,
-  onMessage,
-  onNotificationOpenedApp,
-  requestPermission,
-} from "@react-native-firebase/messaging";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import apiClient from "./api";
 import { initializeFirebase, isFirebaseInitialized } from "./firebase-init";
 import { getToken as getJwtToken } from "./tokenStorage";
+
+/**
+ * ⚠️ Firebase native modules (RNFBAppModule) are NOT available in Expo Go.
+ * They only exist in a development build or a production build.
+ * We lazily require the messaging module so importing this file never
+ * crashes in Expo Go — push notifications are simply disabled there.
+ */
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+type MessagingModule = typeof import("@react-native-firebase/messaging");
+
+let messagingModule: MessagingModule | null = null;
+
+function getMessagingModule(): MessagingModule | null {
+  if (isExpoGo) return null;
+  if (!messagingModule) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      messagingModule = require("@react-native-firebase/messaging");
+    } catch (error) {
+      console.warn(
+        "[Firebase] Messaging native module unavailable. Use a development build for push notifications.",
+        error,
+      );
+      return null;
+    }
+  }
+  return messagingModule;
+}
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -41,6 +62,14 @@ class FirebaseNotificationService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
+    const messaging = getMessagingModule();
+    if (!messaging) {
+      console.warn(
+        "[Firebase] Skipping initialization — native module unavailable (Expo Go?). Use a development build for push notifications.",
+      );
+      return;
+    }
+
     try {
       console.log("[Firebase] Initializing Firebase Messaging...");
 
@@ -53,11 +82,11 @@ class FirebaseNotificationService {
       }
 
       // طلب الصلاحيات من المستخدم
-      const messagingInstance = getMessaging();
-      const authStatus = await requestPermission(messagingInstance);
+      const messagingInstance = messaging.getMessaging();
+      const authStatus = await messaging.requestPermission(messagingInstance);
       const enabled =
-        authStatus === AuthorizationStatus.AUTHORIZED ||
-        authStatus === AuthorizationStatus.PROVISIONAL;
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
       if (enabled) {
         console.log("[Firebase] Notification permission granted");
@@ -83,10 +112,13 @@ class FirebaseNotificationService {
    * الحصول على FCM Token وتسجيله مع Backend
    */
   async getAndRegisterFCMToken(): Promise<string | null> {
+    const messaging = getMessagingModule();
+    if (!messaging) return null;
+
     try {
       // الحصول على Token من Firebase
-      const messagingInstance = getMessaging();
-      const fcmToken = await getToken(messagingInstance);
+      const messagingInstance = messaging.getMessaging();
+      const fcmToken = await messaging.getToken(messagingInstance);
       console.log("[Firebase] FCM Token obtained:", fcmToken);
 
       // حفظ Token محلياً
@@ -161,9 +193,12 @@ class FirebaseNotificationService {
    * إعداد معالجات الرسائل الواردة والاستجابات
    */
   private setupMessageHandlers(): void {
+    const messaging = getMessagingModule();
+    if (!messaging) return;
+
     // معالج الرسائل الواردة (Foreground)
-    this.messageUnsubscribe = onMessage(
-      getMessaging(),
+    this.messageUnsubscribe = messaging.onMessage(
+      messaging.getMessaging(),
       async (remoteMessage) => {
         console.log("[Firebase] Foreground message received:", {
           title: remoteMessage.notification?.title,
@@ -199,7 +234,7 @@ class FirebaseNotificationService {
     );
 
     // معالج الضغط على الإشعار من الخلفية
-    onNotificationOpenedApp(getMessaging(), (remoteMessage) => {
+    messaging.onNotificationOpenedApp(messaging.getMessaging(), (remoteMessage) => {
       console.log("[Firebase] Notification opened app:", {
         title: remoteMessage.notification?.title,
         data: remoteMessage.data,
@@ -209,7 +244,7 @@ class FirebaseNotificationService {
     });
 
     // معالج الإشعار عند فتح التطبيق (killed state)
-    getInitialNotification(getMessaging()).then((remoteMessage) => {
+    messaging.getInitialNotification(messaging.getMessaging()).then((remoteMessage) => {
       if (remoteMessage) {
         console.log("[Firebase] App opened from notification:", {
           title: remoteMessage.notification?.title,

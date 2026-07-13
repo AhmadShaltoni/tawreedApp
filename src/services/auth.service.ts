@@ -100,16 +100,19 @@ export const authService = {
   },
 
   getMe: async (): Promise<User> => {
-    const { data } = await apiClient.get<User>(API_ENDPOINTS.AUTH.ME);
-    return data;
+    // Endpoint responds with { user: {...} } — unwrap to the user object.
+    const { data } = await apiClient.get<{ user: User }>(API_ENDPOINTS.AUTH.ME);
+    return data.user;
   },
 
   updateLocation: async (cityId: string, areaId?: string): Promise<User> => {
-    const { data } = await apiClient.patch<User>(
+    // Endpoint responds with { user: {...} } — unwrap so callers receive a
+    // complete User (with city/area) instead of a nested wrapper object.
+    const { data } = await apiClient.patch<{ user: User }>(
       API_ENDPOINTS.USER.UPDATE_LOCATION,
       { cityId, areaId },
     );
-    return data;
+    return data.user;
   },
 
   sendOtp: async (payload: SendOtpPayload): Promise<SendOtpResponse> => {

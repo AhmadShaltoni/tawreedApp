@@ -155,7 +155,7 @@ export default function OTPScreen() {
         const user = registerResult.payload.user;
         setTimeout(() => {
           if (!user.cityId && user.latitude == null) {
-            router.replace("/location");
+            router.replace("/location?flow=onboarding");
           } else {
             router.replace("/(tabs)");
           }

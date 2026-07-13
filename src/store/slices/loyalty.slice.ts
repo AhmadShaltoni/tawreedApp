@@ -172,13 +172,33 @@ export const fetchRewards = createAsyncThunk(
       const state = getState() as { loyalty: LoyaltyState };
       const currentBalance = state.loyalty.balance?.currentBalance ?? 0;
 
-      const enhancedRewards = data.rewards.map((reward) => ({
-        ...reward,
-        isAffordable: currentBalance >= reward.pointsCost,
-        isLocked: !reward.isActive || currentBalance < reward.pointsCost,
-        // Map backend type to rarity for visual treatment
-        rarity: mapRewardTypeToRarity(reward.type),
-      }));
+      const enhancedRewards = (data.rewards ?? []).map((raw: any) => {
+        // Normalize across backend shapes: new API sends `type`, older/raw
+        // Prisma responses send `rewardType`. Also fold discount fields.
+        const type = raw.type ?? raw.rewardType;
+        const reward: Reward = {
+          ...raw,
+          type,
+          name: raw.name ?? raw.nameAr ?? "",
+          description: raw.description ?? raw.descriptionAr ?? "",
+          pointsCost: raw.pointsCost ?? 0,
+          isActive: raw.isActive ?? true,
+          discountValue:
+            raw.discountValue ??
+            (type === "FIXED_DISCOUNT" ? raw.discountValue : undefined),
+          discountPercentage:
+            raw.discountPercentage ??
+            (type === "PERCENTAGE_DISCOUNT" ? raw.discountValue : undefined),
+          image: raw.image ?? raw.imageUrl ?? raw.product?.image ?? undefined,
+        };
+        return {
+          ...reward,
+          isAffordable: currentBalance >= reward.pointsCost,
+          isLocked: !reward.isActive || currentBalance < reward.pointsCost,
+          // Map backend type to rarity for visual treatment
+          rarity: mapRewardTypeToRarity(type),
+        };
+      });
 
       return { rewards: enhancedRewards };
     } catch (error: any) {
@@ -314,6 +334,7 @@ function mapRewardTypeToRarity(type: string): RewardRarity {
     FIXED_DISCOUNT: RewardRarity.COMMON,
     PERCENTAGE_DISCOUNT: RewardRarity.RARE,
     FREE_DELIVERY: RewardRarity.EPIC,
+    FREE_PRODUCT: RewardRarity.LEGENDARY,
     CUSTOM: RewardRarity.LEGENDARY,
   };
 
