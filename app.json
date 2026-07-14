@@ -2,7 +2,7 @@
   "expo": {
     "name": "tawreed - توريد",
     "slug": "tawreedApp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "projectId": "550e8400-e29b-41d4-a716-446655440000",
     "orientation": "portrait",
     "icon": "./assets/images/icon2.png",
@@ -19,7 +19,7 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "buildNumber": "7"
+      "buildNumber": "8"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -32,7 +32,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "tawreedApp.com.jo",
-      "versionCode": 46
+      "versionCode": 47
     },
     "web": {
       "output": "static",

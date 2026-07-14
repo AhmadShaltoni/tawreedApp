@@ -95,10 +95,6 @@ describe("API Constants", () => {
     it("should have correct validate endpoint", () => {
       expect(API_ENDPOINTS.COUPONS.VALIDATE).toBe("/api/v1/coupons/validate");
     });
-
-    it("should have correct confirm endpoint", () => {
-      expect(API_ENDPOINTS.COUPONS.CONFIRM).toBe("/api/v1/coupons/confirm");
-    });
   });
 
   // ─── Location Endpoints ───

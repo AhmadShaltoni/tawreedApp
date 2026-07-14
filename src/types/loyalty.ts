@@ -50,11 +50,23 @@ export enum CampaignStatus {
 // Core Interfaces
 // ============================================
 
+export interface LoyaltyEarnConfig {
+  isEnabled: boolean;
+  pointsPerJod: number;
+  calculationBase: number;
+  minOrderValue: number | null;
+  excludeDeliveryFees: boolean;
+  roundingMode: "FLOOR" | "CEIL" | "ROUND";
+  earnTrigger: "ORDER_PLACED" | "DELIVERED";
+}
+
 export interface LoyaltyBalance {
   currentBalance: number;
   totalEarned: number;
   totalRedeemed: number;
   recentTransactions: LoyaltyTransaction[];
+  /** Public earn settings — lets the app forecast points before checkout */
+  earnConfig?: LoyaltyEarnConfig;
 }
 
 export interface LoyaltyTransaction {

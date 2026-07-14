@@ -7,6 +7,7 @@ import {
   Shadows,
   Spacing,
 } from "@/src/constants/theme";
+import { notificationNavigationService } from "@/src/services/notifications/notification-navigation";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   fetchNotifications,
@@ -16,7 +17,6 @@ import {
 import type { Notification, NotificationType } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -28,10 +28,9 @@ import {
   View,
 } from "react-native";
 
-const TYPE_CONFIG: Record<
-  NotificationType,
-  { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }
-> = {
+type IconConfig = { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string };
+
+const TYPE_CONFIG: Record<NotificationType, IconConfig> = {
   order_update: { icon: "receipt-outline", color: "#1e40af", bg: "#dbeafe" },
   new_product: { icon: "cube-outline", color: "#166534", bg: "#dcfce7" },
   promotion: { icon: "pricetag-outline", color: "#92400e", bg: "#fef3c7" },
@@ -42,10 +41,29 @@ const TYPE_CONFIG: Record<
   },
 };
 
+// Icon by destination target type, takes priority over TYPE_CONFIG since
+// admin-composed notifications are always stored with the generic "system"
+// backend type but carry a more specific `data.targetType`.
+const TARGET_TYPE_ICON_CONFIG: Record<string, IconConfig> = {
+  PRODUCT: { icon: "cube-outline", color: "#166534", bg: "#dcfce7" },
+  CATEGORY: { icon: "pricetag-outline", color: "#92400e", bg: "#fef3c7" },
+  BRAND: { icon: "ribbon-outline", color: "#92400e", bg: "#fef3c7" },
+  COLLECTION: { icon: "grid-outline", color: "#92400e", bg: "#fef3c7" },
+  ORDER: { icon: "receipt-outline", color: "#1e40af", bg: "#dbeafe" },
+  URL: { icon: "link-outline", color: "#6d28d9", bg: "#ede9fe" },
+};
+
+function getIconConfig(item: Notification): IconConfig {
+  const targetType = item.data?.targetType;
+  if (targetType && TARGET_TYPE_ICON_CONFIG[targetType]) {
+    return TARGET_TYPE_ICON_CONFIG[targetType];
+  }
+  return TYPE_CONFIG[item.type] ?? TYPE_CONFIG.system;
+}
+
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const { items, loading, unreadCount } = useAppSelector(
     (state) => state.notifications,
   );
@@ -75,16 +93,12 @@ export default function NotificationsScreen() {
       if (!notification.read) {
         dispatch(markNotificationRead(notification.id));
       }
-      if (notification.type === "order_update" && notification.data?.orderId) {
-        router.push(`/order/${notification.data.orderId}`);
-      } else if (
-        notification.type === "new_product" &&
-        notification.data?.productId
-      ) {
-        router.push(`/product/${notification.data.productId}`);
-      }
+      notificationNavigationService.navigate(
+        notification.linkUrl ?? "",
+        notification.data,
+      );
     },
-    [dispatch, router],
+    [dispatch],
   );
 
   const handleMarkAllRead = useCallback(() => {
@@ -112,7 +126,7 @@ export default function NotificationsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Notification }) => {
-      const config = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.system;
+      const config = getIconConfig(item);
       return (
         <Pressable
           style={[styles.notifItem, !item.read && styles.unread]}

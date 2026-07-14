@@ -60,7 +60,6 @@ export const API_ENDPOINTS = {
   },
   COUPONS: {
     VALIDATE: "/api/v1/coupons/validate",
-    CONFIRM: "/api/v1/coupons/confirm",
   },
   LOCATIONS: {
     CITIES: "/api/v1/locations/cities",
@@ -83,6 +82,9 @@ export const API_ENDPOINTS = {
     CAMPAIGNS: "/api/v1/loyalty/campaigns",
     REFERRAL: "/api/v1/loyalty/referral",
     REFERRAL_APPLY: "/api/v1/loyalty/referral/apply",
+  },
+  APP_VERSION: {
+    CHECK: "/api/v1/app-version",
   },
   REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
   UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",

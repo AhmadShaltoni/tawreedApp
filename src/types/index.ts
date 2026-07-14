@@ -400,6 +400,7 @@ export interface Notification {
   message: string;
   read: boolean;
   data?: Record<string, string>;
+  linkUrl?: string;
   createdAt: string;
 }
 
@@ -455,6 +456,8 @@ export interface Notice {
 export interface CouponValidatePayload {
   code: string;
   orderTotal: number;
+  /** True when a loyalty reward coupon is also applied at checkout. */
+  hasLoyaltyCoupon?: boolean;
 }
 
 export interface CouponValidateSuccess {
@@ -463,6 +466,8 @@ export interface CouponValidateSuccess {
   discountAmount: number;
   finalTotal: number;
   code: string;
+  /** False when the code cannot be combined with a loyalty reward coupon. */
+  allowStacking?: boolean;
 }
 
 export interface CouponValidateError {
@@ -474,18 +479,6 @@ export interface CouponValidateError {
 export type CouponValidateResponse =
   | CouponValidateSuccess
   | CouponValidateError;
-
-export interface CouponConfirmPayload {
-  code: string;
-  orderId: string;
-  orderTotal: number;
-}
-
-export interface CouponConfirmResponse {
-  success: boolean;
-  discountAmount: number;
-  usageId: string;
-}
 
 // ============================================
 // Stock Validation

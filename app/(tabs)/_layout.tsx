@@ -1,5 +1,6 @@
 import { Colors } from "@/src/constants/theme";
 import { useAppSelector } from "@/src/store";
+import { scaleFont } from "@/src/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
@@ -36,7 +37,7 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: "700",
           color: Colors.text,
-          fontSize: 17,
+          fontSize: scaleFont(17),
         },
         tabBarStyle: {
           backgroundColor: Colors.surface,
@@ -52,7 +53,7 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: scaleFont(11),
           fontWeight: "600",
         },
       }}
@@ -62,8 +63,12 @@ export default function TabLayout() {
         options={{
           title: t("home.title"),
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -71,8 +76,12 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: t("cart.title"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "cart" : "cart-outline"}
+              size={size}
+              color={color}
+            />
           ),
           tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
           tabBarBadgeStyle: {
@@ -86,8 +95,12 @@ export default function TabLayout() {
         name="orders"
         options={{
           title: t("orders.title"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "receipt" : "receipt-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -95,8 +108,12 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t("profile.title"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />

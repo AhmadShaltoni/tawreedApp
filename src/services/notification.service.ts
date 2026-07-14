@@ -8,6 +8,7 @@ import { Platform } from "react-native";
 import apiClient from "./api";
 import { getToken } from "./tokenStorage";
 import { notificationServiceFirebase } from "./firebaseNotification.service";
+import { NotificationNavigationService } from "./notifications/notification-navigation";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -570,9 +571,24 @@ export const notificationService = {
     try {
       const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.LIST);
       const data = response.data;
-      if (Array.isArray(data)) return data;
-      if (data && Array.isArray(data.notifications)) return data.notifications;
-      return [];
+      const rows: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.notifications)
+          ? data.notifications
+          : [];
+
+      // Normalize backend shape (isRead, uppercase enum type, JSON data) into
+      // the frontend Notification shape (read, lowercase type union).
+      return rows.map((raw) => ({
+        id: raw.id,
+        type: NotificationNavigationService.mapNotificationType(raw.type),
+        title: raw.title,
+        message: raw.message,
+        read: Boolean(raw.isRead ?? raw.read),
+        data: raw.data ?? undefined,
+        linkUrl: raw.linkUrl ?? undefined,
+        createdAt: raw.createdAt,
+      }));
     } catch (error) {
       console.error("[NotificationService] Error fetching notifications:", error);
       return [];

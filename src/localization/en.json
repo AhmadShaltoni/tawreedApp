@@ -79,7 +79,10 @@
     "featuredProducts": "Featured Products",
     "recentOrders": "Recent Orders",
     "allOrders": "All Orders",
-    "noRecentOrders": "No recent orders"
+    "noRecentOrders": "No recent orders",
+    "pointsBalance": "Your Points",
+    "pointsUnit": "pts",
+    "pointsHint": "Order more to earn points and redeem rewards"
   },
   "menu": {
     "rewards": "Rewards",
@@ -180,7 +183,8 @@
     "size": "Size: {{size}}",
     "flavor": "Flavor: {{flavor}}",
     "unit": "Unit: {{unit}}",
-    "itemNote": "Note: {{note}}"
+    "itemNote": "Note: {{note}}",
+    "pointsForecast": "You'll earn {{points}} points with this order ⭐"
   },
   "checkout": {
     "title": "Checkout",
@@ -208,7 +212,11 @@
       "CODE_EXPIRED": "This discount code has expired",
       "CODE_USAGE_LIMIT_REACHED": "This discount code has reached its usage limit",
       "CODE_ALREADY_USED": "You have already used this discount code",
+      "CODE_USER_LIMIT_REACHED": "You have reached the maximum uses allowed for this code",
       "ORDER_BELOW_MINIMUM": "Order total is below the minimum required amount",
+      "FIRST_ORDER_ONLY": "This code is only valid on your first order",
+      "STACKING_NOT_ALLOWED": "This code cannot be combined with a rewards coupon",
+      "CODE_NOT_APPLICABLE": "This code does not apply to the items in your cart",
       "UNKNOWN": "An error occurred while validating the code"
     },
     "discount": "Discount",
@@ -564,5 +572,12 @@
     "products": "{{count}} products",
     "noProducts": "No products in this section",
     "noProductsMessage": "Products will be added soon"
+  },
+  "update": {
+    "title": "New Update Available",
+    "description": "Update the app now to get all the latest features",
+    "updateNow": "Update Now",
+    "later": "Later",
+    "requiredNote": "This update is required to continue using the app"
   }
 }

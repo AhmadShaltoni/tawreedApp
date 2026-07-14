@@ -70,16 +70,19 @@
   },
   "home": {
     "title": "الرئيسية",
-    "welcomeBack": "مرحبا بعودتك،",
+    "welcomeBack": "مرحباً بعودتك،",
     "browseAsGuest": "أنت الآن تتصفح كضيف",
-    "browseAsGuestSubtitle": "قم بتسجيل الدخول للتطبيق للحصول على جميع الميزات",
+    "browseAsGuestSubtitle": "سجّل الدخول للاستفادة من جميع المزايا",
     "searchPlaceholder": "ابحث عن منتج أو علامة تجارية...",
     "yourLocation": "موقعك",
     "categories": "الأقسام الرئيسية",
     "featuredProducts": "منتجات مخصصة لك",
     "recentOrders": "الطلبات الأخيرة",
     "allOrders": "كل الطلبات",
-    "noRecentOrders": "لا توجد طلبات حديثة"
+    "noRecentOrders": "لا توجد طلبات حديثة",
+    "pointsBalance": "رصيد نقاطك",
+    "pointsUnit": "نقطة",
+    "pointsHint": "اطلب أكثر واكسب نقاطاً تستبدلها بمكافآت"
   },
   "menu": {
     "rewards": "المكافآت",
@@ -104,7 +107,7 @@
     "sku": "رمز المنتج",
     "description": "الوصف",
     "addToCart": "أضف إلى السلة",
-    "addedToCart": "تمت رررررررررر",
+    "addedToCart": "تمت الإضافة إلى السلة",
     "addedMessage": "{{name}} x{{qty}} تمت إضافته",
     "continueShopping": "متابعة التسوق",
     "goToCart": "الذهاب إلى السلة",
@@ -180,7 +183,8 @@
     "size": "الحجم: {{size}}",
     "flavor": "النكهة: {{flavor}}",
     "unit": "الوحدة: {{unit}}",
-    "itemNote": "ملاحظة: {{note}}"
+    "itemNote": "ملاحظة: {{note}}",
+    "pointsForecast": "ستكسب {{points}} نقطة من هذا الطلب ⭐"
   },
   "checkout": {
     "title": "إتمام الطلب",
@@ -208,7 +212,11 @@
       "CODE_EXPIRED": "كود الخصم منتهي الصلاحية",
       "CODE_USAGE_LIMIT_REACHED": "تم الوصول للحد الأقصى لاستخدام هذا الكود",
       "CODE_ALREADY_USED": "لقد استخدمت هذا الكود من قبل",
+      "CODE_USER_LIMIT_REACHED": "لقد استخدمت هذا الكود الحد الأقصى المسموح",
       "ORDER_BELOW_MINIMUM": "قيمة الطلب أقل من الحد الأدنى المطلوب",
+      "FIRST_ORDER_ONLY": "هذا الكود صالح للطلب الأول فقط",
+      "STACKING_NOT_ALLOWED": "لا يمكن دمج هذا الكود مع كوبون المكافآت",
+      "CODE_NOT_APPLICABLE": "هذا الكود لا ينطبق على منتجات سلتك الحالية",
       "UNKNOWN": "حدث خطأ أثناء التحقق من الكود"
     },
     "discount": "الخصم",
@@ -563,5 +571,12 @@
     "products": "{{count}} منتج",
     "noProducts": "لا توجد منتجات في هذا القسم",
     "noProductsMessage": "سيتم إضافة منتجات قريباً"
+  },
+  "update": {
+    "title": "يوجد تحديث جديد",
+    "description": "قم بتحديث التطبيق الآن للحصول على جميع الميزات",
+    "updateNow": "حدّث الآن",
+    "later": "لاحقاً",
+    "requiredNote": "هذا التحديث مطلوب لمتابعة استخدام التطبيق"
   }
 }

@@ -1,10 +1,10 @@
-import { Colors, FontSize, Shadows, Spacing } from "@/src/constants/theme";
+import { BorderRadius, Colors, FontSize, Shadows, Spacing } from "@/src/constants/theme";
 import type { Category } from "@/src/types";
-import { scaleFont } from "@/src/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
-import { I18nManager, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -19,6 +19,8 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({ category, onPress }: CategoryCardProps) {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -45,25 +47,21 @@ function CategoryCard({ category, onPress }: CategoryCardProps) {
           }
           accessibilityLabel={category.image?.alt || category.name}
           style={styles.image}
-          contentFit="cover"
+          contentFit="contain"
           transition={200}
         />
-        {/* Gradient overlay for readability */}
-        {/* <View style={styles.overlay} /> */}
-        {/* Products count badge */}
-        {/* {category.productsCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{category.productsCount}</Text>
-          </View>
-        )} */}
       </View>
-      <Text style={styles.name} numberOfLines={1}>
+      <Text style={styles.name} numberOfLines={2}>
         {category.name}
       </Text>
-      {category.hasChildren ? (
+      {category.productsCount > 0 ? (
+        <Text style={styles.count} numberOfLines={1}>
+          {t("categories.productCount", { count: category.productsCount })}
+        </Text>
+      ) : category.hasChildren ? (
         <View style={styles.childrenRow}>
           <Ionicons
-            name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"}
+            name={isRTL ? "chevron-back" : "chevron-forward"}
             size={10}
             color={Colors.primary}
           />
@@ -78,15 +76,17 @@ export default memo(CategoryCard);
 const styles = StyleSheet.create({
   card: {
     alignItems: "center",
-    width: 90,
-    marginRight: Spacing.md,
+    width: "100%",
   },
   imageContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
-    backgroundColor: Colors.primaryXLight,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.sm,
     marginBottom: Spacing.sm,
     ...Shadows.sm,
   },
@@ -94,48 +94,22 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(30, 58, 138, 0.08)",
-  },
-  badge: {
-    position: "absolute",
-    top: 3,
-    right: 12,
-    backgroundColor: Colors.secondary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    fontSize: scaleFont(12),
-    fontWeight: "700",
-    color: Colors.white,
-  },
   name: {
     fontSize: FontSize.xs,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Colors.text,
     textAlign: "center",
+  },
+  count: {
+    fontSize: FontSize.xxs,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: 2,
   },
   childrenRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    marginTop: 2,
-  },
-  childrenCount: {
-    fontSize: scaleFont(10),
-    color: Colors.primary,
-    fontWeight: "600",
-  },
-  count: {
-    fontSize: scaleFont(10),
-    color: Colors.textLight,
-    textAlign: "center",
     marginTop: 2,
   },
 });

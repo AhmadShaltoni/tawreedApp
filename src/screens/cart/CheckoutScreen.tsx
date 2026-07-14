@@ -15,7 +15,7 @@ import { loyaltyService } from "@/src/services/loyalty.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateUserLocation } from "@/src/store/slices/auth.slice";
 import { clearCart, fetchCart } from "@/src/store/slices/cart.slice";
-import { fetchCoupons } from "@/src/store/slices/loyalty.slice";
+import { fetchBalance, fetchCoupons } from "@/src/store/slices/loyalty.slice";
 import {
     createOrder,
     fetchLastDeliveryAddress,
@@ -32,6 +32,7 @@ import type {
 import type { Coupon, ValidateCouponResponse } from "@/src/types/loyalty";
 import { CouponStatus, RewardType } from "@/src/types/loyalty";
 import { saveLocation } from "@/src/utils/locationStorage";
+import { estimateOrderPoints } from "@/src/utils/loyalty";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -99,6 +100,9 @@ export default function CheckoutScreen() {
 
   // Loyalty reward coupon state
   const { coupons: loyaltyCoupons } = useAppSelector((state) => state.loyalty);
+  const loyaltyEarnConfig = useAppSelector(
+    (state) => state.loyalty.balance?.earnConfig,
+  );
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [appliedReward, setAppliedReward] = useState<{
     coupon: Coupon;
@@ -165,6 +169,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchCoupons());
+      dispatch(fetchBalance());
     }
   }, [dispatch, isAuthenticated]);
 
@@ -252,6 +257,15 @@ export default function CheckoutScreen() {
     return afterReward + finalDeliveryFee;
   }, [appliedCoupon, totals.subtotal, loyaltyDiscount, finalDeliveryFee]);
 
+  // Points this order would earn — mirrors the backend calculation, which
+  // uses the order total after discounts (minus delivery when excluded)
+  const pointsForecast = estimateOrderPoints(
+    loyaltyEarnConfig?.excludeDeliveryFees === false
+      ? displayTotal
+      : displayTotal - finalDeliveryFee,
+    loyaltyEarnConfig,
+  );
+
   const handleApplyCoupon = useCallback(async () => {
     const code = couponCode.replace(/\s/g, "").toUpperCase();
     if (!code) return;
@@ -263,6 +277,7 @@ export default function CheckoutScreen() {
       const response = await couponService.validateCoupon({
         code,
         orderTotal: totals.subtotal,
+        hasLoyaltyCoupon: !!appliedReward,
       });
       if (response.valid) {
         setAppliedCoupon(response);
@@ -279,7 +294,7 @@ export default function CheckoutScreen() {
     } finally {
       setCouponLoading(false);
     }
-  }, [couponCode, totals.subtotal, t]);
+  }, [couponCode, totals.subtotal, appliedReward, t]);
 
   const handleRemoveCoupon = useCallback(() => {
     setAppliedCoupon(null);
@@ -298,6 +313,11 @@ export default function CheckoutScreen() {
 
   const handleApplyReward = useCallback(
     async (coupon: Coupon) => {
+      // Discount codes marked as non-stackable can't be combined with rewards
+      if (appliedCoupon && appliedCoupon.allowStacking === false) {
+        setRewardError(t("checkout.couponError.STACKING_NOT_ALLOWED"));
+        return;
+      }
       setRewardError(null);
       setRewardLoadingId(coupon.id);
       try {
@@ -843,6 +863,14 @@ export default function CheckoutScreen() {
                 {displayTotal.toFixed(2)} {t("common.currency")}
               </Text>
             </View>
+            {isAuthenticated && pointsForecast > 0 ? (
+              <View style={styles.pointsForecastRow}>
+                <Ionicons name="star" size={14} color={Colors.warning} />
+                <Text style={styles.pointsForecastText}>
+                  {t("cart.pointsForecast", { points: pointsForecast })}
+                </Text>
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -1614,6 +1642,22 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
     ...Shadows.sm,
+  },
+  pointsForecastRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    backgroundColor: "#fffbeb",
+    borderRadius: BorderRadius.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  pointsForecastText: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: "#b45309",
   },
   freeDeliveryText: {
     color: Colors.success,

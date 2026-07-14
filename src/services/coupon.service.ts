@@ -1,7 +1,5 @@
 import { API_ENDPOINTS } from "@/src/constants/api";
 import type {
-    CouponConfirmPayload,
-    CouponConfirmResponse,
     CouponValidatePayload,
     CouponValidateResponse,
 } from "@/src/types";
@@ -13,16 +11,6 @@ export const couponService = {
   ): Promise<CouponValidateResponse> => {
     const { data } = await apiClient.post<CouponValidateResponse>(
       API_ENDPOINTS.COUPONS.VALIDATE,
-      payload,
-    );
-    return data;
-  },
-
-  confirmCoupon: async (
-    payload: CouponConfirmPayload,
-  ): Promise<CouponConfirmResponse> => {
-    const { data } = await apiClient.post<CouponConfirmResponse>(
-      API_ENDPOINTS.COUPONS.CONFIRM,
       payload,
     );
     return data;

@@ -1,22 +1,37 @@
 /**
  * Notification Navigation Handler
  *
- * Routes notifications to appropriate screens:
- * - Order notifications → Order Detail
- * - Product notifications → Product Detail
- * - Cart notifications → Cart
- * - General notifications → Notifications list
+ * Routes notifications to appropriate screens. Two schemes are supported:
+ *
+ * 1. Structured (preferred) — `data.targetType` + `data.targetId`, set by the
+ *    admin compose form: PRODUCT, CATEGORY, BRAND, COLLECTION, ORDER, URL, NONE.
+ *    `targetId` holds the collection SLUG (not its id) for COLLECTION targets.
+ * 2. Legacy — free-text `linkUrl` prefix matching (`/products/<id>`, `/orders/<id>`, ...),
+ *    kept as a fallback for notifications sent before the structured scheme existed.
  *
  * Handles authentication requirement:
  * - If logged out and route needs auth → redirect to login first
  */
+
+import { Linking } from "react-native";
 
 export interface NotificationNavigation {
   linkUrl: string;
   data?: Record<string, string | object>;
 }
 
-class NotificationNavigationService {
+const AUTH_REQUIRED_TARGET_TYPES = new Set(["ORDER"]);
+
+type TargetType =
+  | "PRODUCT"
+  | "CATEGORY"
+  | "BRAND"
+  | "COLLECTION"
+  | "ORDER"
+  | "URL"
+  | "NONE";
+
+export class NotificationNavigationService {
   private router: any = null;
   private isAuthenticated = false;
 
@@ -49,8 +64,12 @@ class NotificationNavigationService {
     console.log("[Navigation] 🧭 Navigating to:", linkUrl, { data });
 
     try {
+      const targetType = this.extractTargetType(data);
+
       // Determine if route requires authentication
-      const requiresAuth = this.isAuthRequiredRoute(linkUrl);
+      const requiresAuth = targetType
+        ? AUTH_REQUIRED_TARGET_TYPES.has(targetType)
+        : this.isAuthRequiredRoute(linkUrl);
 
       // If not authenticated and route requires auth, redirect to login first
       if (requiresAuth && !this.isAuthenticated) {
@@ -70,8 +89,15 @@ class NotificationNavigationService {
     }
   }
 
+  private extractTargetType(
+    data?: Record<string, string | object>,
+  ): TargetType | null {
+    const targetType = data?.targetType;
+    return typeof targetType === "string" ? (targetType as TargetType) : null;
+  }
+
   /**
-   * Determine if a route requires authentication
+   * Determine if a route requires authentication (legacy linkUrl parsing)
    */
   private isAuthRequiredRoute(linkUrl: string): boolean {
     // Routes that work for guests
@@ -81,12 +107,83 @@ class NotificationNavigationService {
   }
 
   /**
-   * Navigate to specific route
+   * Navigate to specific route. Prefers the structured `data.targetType` /
+   * `data.targetId` scheme; falls back to legacy `linkUrl` prefix parsing
+   * for notifications sent before that scheme existed.
    */
   private navigateToRoute(
     linkUrl: string,
     data?: Record<string, string | object>,
   ): void {
+    const targetType = this.extractTargetType(data);
+    const targetId =
+      typeof data?.targetId === "string" ? data.targetId : null;
+
+    if (targetType) {
+      switch (targetType) {
+        case "PRODUCT":
+          if (targetId) {
+            console.log("[Navigation] → Product Detail:", targetId);
+            this.router.push(`/product/${targetId}`);
+            return;
+          }
+          break;
+        case "CATEGORY":
+          if (targetId) {
+            console.log("[Navigation] → Category products:", targetId);
+            this.router.push({
+              pathname: "/products",
+              params: { categoryId: targetId, includeDescendants: "true" },
+            });
+            return;
+          }
+          break;
+        case "BRAND":
+          if (targetId) {
+            console.log("[Navigation] → Brand products:", targetId);
+            this.router.push({
+              pathname: "/products",
+              params: { brandId: targetId },
+            });
+            return;
+          }
+          break;
+        case "COLLECTION":
+          if (targetId) {
+            // targetId holds the collection slug
+            console.log("[Navigation] → Marketing section:", targetId);
+            this.router.push(`/marketing-section/${targetId}`);
+            return;
+          }
+          break;
+        case "ORDER":
+          if (targetId) {
+            console.log("[Navigation] → Order Detail:", targetId);
+            this.router.push(`/order/${targetId}`);
+            return;
+          }
+          break;
+        case "URL":
+          if (linkUrl) {
+            console.log("[Navigation] → External URL:", linkUrl);
+            Linking.openURL(linkUrl).catch((error) =>
+              console.error("[Navigation] Failed to open URL:", error),
+            );
+            return;
+          }
+          break;
+        case "NONE":
+          console.log("[Navigation] → Notifications (no target)");
+          this.router.push("/notifications");
+          return;
+      }
+      // Structured target type present but missing/invalid data — fall through to Home
+      console.log("[Navigation] → Home (incomplete structured target)");
+      this.router.push("/(tabs)");
+      return;
+    }
+
+    // Legacy fallback: parse the free-text linkUrl
     if (linkUrl.startsWith("/orders/")) {
       // Order Detail: /orders/123 → /order/123
       const orderId = linkUrl.replace("/orders/", "");
@@ -148,7 +245,7 @@ class NotificationNavigationService {
   /**
    * Map notification type from backend to app types
    */
-  private static mapNotificationType(
+  static mapNotificationType(
     typeString?: string,
   ): "order_update" | "new_product" | "promotion" | "system" {
     const typeMap: Record<string, any> = {

@@ -19,7 +19,7 @@ import {
     View,
 } from "react-native";
 
-const NUM_COLUMNS = 4;
+const NUM_COLUMNS = 3;
 
 export default function CategoriesScreen() {
   const { t, i18n } = useTranslation();
@@ -76,8 +76,10 @@ export default function CategoriesScreen() {
   }, [loadCategories, currentParentId]);
 
   const filtered = search
-    ? categories.filter((c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()),
+    ? categories.filter(
+        (c) =>
+          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          (c.nameEn ?? "").toLowerCase().includes(search.toLowerCase()),
       )
     : categories;
 
@@ -235,6 +237,7 @@ export default function CategoriesScreen() {
         data={filtered}
         numColumns={NUM_COLUMNS}
         keyExtractor={(item) => item.id}
+        columnWrapperStyle={styles.gridRow}
         renderItem={({ item }) => (
           <View style={styles.categoryWrapper}>
             <CategoryCard category={item} onPress={handleCategoryPress} />
@@ -336,12 +339,16 @@ const styles = StyleSheet.create({
     writingDirection,
   },
   listContent: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xxxl,
+  },
+  gridRow: {
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   categoryWrapper: {
     flex: 1,
-    alignItems: "center",
-    marginBottom: Spacing.xl,
+    // Keeps cards from stretching when the last row is not full
+    maxWidth: `${100 / NUM_COLUMNS}%`,
   },
 });

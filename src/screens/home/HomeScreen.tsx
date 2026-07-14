@@ -4,7 +4,9 @@ import SectionHeader from "@/src/components/SectionHeader";
 import SideMenuSheet from "@/src/components/SideMenuSheet";
 import WhatsAppFAB from "@/src/components/WhatsAppFAB";
 import ErrorScreen from "@/src/components/errors/ErrorScreen";
+import FeatureGate from "@/src/components/loyalty/FeatureGate";
 import Loader from "@/src/components/ui/Loader";
+import { LoyaltyGradients } from "@/src/constants/loyaltyTheme";
 import {
   BorderRadius,
   Colors,
@@ -13,6 +15,7 @@ import {
   Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
+import { fetchBalance } from "@/src/store/slices/loyalty.slice";
 import { fetchBrands } from "@/src/store/slices/brands.slice";
 import { fetchCategories } from "@/src/store/slices/categories.slice";
 import { fetchHomeSections } from "@/src/store/slices/marketingSections.slice";
@@ -24,8 +27,9 @@ import { textAlignStart, writingDirection } from "@/src/utils/rtl";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -58,12 +62,31 @@ export default function HomeScreen() {
     (state) => state.notices,
   );
   const { homeSections } = useAppSelector((state) => state.marketingSections);
+  const loyaltyBalance = useAppSelector((state) => state.loyalty.balance);
   const unreadCount = useAppSelector(
     (state) => state.notifications.unreadCount,
   );
   const [refreshing, setRefreshing] = useState(false);
   const [displayedFeaturedCount, setDisplayedFeaturedCount] = useState(4);
   const [menuVisible, setMenuVisible] = useState(false);
+
+  // Hide the WhatsApp FAB while scrolling so it doesn't cover content
+  const [fabHidden, setFabHidden] = useState(false);
+  const fabShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideFab = useCallback(() => {
+    if (fabShowTimer.current) clearTimeout(fabShowTimer.current);
+    setFabHidden(true);
+  }, []);
+  const showFabSoon = useCallback(() => {
+    if (fabShowTimer.current) clearTimeout(fabShowTimer.current);
+    fabShowTimer.current = setTimeout(() => setFabHidden(false), 350);
+  }, []);
+  useEffect(
+    () => () => {
+      if (fabShowTimer.current) clearTimeout(fabShowTimer.current);
+    },
+    [],
+  );
 
   // Directional icons (chevrons/arrows) don't auto-flip in RTL
   const isRTL = i18n.language === "ar";
@@ -77,6 +100,7 @@ export default function HomeScreen() {
       dispatch(fetchCategories(undefined));
       if (isAuthenticated) {
         dispatch(fetchNotifications());
+        dispatch(fetchBalance());
       }
     },
     [dispatch, isAuthenticated],
@@ -96,9 +120,10 @@ export default function HomeScreen() {
       dispatch(fetchHomeSections()),
       dispatch(fetchFeaturedProducts({ force: true })),
       dispatch(fetchCategories(undefined)),
+      ...(isAuthenticated ? [dispatch(fetchBalance())] : []),
     ]);
     setRefreshing(false);
-  }, [dispatch]);
+  }, [dispatch, isAuthenticated]);
 
   const handleProductPress = useCallback(
     (product: Product) => {
@@ -155,13 +180,14 @@ export default function HomeScreen() {
       />
     );
   }
-  console.log("HOME SECTIONS STATE", homeSections);
-  console.log("HOME SECTIONS LENGTH", homeSections.length);
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={hideFab}
+        onScrollEndDrag={showFabSoon}
+        onMomentumScrollEnd={showFabSoon}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -228,7 +254,10 @@ export default function HomeScreen() {
 
           {/* Search Bar */}
           <Pressable
-            style={styles.headerSearchBar}
+            style={({ pressed }) => [
+              styles.headerSearchBar,
+              pressed && styles.pressed,
+            ]}
             onPress={() => router.push("/products")}
           >
             <Ionicons
@@ -290,6 +319,52 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* Loyalty Points Strip */}
+        {isAuthenticated && loyaltyBalance && (
+          <FeatureGate flag="loyalty">
+            <Animated.View
+              entering={FadeInDown.duration(400)}
+              style={styles.pointsCardWrap}
+            >
+              <Pressable
+                onPress={() => router.push("/loyalty")}
+                style={({ pressed }) => [pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel={`${t("home.pointsBalance")}: ${loyaltyBalance.currentBalance} ${t("home.pointsUnit")}`}
+              >
+                <LinearGradient
+                  colors={LoyaltyGradients.gold}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.pointsCard}
+                >
+                  <View style={styles.pointsIconWrap}>
+                    <Ionicons name="star" size={20} color="#d97706" />
+                  </View>
+                  <View style={styles.pointsTextWrap}>
+                    <View style={styles.pointsValueRow}>
+                      <Text style={styles.pointsValue}>
+                        {loyaltyBalance.currentBalance.toLocaleString()}
+                      </Text>
+                      <Text style={styles.pointsUnit}>
+                        {t("home.pointsUnit")}
+                      </Text>
+                    </View>
+                    <Text style={styles.pointsHint} numberOfLines={1}>
+                      {t("home.pointsHint")}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={isRTL ? "chevron-back" : "chevron-forward"}
+                    size={18}
+                    color={Colors.white}
+                  />
+                </LinearGradient>
+              </Pressable>
+            </Animated.View>
+          </FeatureGate>
+        )}
+
         {/* Top: Categories & Brands directly under location/guest */}
         <View style={styles.topSectionsContainer}>
           {categories.length > 0 ? (
@@ -325,7 +400,10 @@ export default function HomeScreen() {
                 contentContainerStyle={styles.topSectionList}
                 renderItem={({ item }) => (
                   <Pressable
-                    style={styles.topCategoryItem}
+                    style={({ pressed }) => [
+                      styles.topCategoryItem,
+                      pressed && styles.pressed,
+                    ]}
                     onPress={() => handleCategoryPress(item)}
                   >
                     <View style={styles.topCategoryImageWrap}>
@@ -408,7 +486,10 @@ export default function HomeScreen() {
                   contentContainerStyle={styles.topSectionList}
                   renderItem={({ item }) => (
                     <Pressable
-                      style={styles.topBrandItem}
+                      style={({ pressed }) => [
+                        styles.topBrandItem,
+                        pressed && styles.pressed,
+                      ]}
                       onPress={() => handleBrandPress(item)}
                     >
                       <View style={styles.topBrandLogoWrap}>
@@ -476,7 +557,10 @@ export default function HomeScreen() {
             {homeSections.slice(0, 2).map((section) => (
               <Pressable
                 key={section.id}
-                style={styles.marketingCard}
+                style={({ pressed }) => [
+                  styles.marketingCard,
+                  pressed && styles.pressed,
+                ]}
                 onPress={() => handleSectionPress(section)}
               >
                 <Image
@@ -566,7 +650,7 @@ export default function HomeScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-      <WhatsAppFAB />
+      <WhatsAppFAB hidden={fabHidden} />
       <SideMenuSheet
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
@@ -697,6 +781,55 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  /* Loyalty Points Strip */
+  pointsCardWrap: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  pointsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    ...Shadows.md,
+  },
+  pointsIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pointsTextWrap: {
+    flex: 1,
+  },
+  pointsValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: Spacing.xs,
+  },
+  pointsValue: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+    color: Colors.white,
+  },
+  pointsUnit: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.9)",
+  },
+  pointsHint: {
+    fontSize: FontSize.xs,
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 1,
+    textAlign: textAlignStart,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   topSectionsContainer: {
     paddingHorizontal: Spacing.lg,

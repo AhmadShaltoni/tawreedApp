@@ -1,16 +1,19 @@
 import { Stack, useFocusEffect, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 
 import NotificationPermissionModal from "@/src/components/NotificationPermissionModal";
+import UpdateModal from "@/src/components/UpdateModal";
 import { AppErrorBoundary } from "@/src/components/errors";
 import { Config } from "@/src/config/env";
 import { Colors } from "@/src/constants/theme";
+import { useAppUpdateCheck } from "@/src/hooks/useAppUpdateCheck";
 import { usePushNotificationPermission } from "@/src/hooks/usePushNotificationPermission";
 import { loadSavedLanguage } from "@/src/localization/i18n";
 import { initializeFirebase } from "@/src/services/firebase-init";
@@ -27,7 +30,23 @@ declare global {
   var notificationNavigation: (linkUrl: string, data?: any) => void;
 }
 
+/**
+ * Forces the Yoga layout direction to follow the app language.
+ *
+ * `I18nManager.forceRTL()` is unreliable on the New Architecture (and is
+ * ignored entirely in Expo Go), which left Arabic rendering in LTR. The
+ * `direction` style is applied at layout time by Yoga on both platforms
+ * under Fabric, so rows, start/end spacing and horizontal lists all flip
+ * correctly regardless of the native I18nManager state.
+ */
+function DirectionProvider({ children }: { children: ReactNode }) {
+  const { i18n } = useTranslation();
+  const direction = i18n.language === "ar" ? "rtl" : "ltr";
+  return <View style={{ flex: 1, direction }}>{children}</View>;
+}
+
 function AuthGate() {
+  const { t } = useTranslation();
   const { isAuthenticated, isGuest, isInitialized } = useAppSelector(
     (state) => state.auth,
   );
@@ -38,6 +57,15 @@ function AuthGate() {
   // Permission modal hook
   const { displayModal, handleModalEnable, handleModalClose } =
     usePushNotificationPermission();
+
+  // App update check (launch + foreground)
+  const {
+    updateModalVisible,
+    updateForced,
+    updateMessage,
+    openStore,
+    dismissUpdate,
+  } = useAppUpdateCheck();
 
   // Initialize localization and Firebase
   useEffect(() => {
@@ -154,6 +182,7 @@ function AuthGate() {
           headerShown: false,
           animation: "fade",
           contentStyle: { backgroundColor: Colors.background },
+          headerBackButtonDisplayMode: "minimal",
         }}
       >
         <Stack.Screen name="(auth)" />
@@ -162,7 +191,7 @@ function AuthGate() {
           name="products"
           options={{
             headerShown: true,
-            title: "Products",
+            title: t("products.title"),
             animation: "slide_from_right",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },
@@ -174,7 +203,7 @@ function AuthGate() {
           name="categories"
           options={{
             headerShown: true,
-            title: "الأصناف",
+            title: t("categories.title"),
             animation: "slide_from_right",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },
@@ -186,7 +215,7 @@ function AuthGate() {
           name="brands"
           options={{
             headerShown: true,
-            title: "العلامات التجارية",
+            title: t("brands.title"),
             animation: "slide_from_right",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },
@@ -202,7 +231,7 @@ function AuthGate() {
           name="checkout"
           options={{
             headerShown: true,
-            title: "Checkout",
+            title: t("checkout.title"),
             animation: "slide_from_bottom",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },
@@ -218,7 +247,7 @@ function AuthGate() {
           name="notifications"
           options={{
             headerShown: true,
-            title: "Notifications",
+            title: t("notifications.title"),
             animation: "slide_from_right",
             headerTitleAlign: "center",
             headerStyle: { backgroundColor: Colors.white },
@@ -247,9 +276,16 @@ function AuthGate() {
       </Stack>
       <StatusBar style="dark" />
       <NotificationPermissionModal
-        visible={displayModal}
+        visible={displayModal && !updateModalVisible}
         onOpenSettings={handleModalEnable}
         onClose={handleModalClose}
+      />
+      <UpdateModal
+        visible={updateModalVisible}
+        forced={updateForced}
+        message={updateMessage}
+        onUpdate={openStore}
+        onDismiss={dismissUpdate}
       />
     </>
   );
@@ -260,7 +296,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AppErrorBoundary>
         <Provider store={store}>
-          <AuthGate />
+          <DirectionProvider>
+            <AuthGate />
+          </DirectionProvider>
         </Provider>
       </AppErrorBoundary>
     </SafeAreaProvider>

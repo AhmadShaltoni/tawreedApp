@@ -1,38 +1,31 @@
+import { openWhatsApp } from "@/src/utils/whatsapp";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
-    Animated,
-    Linking,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
+  Animated,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
-const WHATSAPP_NUMBER = "962798336958";
-const DEFAULT_MESSAGE = "مرحبا";
+interface WhatsAppFABProps {
+  /** Shrinks the button away (e.g. while the screen is scrolling). */
+  hidden?: boolean;
+}
 
-export default function WhatsAppFAB() {
+export default function WhatsAppFAB({ hidden = false }: WhatsAppFABProps) {
+  const { t } = useTranslation();
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
-      toValue: 1,
+      toValue: hidden ? 0 : 1,
       friction: 5,
       tension: 80,
       useNativeDriver: true,
     }).start();
-  }, []);
-
-  const handlePress = async () => {
-    const encoded = encodeURIComponent(DEFAULT_MESSAGE);
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`;
-
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      console.error("Error opening WhatsApp:", error);
-    }
-  };
+  }, [hidden, scaleAnim]);
 
   return (
     <Animated.View
@@ -40,8 +33,10 @@ export default function WhatsAppFAB() {
     >
       <TouchableOpacity
         style={styles.button}
-        onPress={handlePress}
+        onPress={() => openWhatsApp()}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={t("contact.openWhatsApp")}
       >
         <Ionicons name="logo-whatsapp" size={28} color="#fff" />
       </TouchableOpacity>
@@ -53,7 +48,8 @@ const styles = StyleSheet.create({
   container: {
     position: "absolute",
     bottom: Platform.OS === "ios" ? 100 : 80,
-    right: 16,
+    // `end` follows the reading direction: left edge in Arabic, right in English
+    end: 16,
     zIndex: 999,
   },
   button: {

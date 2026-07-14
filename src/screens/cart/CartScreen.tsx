@@ -19,6 +19,8 @@ import {
     removeFromCartAsync,
     updateCartItemAsync,
 } from "@/src/store/slices/cart.slice";
+import { fetchBalance } from "@/src/store/slices/loyalty.slice";
+import { estimateOrderPoints } from "@/src/utils/loyalty";
 import type {
     Area,
     CartItem,
@@ -62,6 +64,9 @@ export default function CartScreen() {
     (state) => state.cart,
   );
   const { user } = useAppSelector((state) => state.auth);
+  const loyaltyEarnConfig = useAppSelector(
+    (state) => state.loyalty.balance?.earnConfig,
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   // Delivery state
@@ -86,6 +91,7 @@ export default function CartScreen() {
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchCart());
+      dispatch(fetchBalance());
     }
   }, [dispatch, isAuthenticated]);
 
@@ -120,6 +126,14 @@ const price = item.selectedUnit
     freeDeliveryThreshold != null && freeDeliveryThreshold > 0
       ? Math.min(1, totals.subtotal / freeDeliveryThreshold)
       : null;
+
+  // Points this order would earn (0 when loyalty is disabled/unknown)
+  const pointsForecast = estimateOrderPoints(
+    loyaltyEarnConfig?.excludeDeliveryFees === false
+      ? grandTotal
+      : totals.subtotal,
+    loyaltyEarnConfig,
+  );
 
   // Auto-load user's city and area from last order or registration data
   useEffect(() => {
@@ -775,6 +789,16 @@ const price = item.selectedUnit
             <Text style={styles.deliveryErrorText}>{deliveryError}</Text>
           ) : null}
 
+          {/* Loyalty points forecast */}
+          {isAuthenticated && pointsForecast > 0 ? (
+            <View style={styles.pointsForecastRow}>
+              <Ionicons name="star" size={14} color={Colors.warning} />
+              <Text style={styles.pointsForecastText}>
+                {t("cart.pointsForecast", { points: pointsForecast })}
+              </Text>
+            </View>
+          ) : null}
+
           {/* Divider */}
           <View style={styles.summaryDivider} />
 
@@ -833,6 +857,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
     backgroundColor: "#fef2f2",
+  },
+  pointsForecastRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    backgroundColor: "#fffbeb",
+    borderRadius: BorderRadius.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.xs,
+  },
+  pointsForecastText: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: "#b45309",
   },
   errorText: {
     fontSize: FontSize.xs,
