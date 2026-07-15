@@ -17,7 +17,8 @@
     "viewMore": "عرض المزيد",
     "currency": "د.أ",
     "items": "عناصر",
-    "item": "عنصر"
+    "item": "عنصر",
+    "back": "رجوع"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -32,7 +33,7 @@
     "haveAccount": "لديك حساب بالفعل؟",
     "createAccount": "إنشاء حساب جديد",
     "signIn": "تسجيل الدخول",
-    "welcomeBack": "مرحبًا بعودتك",
+    "welcomeBack": "أهلاً فيك مرة تانية ",
     "loginSubtitle": "سجّل الدخول برقم هاتفك للمتابعة إلى توريد",
     "registerTitle": "إنشاء حساب",
     "registerSubtitle": "أنشئ حسابك للبدء في الطلب",
@@ -47,7 +48,7 @@
     "passwordRequired": "كلمة المرور مطلوبة",
     "passwordMinLength": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
     "passwordsMismatch": "كلمات المرور غير متطابقة",
-    "otpTagline": "سوق الجملة للتجار",
+    "otpTagline": "لو السوق عنك بعيد  ، أطلب من توريد ",
     "otpEnterPhone": "أدخل رقم هاتفك",
     "otpEnterPhoneSubtitle": "سنرسل لك رمز تحقق للدخول إلى حسابك",
     "otpRegisterSubtitle": "سنرسل لك رمز تحقق للتأكد من رقم هاتفك",
@@ -66,7 +67,15 @@
     "profileNamePlaceholder": "اسمك الكامل",
     "profileStorePlaceholder": "اسم المتجر أو البقالة",
     "profileStartShopping": "ابدأ التسوق",
-    "profileCompleteLater": "أكمل لاحقاً"
+    "profileCompleteLater": "أكمل لاحقاً",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور",
+    "passwordStrength": "قوة كلمة المرور",
+    "passwordWeak": "ضعيفة",
+    "passwordMedium": "متوسطة",
+    "passwordStrong": "قوية",
+    "invalidCredentials": "رقم الهاتف أو كلمة المرور غير صحيحة",
+    "phoneExists": "رقم الهاتف مسجل مسبقاً. جرّب تسجيل الدخول."
   },
   "home": {
     "title": "الرئيسية",
@@ -275,6 +284,7 @@
     "buyerNotes": "ملاحظات المشتري",
     "placedOn": "تاريخ الطلب",
     "pricingSummary": "ملخص الأسعار",
+    "rewardUsedTitle": "تم استخدام مكافأة",
     "fees": "رسوم إضافية",
     "viewDetails": "عرض التفاصيل",
     "prize": "جائزة مكافآت",
@@ -285,6 +295,8 @@
     "empty": "لا توجد إشعارات",
     "emptyMessage": "ستظهر إشعاراتك هنا",
     "markAllRead": "تحديد الكل كمقروء",
+    "new": "جديد",
+    "unreadSummary": "إشعارات غير مقروءة",
     "orderUpdate": "تحديث الطلب",
     "newProduct": "منتج جديد",
     "promotion": "عرض خاص",
@@ -364,7 +376,8 @@
     "balance": "الرصيد",
     "currentBalance": "رصيدك الحالي",
     "totalEarned": "إجمالي النقاط المكتسبة",
-    "totalRedeemed": "إجمالي النقاط المستبدلة",
+    "totalRedeemed": "النقاط المستبدلة",
+    "remainingPoints": "النقاط المتبقية",
     "earnedPoints": "نقاط مكتسبة",
     "rewards": "المكافآت",
     "rewardsLower": "المكافآت",
@@ -379,6 +392,7 @@
     "activeCampaigns": "الحملات النشطة",
     "recentTransactions": "المعاملات الأخيرة",
     "viewAll": "عرض الكل",
+    "viewOrder": "عرض تفاصيل الطلب",
     "seeAllRewards": "عرض كل المكافآت",
     "rewardsCatalog": "دليل المكافآت",
     "affordableRewards": "المكافآت المتاحة",
@@ -405,6 +419,9 @@
     "activeCoupons": "كوبونات نشطة",
     "usedCoupons": "كوبونات مستخدمة",
     "expiredCoupons": "كوبونات منتهية",
+    "statusActive": "نشط",
+    "statusUsed": "مُستخدم",
+    "statusExpired": "منتهي",
     "validUntil": "صالح حتى",
     "usedOn": "استخدم في",
     "expiredOn": "انتهى في",
@@ -563,6 +580,13 @@
       "errorCodeLabel": "رمز الخطأ",
       "whatsappMessage": "مرحباً، واجهت مشكلة في تطبيق توريد. رمز الخطأ: {{code}}",
       "whatsappMessageDefault": "مرحباً، واجهت مشكلة في تطبيق توريد وأحتاج مساعدة."
+    },
+    "api": {
+      "network": "لا يوجد اتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.",
+      "timeout": "انتهت مهلة الانتظار. حاول مرة أخرى.",
+      "server": "خطأ في الخادم. حاول مرة أخرى بعد قليل.",
+      "tooMany": "محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.",
+      "generic": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى."
     }
   },
   "marketingSections": {

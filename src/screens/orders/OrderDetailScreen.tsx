@@ -135,6 +135,17 @@ export default function OrderDetailScreen() {
   const config = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.PENDING;
   const isPending = order.status === "PENDING";
 
+  // Loyalty reward applied on this order (for the "reward used" banner)
+  const reward = order.redeemedReward;
+  const rewardName = reward
+    ? isAr
+      ? reward.rewardName ?? reward.productName ?? reward.rewardNameEn
+      : reward.rewardNameEn ??
+        reward.rewardName ??
+        reward.productNameEn ??
+        reward.productName
+    : null;
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return "—";
@@ -227,6 +238,21 @@ export default function OrderDetailScreen() {
             <OrderStatusBadge status={order.status} size="md" />
           </View>
         </View>
+
+        {/* Reward used banner — prominent */}
+        {reward && rewardName ? (
+          <View style={styles.rewardBanner}>
+            <View style={styles.rewardBannerIcon}>
+              <Ionicons name="gift" size={22} color={Colors.white} />
+            </View>
+            <View style={styles.rewardBannerTextWrap}>
+              <Text style={styles.rewardBannerTitle}>
+                {t("orders.rewardUsedTitle")}
+              </Text>
+              <Text style={styles.rewardBannerName}>{rewardName}</Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* Section 2: Products — what the user ordered */}
         {order.items && order.items.length > 0 ? (
@@ -428,6 +454,42 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 4,
+  },
+  // Reward used banner
+  rewardBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginHorizontal: Spacing.xxl,
+    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.secondary + "14",
+    borderWidth: 1,
+    borderColor: Colors.secondary + "40",
+    ...Shadows.sm,
+  },
+  rewardBannerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.secondary,
+  },
+  rewardBannerTextWrap: {
+    flex: 1,
+  },
+  rewardBannerTitle: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.secondary,
+    marginBottom: 2,
+  },
+  rewardBannerName: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
   },
   // Sections
   section: {

@@ -256,6 +256,17 @@ export interface OrderDetail extends Order {
   isFreeDelivery?: boolean;
   discountAmount?: number;
   couponCode?: string;
+  /** Loyalty reward redeemed/applied on this order (if any) */
+  redeemedReward?: OrderRedeemedReward | null;
+}
+
+export interface OrderRedeemedReward {
+  rewardName?: string | null;
+  rewardNameEn?: string | null;
+  rewardType?: string | null;
+  couponCode?: string | null;
+  productName?: string | null;
+  productNameEn?: string | null;
 }
 
 export interface StatusHistoryEntry {

@@ -1,3 +1,4 @@
+import { useFonts } from "expo-font";
 import { Stack, useFocusEffect, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -292,6 +293,20 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  // Block the first frame until Tajawal is available so text never flashes
+  // from the system font. On load failure the app continues with the system
+  // font rather than hanging on the splash screen.
+  const [fontsLoaded, fontError] = useFonts({
+    "Tajawal-Regular": require("../assets/fonts/Tajawal-Regular.ttf"),
+    "Tajawal-Medium": require("../assets/fonts/Tajawal-Medium.ttf"),
+    "Tajawal-Bold": require("../assets/fonts/Tajawal-Bold.ttf"),
+    "Tajawal-ExtraBold": require("../assets/fonts/Tajawal-ExtraBold.ttf"),
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null; // splash screen stays visible
+  }
+
   return (
     <SafeAreaProvider>
       <AppErrorBoundary>

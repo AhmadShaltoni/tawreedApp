@@ -535,6 +535,11 @@ export default function LoyaltyScreen() {
                     formatDate={formatDate}
                     isArabic={isArabic}
                     t={t}
+                    onPressOrder={
+                      tx.relatedOrderId
+                        ? () => router.push(`/order/${tx.relatedOrderId}`)
+                        : undefined
+                    }
                   />
                 ))}
                 {transactions.hasMore && (
@@ -820,6 +825,11 @@ function CouponCard({
   t: (key: string, opts?: any) => string;
 }) {
   const statusColor = getCouponStatusColor(coupon.status);
+  const statusLabels: Record<CouponStatus, string> = {
+    [CouponStatus.ACTIVE]: t("loyalty.statusActive"),
+    [CouponStatus.USED]: t("loyalty.statusUsed"),
+    [CouponStatus.EXPIRED]: t("loyalty.statusExpired"),
+  };
   const rewardName = isArabic
     ? (coupon.rewardNameAr ?? coupon.rewardName)
     : (coupon.rewardNameEn ?? coupon.rewardName);
@@ -836,7 +846,7 @@ function CouponCard({
             ]}
           >
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {coupon.status}
+              {statusLabels[coupon.status]}
             </Text>
           </View>
         </View>
@@ -1025,6 +1035,7 @@ function TransactionRow({
   formatDate,
   isArabic,
   t,
+  onPressOrder,
 }: {
   transaction: LoyaltyTransaction;
   getIcon: (type: TransactionType) => keyof typeof Ionicons.glyphMap;
@@ -1032,14 +1043,23 @@ function TransactionRow({
   formatDate: (d: string) => string;
   isArabic: boolean;
   t: (key: string, opts?: any) => string;
+  onPressOrder?: () => void;
 }) {
   const isPositive = transaction.amount > 0;
   const description = isArabic
     ? (transaction.descriptionAr ?? transaction.description)
     : (transaction.descriptionEn ?? transaction.description);
+  const isTappable = !!onPressOrder;
 
   return (
-    <View style={styles.transactionRow}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.transactionRow,
+        isTappable && pressed && styles.transactionRowPressed,
+      ]}
+      onPress={onPressOrder}
+      disabled={!isTappable}
+    >
       <View
         style={[
           styles.transactionIcon,
@@ -1068,6 +1088,11 @@ function TransactionRow({
         <Text style={styles.transactionDate}>
           {formatDate(transaction.createdAt)}
         </Text>
+        {isTappable && (
+          <Text style={styles.transactionViewOrder}>
+            {t("loyalty.viewOrder")}
+          </Text>
+        )}
       </View>
       <Text
         style={[
@@ -1078,7 +1103,15 @@ function TransactionRow({
         {isPositive ? "+" : ""}
         {transaction.amount}
       </Text>
-    </View>
+      {isTappable && (
+        <Ionicons
+          name={isArabic ? "chevron-back" : "chevron-forward"}
+          size={16}
+          color={Colors.textLight}
+          style={styles.transactionChevron}
+        />
+      )}
+    </Pressable>
   );
 }
 
@@ -1488,6 +1521,19 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     ...Shadows.sm,
+  },
+  transactionRowPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.99 }],
+  },
+  transactionViewOrder: {
+    fontSize: FontSize.xxs,
+    fontWeight: "700",
+    color: Colors.primary,
+    marginTop: 4,
+  },
+  transactionChevron: {
+    marginLeft: Spacing.xs,
   },
   transactionIcon: {
     width: 40,

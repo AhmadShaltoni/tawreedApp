@@ -102,6 +102,16 @@ function mapOrderDetail(raw: any): OrderDetail {
     isFreeDelivery: raw.isFreeDelivery ?? raw.deliveryFee === 0,
     discountAmount: raw.discountAmount ?? raw.discount,
     couponCode: raw.couponCode,
+    redeemedReward: raw.redeemedReward
+      ? {
+          rewardName: raw.redeemedReward.rewardName,
+          rewardNameEn: raw.redeemedReward.rewardNameEn,
+          rewardType: raw.redeemedReward.rewardType,
+          couponCode: raw.redeemedReward.couponCode,
+          productName: raw.redeemedReward.productName,
+          productNameEn: raw.redeemedReward.productNameEn,
+        }
+      : null,
   };
 }
 

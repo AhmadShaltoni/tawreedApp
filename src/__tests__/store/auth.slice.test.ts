@@ -39,6 +39,7 @@ jest.mock("@/src/services/notifications", () => ({
 
 jest.mock("@/src/utils/errorHandler", () => ({
   getErrorMessage: jest.fn((e: any) => e.message || "Error"),
+  getAuthErrorMessage: jest.fn((e: any) => e.message || "Error"),
 }));
 
 import { authService } from "@/src/services/auth.service";
@@ -279,7 +280,8 @@ describe("Auth Slice", () => {
       expect(state.user).toBeNull();
       expect(state.token).toBeNull();
       expect(state.isAuthenticated).toBe(false);
-      expect(state.isGuest).toBe(false);
+      // Logout returns the user to guest mode so they keep browsing
+      expect(state.isGuest).toBe(true);
       expect(state.error).toBeNull();
     });
 
@@ -300,12 +302,12 @@ describe("Auth Slice", () => {
       expect(state.isAuthenticated).toBe(false);
     });
 
-    it("should clear guest mode on logout", async () => {
+    it("should stay in guest mode after logout", async () => {
       store.dispatch(continueAsGuest());
       expect(store.getState().auth.isGuest).toBe(true);
 
       await store.dispatch(logout());
-      expect(store.getState().auth.isGuest).toBe(false);
+      expect(store.getState().auth.isGuest).toBe(true);
     });
   });
 

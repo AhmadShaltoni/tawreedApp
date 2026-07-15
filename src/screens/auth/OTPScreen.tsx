@@ -1,43 +1,49 @@
+import { AuthLayout } from "@/src/components/auth";
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
+  BorderRadius,
+  Colors,
+  Fonts,
+  FontSize,
+  LineHeight,
+  Motion,
+  Shadows,
+  Spacing,
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-    clearError,
-    register,
-    resendSmsOtp,
-    sendOtp,
-    verifyOtp,
+  clearError,
+  register,
+  resendSmsOtp,
+  sendOtp,
+  verifyOtp,
 } from "@/src/store/slices/auth.slice";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming
+  FadeIn,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+/**
+ * OTP verification step (phone → otp → register). Currently OUT of the
+ * active sign-up journey — kept working and restyled so the flow can be
+ * re-enabled once the WhatsApp/SMS provider is configured.
+ */
 
 const OTP_LENGTH = 6;
 
@@ -45,7 +51,6 @@ export default function OTPScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     phone: string;
     username: string;
@@ -56,7 +61,7 @@ export default function OTPScreen() {
     expiresIn: string;
   }>();
 
-  const { otpVerifying, error, verificationToken, loading } = useAppSelector(
+  const { otpVerifying, error, loading } = useAppSelector(
     (state) => state.auth,
   );
 
@@ -272,276 +277,212 @@ export default function OTPScreen() {
     ? `${params.phone.slice(0, 3)}****${params.phone.slice(-3)}`
     : "";
 
-  const channelIcon =
-    currentChannel === "whatsapp" ? "logo-whatsapp" : "chatbubble-outline";
-  const channelColor =
-    currentChannel === "whatsapp" ? "#25D366" : Colors.primary;
+  const isWhatsApp = currentChannel === "whatsapp";
+  const channelColor = isWhatsApp ? Colors.whatsapp : Colors.primary;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthLayout
+      title={t("auth.otpVerification")}
+      onBack={() => router.back()}
+      centered
     >
-      <View
-        style={[
-          styles.container,
-          {
-            paddingTop: insets.top + Spacing.md,
-            paddingBottom: Math.max(insets.bottom, Spacing.xxl),
-          },
-        ]}
-      >
-        {/* Back Button */}
-        <Animated.View entering={FadeIn.duration(300)}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={12}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
-          </Pressable>
-        </Animated.View>
-
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Header */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(100)}
-            style={styles.header}
-          >
-            <Text style={styles.title}>{t("auth.otpVerification")}</Text>
-            <Text style={styles.subtitle}>
-              {t("auth.otpSentTo")}{" "}
-              <Text style={styles.phoneHighlight}>{maskedPhone}</Text>
-            </Text>
-
-            {/* Channel Indicator */}
-            <View
-              style={[
-                styles.channelBadge,
-                { backgroundColor: `${channelColor}15` },
-              ]}
-            >
-              <Ionicons
-                name={channelIcon as any}
-                size={16}
-                color={channelColor}
-              />
-              <Text style={[styles.channelText, { color: channelColor }]}>
-                {currentChannel === "whatsapp"
-                  ? t("auth.otpViaWhatsApp")
-                  : t("auth.otpViaSMS")}
-              </Text>
-            </View>
-          </Animated.View>
-
-          {/* OTP Inputs */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(250)}
-            style={[styles.otpContainer, shakeStyle]}
-          >
-            {Array.from({ length: OTP_LENGTH }).map((_, index) => {
-              const isFilled = !!code[index];
-              const isActive = !verified && !otpVerifying;
-
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.otpBox,
-                    isFilled && styles.otpBoxFilled,
-                    error ? styles.otpBoxError : undefined,
-                    verified && styles.otpBoxSuccess,
-                  ]}
-                >
-                  <TextInput
-                    ref={(ref) => {
-                      inputRefs.current[index] = ref;
-                    }}
-                    style={[
-                      styles.otpInput,
-                      verified && styles.otpInputSuccess,
-                    ]}
-                    value={code[index]}
-                    onChangeText={(value) => handleCodeChange(index, value)}
-                    onKeyPress={({ nativeEvent }) =>
-                      handleKeyPress(index, nativeEvent.key)
-                    }
-                    keyboardType="number-pad"
-                    maxLength={index === 0 ? OTP_LENGTH : 1}
-                    editable={isActive}
-                    selectTextOnFocus
-                    caretHidden
-                  />
-                </View>
-              );
-            })}
-          </Animated.View>
-
-          {/* Verifying indicator */}
-          {otpVerifying && (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              style={styles.verifyingContainer}
-            >
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.verifyingText}>{t("auth.otpVerifying")}</Text>
-            </Animated.View>
-          )}
-
-          {/* Success indicator */}
-          {verified && !loading && (
-            <Animated.View
-              entering={FadeIn.duration(300)}
-              style={styles.verifyingContainer}
-            >
-              <Ionicons
-                name="checkmark-circle"
-                size={22}
-                color={Colors.success}
-              />
-              <Text style={[styles.verifyingText, { color: Colors.success }]}>
-                {t("auth.otpVerified")}
-              </Text>
-            </Animated.View>
-          )}
-
-          {/* Registering indicator */}
-          {verified && loading && (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              style={styles.verifyingContainer}
-            >
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.verifyingText}>
-                {t("auth.profileStartShopping")}
-              </Text>
-            </Animated.View>
-          )}
-
-          {/* Error */}
-          {error && !otpVerifying && (
-            <Animated.View entering={FadeInUp.duration(300)}>
-              <Text style={styles.errorText}>{error}</Text>
-            </Animated.View>
-          )}
-
-          {/* Resend Section */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(400)}
-            style={styles.resendSection}
-          >
-            {!canResend ? (
-              <View style={styles.countdownContainer}>
-                <Text style={styles.countdownLabel}>
-                  {t("auth.otpResendIn")}
-                </Text>
-                <Text style={styles.countdownTimer}>
-                  {formatCountdown(countdown)}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.resendActions}>
-                <Text style={styles.didntReceiveText}>
-                  {t("auth.otpDidntReceive")}
-                </Text>
-
-                <View style={styles.resendButtons}>
-                  <Pressable
-                    style={styles.resendButton}
-                    onPress={() => handleResend("whatsapp")}
-                    disabled={resending}
-                  >
-                    <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                    <Text
-                      style={[styles.resendButtonText, { color: "#25D366" }]}
-                    >
-                      WhatsApp
-                    </Text>
-                  </Pressable>
-
-                  <View style={styles.resendDivider} />
-
-                  <Pressable
-                    style={styles.resendButton}
-                    onPress={() => handleResend("sms")}
-                    disabled={resending}
-                  >
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={18}
-                      color={Colors.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.resendButtonText,
-                        { color: Colors.primary },
-                      ]}
-                    >
-                      {t("auth.otpSMS")}
-                    </Text>
-                  </Pressable>
-                </View>
-
-                {resending && (
-                  <ActivityIndicator
-                    size="small"
-                    color={Colors.primary}
-                    style={{ marginTop: Spacing.sm }}
-                  />
-                )}
-              </View>
-            )}
-          </Animated.View>
+      {/* Sent-to line + channel badge */}
+      <View style={styles.sentToBlock}>
+        <Text style={styles.subtitle}>
+          {t("auth.otpSentTo")}{" "}
+          <Text style={styles.phoneHighlight}>{maskedPhone}</Text>
+        </Text>
+        <View
+          style={[
+            styles.channelBadge,
+            { backgroundColor: `${channelColor}15` },
+          ]}
+        >
+          <Ionicons
+            name={isWhatsApp ? "logo-whatsapp" : "chatbubble-outline"}
+            size={16}
+            color={channelColor}
+          />
+          <Text style={[styles.channelText, { color: channelColor }]}>
+            {isWhatsApp ? t("auth.otpViaWhatsApp") : t("auth.otpViaSMS")}
+          </Text>
         </View>
       </View>
-    </KeyboardAvoidingView>
+
+      {/* OTP Inputs — always LTR: codes read left-to-right in Arabic too */}
+      <Animated.View style={[styles.otpContainer, shakeStyle]}>
+        {Array.from({ length: OTP_LENGTH }).map((_, index) => {
+          const isFilled = !!code[index];
+          const isActive = !verified && !otpVerifying;
+
+          return (
+            <View
+              key={index}
+              style={[
+                styles.otpBox,
+                isFilled && styles.otpBoxFilled,
+                error ? styles.otpBoxError : undefined,
+                verified && styles.otpBoxSuccess,
+              ]}
+            >
+              <TextInput
+                ref={(ref) => {
+                  inputRefs.current[index] = ref;
+                }}
+                style={[styles.otpInput, verified && styles.otpInputSuccess]}
+                value={code[index]}
+                onChangeText={(value) => handleCodeChange(index, value)}
+                onKeyPress={({ nativeEvent }) =>
+                  handleKeyPress(index, nativeEvent.key)
+                }
+                keyboardType="number-pad"
+                maxLength={index === 0 ? OTP_LENGTH : 1}
+                editable={isActive}
+                selectTextOnFocus
+                caretHidden
+                accessibilityLabel={`${t("auth.otpVerification")} ${index + 1}/${OTP_LENGTH}`}
+              />
+            </View>
+          );
+        })}
+      </Animated.View>
+
+      {/* Verifying indicator */}
+      {otpVerifying && (
+        <Animated.View
+          entering={FadeIn.duration(Motion.base)}
+          style={styles.statusRow}
+        >
+          <ActivityIndicator size="small" color={Colors.primary} />
+          <Text style={styles.statusText}>{t("auth.otpVerifying")}</Text>
+        </Animated.View>
+      )}
+
+      {/* Success indicator */}
+      {verified && !loading && (
+        <Animated.View
+          entering={FadeIn.duration(Motion.slow)}
+          style={styles.statusRow}
+        >
+          <Ionicons name="checkmark-circle" size={22} color={Colors.success} />
+          <Text style={[styles.statusText, { color: Colors.success }]}>
+            {t("auth.otpVerified")}
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Registering indicator */}
+      {verified && loading && (
+        <Animated.View
+          entering={FadeIn.duration(Motion.base)}
+          style={styles.statusRow}
+        >
+          <ActivityIndicator size="small" color={Colors.primary} />
+          <Text style={styles.statusText}>
+            {t("auth.profileStartShopping")}
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Error */}
+      {error && !otpVerifying && (
+        <Animated.View entering={FadeInUp.duration(Motion.slow)}>
+          <Text style={styles.errorText} accessibilityLiveRegion="polite">
+            {error}
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Resend Section */}
+      <View style={styles.resendSection}>
+        {!canResend ? (
+          <View style={styles.countdownContainer}>
+            <Text style={styles.countdownLabel}>{t("auth.otpResendIn")}</Text>
+            <Text style={styles.countdownTimer}>
+              {formatCountdown(countdown)}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.resendActions}>
+            <Text style={styles.didntReceiveText}>
+              {t("auth.otpDidntReceive")}
+            </Text>
+
+            <View style={styles.resendButtons}>
+              <Pressable
+                style={styles.resendButton}
+                onPress={() => handleResend("whatsapp")}
+                disabled={resending}
+                accessibilityRole="button"
+                accessibilityLabel={`${t("auth.otpDidntReceive")} WhatsApp`}
+                accessibilityState={{ disabled: resending }}
+              >
+                <Ionicons
+                  name="logo-whatsapp"
+                  size={18}
+                  color={Colors.whatsapp}
+                />
+                <Text
+                  style={[styles.resendButtonText, { color: Colors.whatsapp }]}
+                >
+                  WhatsApp
+                </Text>
+              </Pressable>
+
+              <View style={styles.resendDivider} />
+
+              <Pressable
+                style={styles.resendButton}
+                onPress={() => handleResend("sms")}
+                disabled={resending}
+                accessibilityRole="button"
+                accessibilityLabel={`${t("auth.otpDidntReceive")} ${t("auth.otpSMS")}`}
+                accessibilityState={{ disabled: resending }}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={18}
+                  color={Colors.primary}
+                />
+                <Text
+                  style={[styles.resendButtonText, { color: Colors.primary }]}
+                >
+                  {t("auth.otpSMS")}
+                </Text>
+              </Pressable>
+            </View>
+
+            {resending && (
+              <ActivityIndicator
+                size="small"
+                color={Colors.primary}
+                style={{ marginTop: Spacing.sm }}
+              />
+            )}
+          </View>
+        )}
+      </View>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: Spacing.xxl,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
+  sentToBlock: {
     alignItems: "center",
-    justifyContent: "center",
-    ...Shadows.sm,
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    marginTop: -Spacing.xxxxl,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: Spacing.xxxl + Spacing.md,
-  },
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xxl,
   },
   subtitle: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: FontSize.md * LineHeight.base,
   },
   phoneHighlight: {
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: Colors.text,
     letterSpacing: 0.5,
+    writingDirection: "ltr",
   },
   channelBadge: {
     flexDirection: "row",
@@ -553,8 +494,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   channelText: {
+    fontFamily: Fonts.medium,
     fontSize: FontSize.xs,
-    fontWeight: "600",
   },
   otpContainer: {
     flexDirection: "row",
@@ -569,7 +510,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",
     ...Shadows.sm,
@@ -580,15 +521,15 @@ const styles = StyleSheet.create({
   },
   otpBoxError: {
     borderColor: Colors.error,
-    backgroundColor: "#fef2f2",
+    backgroundColor: Colors.errorSurface,
   },
   otpBoxSuccess: {
     borderColor: Colors.success,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: Colors.successSurface,
   },
   otpInput: {
+    fontFamily: Fonts.bold,
     fontSize: FontSize.xxl,
-    fontWeight: "700",
     color: Colors.text,
     textAlign: "center",
     width: "100%",
@@ -597,23 +538,25 @@ const styles = StyleSheet.create({
   otpInputSuccess: {
     color: Colors.success,
   },
-  verifyingContainer: {
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  verifyingText: {
+  statusText: {
+    fontFamily: Fonts.medium,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    fontWeight: "500",
   },
   errorText: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.sm,
     color: Colors.error,
     textAlign: "center",
     marginBottom: Spacing.lg,
+    lineHeight: FontSize.sm * LineHeight.base,
   },
   resendSection: {
     alignItems: "center",
@@ -622,21 +565,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    minHeight: 44,
   },
   countdownLabel: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
   countdownTimer: {
+    fontFamily: Fonts.bold,
     fontSize: FontSize.md,
-    fontWeight: "700",
     color: Colors.primary,
     minWidth: 40,
+    writingDirection: "ltr",
   },
   resendActions: {
     alignItems: "center",
   },
   didntReceiveText: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
@@ -652,10 +599,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
+    minHeight: 44,
   },
   resendButtonText: {
+    fontFamily: Fonts.medium,
     fontSize: FontSize.sm,
-    fontWeight: "600",
   },
   resendDivider: {
     width: 1,

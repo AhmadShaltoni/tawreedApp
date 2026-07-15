@@ -10,7 +10,10 @@ import {
 import { notificationService } from "@/src/services/notifications";
 import { getToken, removeToken, setToken } from "@/src/services/tokenStorage";
 import { clearCache } from "@/src/utils/cache";
-import { getErrorMessage } from "@/src/utils/errorHandler";
+import {
+  getAuthErrorMessage,
+  getErrorMessage,
+} from "@/src/utils/errorHandler";
 import {
   getSavedLocation,
   saveLocation,
@@ -76,7 +79,7 @@ export const login = createAsyncThunk(
 
       return response;
     } catch (error: any) {
-      const message = getErrorMessage(error);
+      const message = getAuthErrorMessage(error, "login");
       return rejectWithValue(message);
     }
   },
@@ -98,7 +101,7 @@ export const register = createAsyncThunk(
 
       return response;
     } catch (error: any) {
-      const message = getErrorMessage(error);
+      const message = getAuthErrorMessage(error, "register");
       return rejectWithValue(message);
     }
   },
@@ -188,7 +191,7 @@ export const sendOtp = createAsyncThunk(
       const response = await authService.sendOtp(payload);
       return response;
     } catch (error: any) {
-      const message = getErrorMessage(error);
+      const message = getAuthErrorMessage(error, "otp");
       return rejectWithValue(message);
     }
   },
@@ -201,7 +204,7 @@ export const verifyOtp = createAsyncThunk(
       const response = await authService.verifyOtp(payload);
       return response;
     } catch (error: any) {
-      const message = getErrorMessage(error);
+      const message = getAuthErrorMessage(error, "otp");
       return rejectWithValue(message);
     }
   },
@@ -214,7 +217,7 @@ export const resendSmsOtp = createAsyncThunk(
       const response = await authService.resendSmsOtp(payload);
       return response;
     } catch (error: any) {
-      const message = getErrorMessage(error);
+      const message = getAuthErrorMessage(error, "otp");
       return rejectWithValue(message);
     }
   },

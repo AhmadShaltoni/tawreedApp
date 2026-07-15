@@ -17,7 +17,8 @@
     "viewMore": "View More",
     "currency": "JOD",
     "items": "items",
-    "item": "item"
+    "item": "item",
+    "back": "Back"
   },
   "auth": {
     "login": "Login",
@@ -66,7 +67,15 @@
     "profileNamePlaceholder": "Your full name",
     "profileStorePlaceholder": "Store or shop name",
     "profileStartShopping": "Start Shopping",
-    "profileCompleteLater": "Complete Later"
+    "profileCompleteLater": "Complete Later",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "passwordStrength": "Password strength",
+    "passwordWeak": "Weak",
+    "passwordMedium": "Medium",
+    "passwordStrong": "Strong",
+    "invalidCredentials": "Incorrect phone number or password",
+    "phoneExists": "This phone number is already registered. Try signing in."
   },
   "home": {
     "title": "Home",
@@ -275,6 +284,7 @@
     "buyerNotes": "Buyer Notes",
     "placedOn": "Placed on",
     "pricingSummary": "Pricing Summary",
+    "rewardUsedTitle": "Reward Used",
     "fees": "Additional Fees",
     "viewDetails": "View Details",
     "prize": "Loyalty prize",
@@ -285,6 +295,8 @@
     "empty": "No notifications",
     "emptyMessage": "Your notifications will appear here",
     "markAllRead": "Mark all as read",
+    "new": "New",
+    "unreadSummary": "unread notifications",
     "orderUpdate": "Order Update",
     "newProduct": "New Product",
     "promotion": "Promotion",
@@ -364,7 +376,8 @@
     "balance": "Balance",
     "currentBalance": "Your Current Balance",
     "totalEarned": "Total Points Earned",
-    "totalRedeemed": "Total Points Redeemed",
+    "totalRedeemed": "Points Redeemed",
+    "remainingPoints": "Remaining Points",
     "earnedPoints": "Points Earned",
     "rewards": "Rewards",
     "rewardsLower": "rewards",
@@ -379,6 +392,7 @@
     "activeCampaigns": "Active Campaigns",
     "recentTransactions": "Recent Transactions",
     "viewAll": "View All",
+    "viewOrder": "View Order Details",
     "seeAllRewards": "See All Rewards",
     "rewardsCatalog": "Rewards Catalog",
     "affordableRewards": "Available Rewards",
@@ -405,6 +419,9 @@
     "activeCoupons": "Active Coupons",
     "usedCoupons": "Used Coupons",
     "expiredCoupons": "Expired Coupons",
+    "statusActive": "Active",
+    "statusUsed": "Used",
+    "statusExpired": "Expired",
     "validUntil": "Valid Until",
     "usedOn": "Used On",
     "expiredOn": "Expired On",
@@ -564,6 +581,13 @@
       "errorCodeLabel": "Error Code",
       "whatsappMessage": "Hello, I encountered an issue in the Tawreed app. Error code: {{code}}",
       "whatsappMessageDefault": "Hello, I encountered an issue in the Tawreed app and need help."
+    },
+    "api": {
+      "network": "No internet connection. Check your connection and try again.",
+      "timeout": "The request timed out. Please try again.",
+      "server": "Server error. Please try again shortly.",
+      "tooMany": "Too many attempts. Please wait and try again.",
+      "generic": "Something went wrong. Please try again."
     }
   },
   "marketingSections": {

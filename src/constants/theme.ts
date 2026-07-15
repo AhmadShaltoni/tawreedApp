@@ -24,9 +24,16 @@ export const Colors = {
 
   // Semantic
   error: "#ef4444",
+  errorSurface: "#fef2f2",
   success: "#10b981",
+  successSurface: "#f0fdf4",
   warning: "#f59e0b",
   info: "#0ea5e9",
+  whatsapp: "#25d366",
+
+  // Input states
+  inputDisabled: "#f3f4f6",
+  borderFilled: "#cbd5e1",
 
   // Utilities
   white: "#ffffff",
@@ -61,6 +68,30 @@ export const FontSize = {
   xl: scaleFont(20),
   xxl: scaleFont(24),
   xxxl: scaleFont(32),
+} as const;
+
+// Tajawal is loaded in app/_layout.tsx via expo-font. Custom font families on
+// Android ignore `fontWeight`, so weight is selected by family name — never
+// combine these with a `fontWeight` style.
+export const Fonts = {
+  regular: "Tajawal-Regular",
+  medium: "Tajawal-Medium",
+  bold: "Tajawal-Bold",
+  extraBold: "Tajawal-ExtraBold",
+} as const;
+
+// Arabic script needs taller lines than Latin; multiply by FontSize.
+export const LineHeight = {
+  tight: 1.35,
+  base: 1.5,
+  relaxed: 1.7,
+} as const;
+
+// Micro-interaction durations (ms). Keep animations inside this range.
+export const Motion = {
+  fast: 150,
+  base: 200,
+  slow: 250,
 } as const;
 
 export const BorderRadius = {

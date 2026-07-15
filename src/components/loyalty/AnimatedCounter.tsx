@@ -1,15 +1,15 @@
 /**
  * AnimatedCounter Component
- * Displays numbers with smooth counting animation
+ * Displays numbers with a smooth count-up animation.
  *
- * PERFORMANCE: Uses Reanimated Text with native driver
+ * Renders a real <Text> (not an animated `text` prop, which only TextInput
+ * supports) so the value always shows and aligns to the baseline next to
+ * sibling labels. The count-up runs once per value change via requestAnimationFrame.
  */
 
-import { useAnimatedCounter } from "@/src/animations/useAnimatedCounter";
 import { LoyaltyTypography } from "@/src/constants/loyaltyTheme";
-import React from "react";
-import { StyleSheet, TextStyle } from "react-native";
-import Animated from "react-native-reanimated";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, TextStyle } from "react-native";
 
 interface AnimatedCounterProps {
   value: number;
@@ -18,7 +18,9 @@ interface AnimatedCounterProps {
   suffix?: string;
 }
 
-const AnimatedText = Animated.createAnimatedComponent(Animated.Text);
+function formatNumber(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
+}
 
 export default function AnimatedCounter({
   value,
@@ -26,18 +28,48 @@ export default function AnimatedCounter({
   prefix = "",
   suffix = "",
 }: AnimatedCounterProps) {
-  const { animatedProps } = useAnimatedCounter(value);
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+
+    if (from === to) {
+      setDisplay(to);
+      return;
+    }
+
+    const duration = 600;
+    const start = Date.now();
+
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = to;
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [value]);
 
   return (
-    <AnimatedText
-      style={[styles.text, style]}
-      // @ts-ignore - animatedProps text is supported
-      animatedProps={animatedProps}
-    >
+    <Text style={[styles.text, style]}>
       {prefix}
-      {/* Value animates here */}
+      {formatNumber(display)}
       {suffix}
-    </AnimatedText>
+    </Text>
   );
 }
 

@@ -1,42 +1,21 @@
 import {
-    BorderRadius,
-    Colors,
-    FontSize,
-    Shadows,
-    Spacing,
-} from "@/src/constants/theme";
+  AuthButton,
+  AuthInput,
+  AuthLayout,
+  PasswordStrength,
+  PhonePrefix,
+} from "@/src/components/auth";
+import ErrorAlert from "@/src/components/ui/ErrorAlert";
+import { Colors, Fonts, FontSize, Spacing } from "@/src/constants/theme";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 // OTP disabled temporarily - will re-enable later
 // import { clearError, sendOtp } from "@/src/store/slices/auth.slice";
 import { clearError, register } from "@/src/store/slices/auth.slice";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-    ActivityIndicator,
-    I18nManager,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
-import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 interface FormErrors {
   username?: string;
@@ -46,13 +25,12 @@ interface FormErrors {
   confirmPassword?: string;
 }
 
+const PHONE_REGEX = /^07\d{8}$/;
+
 export default function PhoneScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  // OTP disabled temporarily
-  // const { otpSending, error } = useAppSelector((state) => state.auth);
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const [username, setUsername] = useState("");
@@ -60,18 +38,13 @@ export default function PhoneScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
+  const usernameRef = useRef<TextInput>(null);
   const storeNameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
-
-  const buttonScale = useSharedValue(1);
-  const buttonAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
 
   const clearFieldError = (field: keyof FormErrors) => {
     if (formErrors[field]) {
@@ -87,62 +60,76 @@ export default function PhoneScreen() {
     clearFieldError("phone");
   };
 
-  const validate = useCallback((): boolean => {
-    const errors: FormErrors = {};
+  const fieldError = useCallback(
+    (field: keyof FormErrors): string | undefined => {
+      switch (field) {
+        case "username":
+          return username.trim() ? undefined : t("auth.usernameRequired");
+        case "storeName":
+          return storeName.trim() ? undefined : t("auth.storeNameRequired");
+        case "phone": {
+          const trimmed = phone.trim();
+          if (!trimmed) return t("auth.phoneRequired");
+          if (!PHONE_REGEX.test(trimmed)) return t("auth.phoneInvalid");
+          return undefined;
+        }
+        case "password":
+          if (!password) return t("auth.passwordRequired");
+          if (password.length < 8) return t("auth.passwordMinLength");
+          return undefined;
+        case "confirmPassword":
+          if (confirmPassword && password !== confirmPassword)
+            return t("auth.passwordsMismatch");
+          return undefined;
+      }
+    },
+    [username, storeName, phone, password, confirmPassword, t],
+  );
 
-    if (!username.trim()) {
-      errors.username = t("auth.usernameRequired");
-    }
-    if (!storeName.trim()) {
-      errors.storeName = t("auth.storeNameRequired");
-    }
+  const validateField = useCallback(
+    (field: keyof FormErrors) => {
+      setFormErrors((prev) => ({ ...prev, [field]: fieldError(field) }));
+    },
+    [fieldError],
+  );
 
-    const trimmedPhone = phone.trim();
-    if (!trimmedPhone) {
-      errors.phone = t("auth.phoneRequired");
-    } else if (!/^07\d{8}$/.test(trimmedPhone)) {
-      errors.phone = t("auth.phoneInvalid");
-    }
-
-    if (!password) {
-      errors.password = t("auth.passwordRequired");
-    } else if (password.length < 8) {
-      errors.password = t("auth.passwordMinLength");
-    }
-    if (password !== confirmPassword) {
-      errors.confirmPassword = t("auth.passwordsMismatch");
-    }
-
+  const validate = useCallback((): FormErrors => {
+    const errors: FormErrors = {
+      username: fieldError("username"),
+      storeName: fieldError("storeName"),
+      phone: fieldError("phone"),
+      password: fieldError("password"),
+      confirmPassword:
+        password !== confirmPassword
+          ? t("auth.passwordsMismatch")
+          : undefined,
+    };
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [username, storeName, phone, password, confirmPassword, t]);
+    return errors;
+  }, [fieldError, password, confirmPassword, t]);
 
-  // OTP disabled temporarily - register directly without OTP verification
-  // const handleContinue = useCallback(async () => {
-  //   if (!validate()) return;
-  //   dispatch(clearError());
-  //   const trimmedPhone = phone.trim();
-  //   const result = await dispatch(
-  //     sendOtp({ phone: trimmedPhone, channel: "whatsapp" }),
-  //   );
-  //   if (sendOtp.fulfilled.match(result)) {
-  //     router.push({
-  //       pathname: "/(auth)/otp",
-  //       params: {
-  //         phone: trimmedPhone,
-  //         username: username.trim(),
-  //         storeName: storeName.trim(),
-  //         password,
-  //         confirmPassword,
-  //         channel: result.payload.channel,
-  //         expiresIn: String(result.payload.expiresIn || 120),
-  //       },
-  //     });
-  //   }
-  // }, [dispatch, phone, username, storeName, password, confirmPassword, validate, router]);
+  // OTP disabled temporarily - register directly without OTP verification.
+  // The previous sendOtp → /(auth)/otp flow is preserved in OTPScreen and can
+  // be restored once the WhatsApp/SMS provider is configured.
 
   const handleContinue = useCallback(async () => {
-    if (!validate()) return;
+    if (loading) return;
+
+    const errors = validate();
+    const refs: Record<keyof FormErrors, React.RefObject<TextInput | null>> = {
+      username: usernameRef,
+      storeName: storeNameRef,
+      phone: phoneRef,
+      password: passwordRef,
+      confirmPassword: confirmPasswordRef,
+    };
+    const firstError = (
+      Object.keys(refs) as (keyof FormErrors)[]
+    ).find((key) => errors[key]);
+    if (firstError) {
+      refs[firstError].current?.focus();
+      return;
+    }
 
     dispatch(clearError());
     const result = await dispatch(
@@ -169,6 +156,7 @@ export default function PhoneScreen() {
         router.replace("/(tabs)");
       }
     }
+    // On rejection the localized message renders inline via ErrorAlert.
   }, [
     dispatch,
     phone,
@@ -178,462 +166,155 @@ export default function PhoneScreen() {
     confirmPassword,
     validate,
     router,
+    loading,
   ]);
 
-  const isValid =
-    username.trim().length > 0 &&
-    storeName.trim().length > 0 &&
-    /^07\d{8}$/.test(phone.trim()) &&
-    password.length >= 8 &&
-    password === confirmPassword;
-
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[
-            styles.container,
-            {
-              paddingTop: insets.top + Spacing.md,
-              paddingBottom: Math.max(insets.bottom, Spacing.xxl),
-            },
-          ]}
-        >
-          {/* Back Button */}
-          <Animated.View entering={FadeIn.duration(300)}>
+    <AuthLayout
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
+      centerHeader
+      onBack={() => router.back()}
+      footer={
+        <>
+          {error && (
+            <ErrorAlert
+              message={error}
+              onClose={() => dispatch(clearError())}
+            />
+          )}
+          <AuthButton
+            title={t("auth.createAccount")}
+            onPress={handleContinue}
+            loading={loading}
+          />
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>{t("auth.haveAccount")} </Text>
             <Pressable
-              style={styles.backButton}
               onPress={() => router.back()}
               hitSlop={12}
+              accessibilityRole="link"
+              accessibilityLabel={t("auth.signIn")}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.text} />
+              <Text style={styles.footerLink}>{t("auth.signIn")}</Text>
             </Pressable>
-          </Animated.View>
+          </View>
+        </>
+      }
+    >
+      <AuthInput
+        ref={usernameRef}
+        label={t("auth.username")}
+        placeholder={t("auth.profileNamePlaceholder")}
+        value={username}
+        onChangeText={(text) => {
+          setUsername(text);
+          clearFieldError("username");
+        }}
+        onBlur={() => validateField("username")}
+        error={formErrors.username}
+        icon="person-outline"
+        autoCapitalize="words"
+        autoComplete="off"
+        textContentType="none"
+        returnKeyType="next"
+        onSubmitEditing={() => storeNameRef.current?.focus()}
+      />
 
-          {/* Header */}
-          <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
-            <Text style={styles.title}>{t("auth.registerTitle")}</Text>
-            <Text style={styles.subtitle}>{t("auth.registerSubtitle")}</Text>
-          </Animated.View>
+      <AuthInput
+        ref={storeNameRef}
+        label={t("auth.storeName")}
+        placeholder={t("auth.profileStorePlaceholder")}
+        value={storeName}
+        onChangeText={(text) => {
+          setStoreName(text);
+          clearFieldError("storeName");
+        }}
+        onBlur={() => validateField("storeName")}
+        error={formErrors.storeName}
+        icon="storefront-outline"
+        autoCapitalize="words"
+        autoComplete="off"
+        textContentType="none"
+        returnKeyType="next"
+        onSubmitEditing={() => phoneRef.current?.focus()}
+      />
 
-          {/* Form */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(200)}
-            style={styles.formSection}
-          >
-            {/* Username */}
-            <Text style={styles.inputLabel}>{t("auth.username")}</Text>
-            <View
-              style={[
-                styles.inputContainer,
-                formErrors.username ? styles.inputError : undefined,
-              ]}
-            >
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={Colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t("auth.profileNamePlaceholder")}
-                placeholderTextColor={Colors.textLight}
-                value={username}
-                onChangeText={(text) => {
-                  setUsername(text);
-                  clearFieldError("username");
-                }}
-                autoCapitalize="words"
-                autoComplete="off"
-                textContentType="none"
-                returnKeyType="next"
-                onSubmitEditing={() => storeNameRef.current?.focus()}
-                autoFocus
-              />
-            </View>
-            {formErrors.username ? (
-              <Text style={styles.errorText}>{formErrors.username}</Text>
-            ) : null}
+      <AuthInput
+        ref={phoneRef}
+        label={t("auth.phone")}
+        placeholder="07XXXXXXXX"
+        value={phone}
+        onChangeText={handlePhoneChange}
+        onBlur={() => validateField("phone")}
+        error={formErrors.phone}
+        prefix={<PhonePrefix />}
+        ltrField
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        maxLength={10}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+      />
 
-            {/* Store Name */}
-            <Text style={[styles.inputLabel, { marginTop: Spacing.lg }]}>
-              {t("auth.storeName")}
-            </Text>
-            <View
-              style={[
-                styles.inputContainer,
-                formErrors.storeName ? styles.inputError : undefined,
-              ]}
-            >
-              <Ionicons
-                name="storefront-outline"
-                size={20}
-                color={Colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                ref={storeNameRef}
-                style={styles.input}
-                placeholder={t("auth.profileStorePlaceholder")}
-                placeholderTextColor={Colors.textLight}
-                value={storeName}
-                onChangeText={(text) => {
-                  setStoreName(text);
-                  clearFieldError("storeName");
-                }}
-                autoCapitalize="words"
-                autoComplete="off"
-                textContentType="none"
-                returnKeyType="next"
-                onSubmitEditing={() => phoneRef.current?.focus()}
-              />
-            </View>
-            {formErrors.storeName ? (
-              <Text style={styles.errorText}>{formErrors.storeName}</Text>
-            ) : null}
+      <AuthInput
+        ref={passwordRef}
+        label={t("auth.password")}
+        placeholder="••••••••"
+        value={password}
+        onChangeText={(text) => {
+          setPassword(text);
+          clearFieldError("password");
+        }}
+        onBlur={() => validateField("password")}
+        error={formErrors.password}
+        isPassword
+        icon="lock-closed-outline"
+        textContentType="newPassword"
+        returnKeyType="next"
+        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+      />
+      <PasswordStrength password={password} />
 
-            {/* Phone Number */}
-            <Text style={[styles.inputLabel, { marginTop: Spacing.lg }]}>
-              {t("auth.phone")}
-            </Text>
-            <View
-              style={[
-                styles.phoneInputContainer,
-                formErrors.phone ? styles.inputError : undefined,
-              ]}
-            >
-              <View style={styles.countryCode}>
-                <Text style={styles.flag}>🇯🇴</Text>
-                <Text style={styles.countryCodeText}>+962</Text>
-              </View>
-              <View style={styles.divider} />
-              <TextInput
-                ref={phoneRef}
-                style={[
-                  styles.phoneInput,
-                  {
-                    textAlign: I18nManager.isRTL ? "right" : "left",
-                    direction: "ltr",
-                  },
-                ]}
-                placeholder="07XXXXXXXX"
-                placeholderTextColor={Colors.textLight}
-                value={phone}
-                onChangeText={handlePhoneChange}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                maxLength={10}
-                returnKeyType="next"
-                onSubmitEditing={() => passwordRef.current?.focus()}
-              />
-            </View>
-            {formErrors.phone ? (
-              <Text style={styles.errorText}>{formErrors.phone}</Text>
-            ) : null}
-
-            {/* Password */}
-            <Text style={[styles.inputLabel, { marginTop: Spacing.lg }]}>
-              {t("auth.password")}
-            </Text>
-            <View
-              style={[
-                styles.inputContainer,
-                formErrors.password ? styles.inputError : undefined,
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={Colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                ref={passwordRef}
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={Colors.textLight}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  clearFieldError("password");
-                }}
-                secureTextEntry={!showPassword}
-                textContentType="newPassword"
-                returnKeyType="next"
-                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-                hitSlop={8}
-              >
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color={Colors.textSecondary}
-                />
-              </Pressable>
-            </View>
-            {formErrors.password ? (
-              <Text style={styles.errorText}>{formErrors.password}</Text>
-            ) : null}
-
-            {/* Confirm Password */}
-            <Text style={[styles.inputLabel, { marginTop: Spacing.lg }]}>
-              {t("auth.confirmPassword")}
-            </Text>
-            <View
-              style={[
-                styles.inputContainer,
-                formErrors.confirmPassword ? styles.inputError : undefined,
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={Colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                ref={confirmPasswordRef}
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={Colors.textLight}
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  clearFieldError("confirmPassword");
-                }}
-                secureTextEntry={!showPassword}
-                textContentType="newPassword"
-                returnKeyType="done"
-                onSubmitEditing={handleContinue}
-              />
-            </View>
-            {formErrors.confirmPassword ? (
-              <Text style={styles.errorText}>{formErrors.confirmPassword}</Text>
-            ) : null}
-
-            {/* API Error */}
-            {error && (
-              <Animated.View entering={FadeInUp.duration(300)}>
-                <Text
-                  style={[
-                    styles.errorText,
-                    { marginTop: Spacing.md, textAlign: "center" },
-                  ]}
-                >
-                  {error}
-                </Text>
-              </Animated.View>
-            )}
-          </Animated.View>
-
-          {/* Bottom Actions */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(400)}
-            style={styles.bottomSection}
-          >
-            <AnimatedPressable
-              onPress={handleContinue}
-              onPressIn={() => {
-                buttonScale.value = withSpring(0.97, {
-                  damping: 15,
-                  stiffness: 400,
-                });
-              }}
-              onPressOut={() => {
-                buttonScale.value = withSpring(1, {
-                  damping: 15,
-                  stiffness: 400,
-                });
-              }}
-              disabled={loading || !isValid}
-              style={[
-                styles.ctaButton,
-                (!isValid || loading) && styles.ctaButtonDisabled,
-                buttonAnimStyle,
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color={Colors.white} size="small" />
-              ) : (
-                <Text style={styles.ctaText}>{t("auth.createAccount")}</Text>
-              )}
-            </AnimatedPressable>
-
-            {/* Already have account */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>{t("auth.haveAccount")} </Text>
-              <Pressable onPress={() => router.back()}>
-                <Text style={styles.footerLink}>{t("auth.signIn")}</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <AuthInput
+        ref={confirmPasswordRef}
+        label={t("auth.confirmPassword")}
+        placeholder="••••••••"
+        value={confirmPassword}
+        onChangeText={(text) => {
+          setConfirmPassword(text);
+          clearFieldError("confirmPassword");
+        }}
+        onBlur={() => validateField("confirmPassword")}
+        error={formErrors.confirmPassword}
+        isPassword
+        icon="lock-closed-outline"
+        textContentType="newPassword"
+        returnKeyType="done"
+        onSubmitEditing={handleContinue}
+      />
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: Spacing.xxl,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    ...Shadows.sm,
-  },
-  header: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xxl,
-  },
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    lineHeight: 24,
-  },
-  formSection: {
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    height: 54,
-    ...Shadows.sm,
-  },
-  inputError: {
-    borderColor: Colors.error,
-    backgroundColor: "#fef2f2",
-  },
-  inputIcon: {
-    marginLeft: Spacing.lg,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: Spacing.md,
-    fontSize: FontSize.md,
-    color: Colors.text,
-    textAlign: I18nManager.isRTL ? "right" : "left",
-    writingDirection: I18nManager.isRTL ? "rtl" : "ltr",
-  },
-  eyeIcon: {
-    paddingHorizontal: Spacing.lg,
-  },
-  phoneInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    height: 54,
-    ...Shadows.sm,
-  },
-  countryCode: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
-  flag: {
-    fontSize: 18,
-  },
-  countryCodeText: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.text,
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.border,
-  },
-  phoneInput: {
-    flex: 1,
-    paddingHorizontal: Spacing.md,
-    fontSize: FontSize.md,
-    fontWeight: "500",
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  errorText: {
-    fontSize: FontSize.xs,
-    color: Colors.error,
-    marginTop: Spacing.xs,
-  },
-  bottomSection: {
-    paddingBottom: Spacing.md,
-    marginTop: Spacing.xxl,
-  },
-  ctaButton: {
-    height: 56,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    ...Shadows.md,
-  },
-  ctaButtonDisabled: {
-    opacity: 0.5,
-  },
-  ctaText: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    color: Colors.white,
-  },
-  footer: {
+  footerRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: Spacing.lg,
+    minHeight: 44,
+    marginTop: Spacing.sm,
     gap: Spacing.xs,
   },
   footerText: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
   footerLink: {
+    fontFamily: Fonts.bold,
     fontSize: FontSize.sm,
-    fontWeight: "700",
     color: Colors.primary,
   },
 });

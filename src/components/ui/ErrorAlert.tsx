@@ -1,4 +1,11 @@
-import { Colors, FontSize, Spacing } from "@/src/constants/theme";
+import {
+  BorderRadius,
+  Colors,
+  Fonts,
+  FontSize,
+  LineHeight,
+  Spacing,
+} from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -9,8 +16,8 @@ interface ErrorAlertProps {
 }
 
 /**
- * Beautiful error alert component for displaying API errors
- * Shows error icon, message, and automatic dismiss
+ * Inline alert for API errors. Auto-dismisses after 5s when onClose is
+ * provided; announced to screen readers via the alert role.
  */
 export default function ErrorAlert({ message, onClose }: ErrorAlertProps) {
   React.useEffect(() => {
@@ -23,7 +30,11 @@ export default function ErrorAlert({ message, onClose }: ErrorAlertProps) {
   if (!message) return null;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="assertive"
+    >
       <View style={styles.content}>
         <Ionicons
           name="alert-circle"
@@ -41,12 +52,12 @@ export default function ErrorAlert({ message, onClose }: ErrorAlertProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fee2e2",
-    borderRadius: 8,
+    backgroundColor: Colors.errorSurface,
+    borderRadius: BorderRadius.sm,
     marginBottom: Spacing.md,
     overflow: "hidden",
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.error,
+    borderStartWidth: 4,
+    borderStartColor: Colors.error,
   },
   content: {
     flexDirection: "row",
@@ -54,14 +65,13 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   icon: {
-    marginRight: Spacing.md,
-    marginTop: 2,
+    marginEnd: Spacing.md,
   },
   message: {
     flex: 1,
+    fontFamily: Fonts.medium,
     fontSize: FontSize.sm,
     color: Colors.error,
-    fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: FontSize.sm * LineHeight.base,
   },
 });

@@ -1,3 +1,5 @@
+import i18n from "@/src/localization/i18n";
+
 /**
  * Extracts error message from API response
  * Handles multiple error response formats from backend
@@ -86,4 +88,61 @@ export function getErrorMessage(error: any): string {
   }
 
   return extractedMessage || "حدث خطأ. يرجى المحاولة مرة أخرى.";
+}
+
+/** Pulls a human-readable message out of a backend error body, if any. */
+function extractServerMessage(data: any): string | null {
+  if (!data) return null;
+  if (typeof data.error === "string") return data.error;
+  if (typeof data.message === "string") return data.message;
+  if (data.errors && typeof data.errors === "object") {
+    const firstError = Object.values(data.errors)[0];
+    if (typeof firstError === "string") return firstError;
+  }
+  return null;
+}
+
+export type AuthErrorContext = "login" | "register" | "otp";
+
+/**
+ * Localized, user-facing message for login/register/OTP failures.
+ *
+ * Unlike the generic getErrorMessage, this maps the statuses that have one
+ * unambiguous meaning in an auth flow (401 on login = wrong credentials,
+ * 409 on register = phone already taken) to fixed translated strings, so the
+ * user always sees a clear, actionable message in their own language — never
+ * a raw Axios/technical error.
+ */
+export function getAuthErrorMessage(
+  error: any,
+  context: AuthErrorContext,
+): string {
+  const status: number | undefined = error?.response?.status;
+
+  // No HTTP response → connectivity problem, not a credentials problem.
+  if (!error?.response) {
+    const msg = typeof error?.message === "string" ? error.message : "";
+    if (error?.code === "ECONNABORTED" || msg.includes("timeout")) {
+      return i18n.t("errors.api.timeout");
+    }
+    return i18n.t("errors.api.network");
+  }
+
+  if (context === "login" && (status === 400 || status === 401)) {
+    return i18n.t("auth.invalidCredentials");
+  }
+  if (context === "register" && status === 409) {
+    return i18n.t("auth.phoneExists");
+  }
+  if (status === 429) {
+    return i18n.t("errors.api.tooMany");
+  }
+  if (status != null && status >= 500) {
+    return i18n.t("errors.api.server");
+  }
+
+  const serverMessage = extractServerMessage(error.response?.data);
+  if (serverMessage) return serverMessage;
+
+  return i18n.t("errors.api.generic");
 }

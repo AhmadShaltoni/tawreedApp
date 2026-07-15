@@ -1,8 +1,11 @@
-import Button from "@/src/components/ui/Button";
+import {
+  AuthButton,
+  AuthInput,
+  AuthLayout,
+  PhonePrefix,
+} from "@/src/components/auth";
 import ErrorAlert from "@/src/components/ui/ErrorAlert";
-import Input from "@/src/components/ui/Input";
-import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
-import { Colors, FontSize, Spacing } from "@/src/constants/theme";
+import { Colors, Fonts, FontSize, Spacing } from "@/src/constants/theme";
 import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
@@ -10,53 +13,89 @@ import {
   continueAsGuest,
   login,
 } from "@/src/store/slices/auth.slice";
-import { Link, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 interface FormErrors {
   phone?: string;
   password?: string;
 }
 
+const PHONE_REGEX = /^07\d{8}$/;
+
 export default function LoginScreen() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  const validate = useCallback((): boolean => {
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const handlePhoneChange = (text: string) => {
+    // Phone is always western digits, max 10 (07xxxxxxxx).
+    const digits = text.replace(/[^0-9]/g, "").slice(0, 10);
+    setPhone(digits);
+    if (formErrors.phone) {
+      setFormErrors((prev) => ({ ...prev, phone: undefined }));
+    }
+  };
+
+  const validateField = useCallback(
+    (field: keyof FormErrors) => {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        if (field === "phone") {
+          const trimmed = phone.trim();
+          if (!trimmed) next.phone = t("auth.phoneRequired");
+          else if (!PHONE_REGEX.test(trimmed))
+            next.phone = t("auth.phoneInvalid");
+          else next.phone = undefined;
+        }
+        if (field === "password") {
+          if (!password) next.password = t("auth.passwordRequired");
+          else if (password.length < 6)
+            next.password = t("auth.passwordMinLength");
+          else next.password = undefined;
+        }
+        return next;
+      });
+    },
+    [phone, password, t],
+  );
+
+  const validate = useCallback((): FormErrors => {
     const errors: FormErrors = {};
-
     const trimmedPhone = phone.trim();
-    if (!trimmedPhone) {
-      errors.phone = t("auth.phoneRequired") || "Phone number is required";
-    } else if (!/^07\d{8}$/.test(trimmedPhone)) {
-      errors.phone =
-        t("auth.phoneInvalid") || "Phone must be in format 07xxxxxxxx";
-    }
+    if (!trimmedPhone) errors.phone = t("auth.phoneRequired");
+    else if (!PHONE_REGEX.test(trimmedPhone))
+      errors.phone = t("auth.phoneInvalid");
 
-    if (!password) {
-      errors.password = t("auth.passwordRequired") || "Password is required";
-    } else if (password.length < 6) {
-      errors.password =
-        t("auth.passwordMinLength") || "Password must be at least 6 characters";
-    }
+    if (!password) errors.password = t("auth.passwordRequired");
+    else if (password.length < 6) errors.password = t("auth.passwordMinLength");
 
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }, [phone, password, t]);
 
   const handleLogin = useCallback(async () => {
-    if (!validate()) return;
+    if (loading) return;
+
+    const errors = validate();
+    if (errors.phone) {
+      phoneRef.current?.focus();
+      return;
+    }
+    if (errors.password) {
+      passwordRef.current?.focus();
+      return;
+    }
 
     dispatch(clearError());
     const result = await dispatch(login({ phone: phone.trim(), password }));
@@ -65,15 +104,15 @@ export default function LoginScreen() {
       // Register device token after successful login
       try {
         await notificationService.registerTokenAfterLogin();
-      } catch (error) {
-        console.error("[LoginScreen] Failed to register device token:", error);
+      } catch (err) {
+        console.error("[LoginScreen] Failed to register device token:", err);
         // Don't block login if token registration fails
       }
       router.replace("/(tabs)");
-    } else if (login.rejected.match(result)) {
-      Alert.alert(t("auth.login"), result.payload as string);
     }
-  }, [dispatch, phone, password, validate, t, router]);
+    // On rejection the localized message lands in state.error and renders
+    // inline above the button — no blocking Alert.
+  }, [dispatch, phone, password, validate, router, loading]);
 
   const handleGuestMode = useCallback(() => {
     dispatch(continueAsGuest());
@@ -81,147 +120,103 @@ export default function LoginScreen() {
   }, [dispatch, router]);
 
   return (
-    <ScreenWrapper>
-      <View
-        style={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
-        ]}
-      >
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(50)}
-          style={styles.header}
-        >
-          <Text style={styles.logo}>{t("common.appName")}</Text>
-          <Text style={styles.subtitle}>B2B Wholesale Platform</Text>
-          <Text style={styles.title}>{t("auth.loginSubtitle")}</Text>
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(200)}
-          style={styles.form}
-        >
-          <Input
-            label={t("auth.phone")}
-            placeholder="07XXXXXXXX"
-            value={phone}
-            onChangeText={(text) => {
-              setPhone(text);
-              if (formErrors.phone)
-                setFormErrors((prev) => ({ ...prev, phone: undefined }));
-            }}
-            error={formErrors.phone}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-          />
-
-          <Input
-            label={t("auth.password")}
-            placeholder="••••••••"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (formErrors.password)
-                setFormErrors((prev) => ({ ...prev, password: undefined }));
-            }}
-            error={formErrors.password}
-            isPassword
-            textContentType="password"
-          />
-
-          {error && (
-            <ErrorAlert
-              message={error}
-              onClose={() => dispatch(clearError())}
-            />
-          )}
-
-          <Button
-            title={t("auth.signIn")}
-            onPress={handleLogin}
-            loading={loading}
-            variant="accent"
-            style={styles.button}
-          />
-
-          <Pressable style={styles.guestButton} onPress={handleGuestMode}>
-            <Text style={styles.guestText}>{t("auth.continueAsGuest")}</Text>
+    <AuthLayout
+      title={t("auth.welcomeBack")}
+      subtitle={t("auth.loginSubtitle")}
+      showLogo
+      centered
+      footer={
+        <View style={styles.registerRow}>
+          <Text style={styles.registerText}>{t("auth.noAccount")} </Text>
+          <Pressable
+            onPress={() => router.push("/(auth)/phone")}
+            hitSlop={12}
+            accessibilityRole="link"
+            accessibilityLabel={t("auth.register")}
+          >
+            <Text style={styles.registerLink}>{t("auth.register")}</Text>
           </Pressable>
+        </View>
+      }
+    >
+      <AuthInput
+        ref={phoneRef}
+        label={t("auth.phone")}
+        placeholder="07XXXXXXXX"
+        value={phone}
+        onChangeText={handlePhoneChange}
+        onBlur={() => validateField("phone")}
+        error={formErrors.phone}
+        prefix={<PhonePrefix />}
+        ltrField
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        maxLength={10}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+      />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>{t("auth.noAccount")} </Text>
-            <Link href="/(auth)/phone" style={styles.link}>
-              {t("auth.register")}
-            </Link>
-          </View>
-        </Animated.View>
-      </View>
-    </ScreenWrapper>
+      <AuthInput
+        ref={passwordRef}
+        label={t("auth.password")}
+        placeholder="••••••••"
+        value={password}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (formErrors.password)
+            setFormErrors((prev) => ({ ...prev, password: undefined }));
+        }}
+        onBlur={() => validateField("password")}
+        error={formErrors.password}
+        isPassword
+        icon="lock-closed-outline"
+        textContentType="password"
+        returnKeyType="done"
+        onSubmitEditing={handleLogin}
+      />
+
+      {error && (
+        <ErrorAlert message={error} onClose={() => dispatch(clearError())} />
+      )}
+
+      <AuthButton
+        title={t("auth.signIn")}
+        onPress={handleLogin}
+        loading={loading}
+        style={styles.submitButton}
+      />
+
+      <AuthButton
+        title={t("auth.continueAsGuest")}
+        onPress={handleGuestMode}
+        variant="ghost"
+        accessibilityHint={t("auth.guestPromptMessage")}
+      />
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingVertical: Spacing.xxxl,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: Spacing.xxxl + 8,
-  },
-  logo: {
-    fontSize: FontSize.xxxl + 4,
-    fontWeight: "800",
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xxl,
-  },
-  title: {
-    fontSize: FontSize.xl,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  form: {
-    width: "100%",
-  },
-  apiError: {
-    fontSize: FontSize.sm,
-    color: Colors.error,
-    textAlign: "center",
-    marginBottom: Spacing.lg,
-  },
-  button: {
+  submitButton: {
     marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  guestButton: {
-    alignItems: "center",
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  guestText: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.textSecondary,
-    textDecorationLine: "underline",
-  },
-  footer: {
+  registerRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: Spacing.xxl,
+    alignItems: "center",
+    minHeight: 44,
+    gap: Spacing.xs,
   },
-  footerText: {
+  registerText: {
+    fontFamily: Fonts.regular,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
-  link: {
+  registerLink: {
+    fontFamily: Fonts.bold,
     fontSize: FontSize.sm,
-    fontWeight: "700",
     color: Colors.primary,
   },
 });

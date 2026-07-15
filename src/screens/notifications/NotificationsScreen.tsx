@@ -17,7 +17,7 @@ import {
 import type { Notification, NotificationType } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -62,23 +62,35 @@ function getIconConfig(item: Notification): IconConfig {
 }
 
 export default function NotificationsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const dispatch = useAppDispatch();
   const { items, loading, unreadCount } = useAppSelector(
     (state) => state.notifications,
   );
   const [refreshing, setRefreshing] = useState(false);
 
+  // Keep the latest unread count available inside the blur cleanup closure
+  // without re-subscribing the focus effect on every count change.
+  const unreadRef = useRef(unreadCount);
   useEffect(() => {
-    dispatch(fetchNotifications());
-  }, [dispatch]);
+    unreadRef.current = unreadCount;
+  }, [unreadCount]);
 
-  // ✅ إصلاح: فقط جلب الإشعارات، بدون auto-mark-all-as-read
-  // المستخدم يختار "Mark All Read" يدويًا
+  // السلوك المطلوب: عند فتح الشاشة تُجلب الإشعارات وتظهر غير المقروءة بلون مميز،
+  // وعند مغادرة الشاشة (إغلاقها) تُعلّم جميعها كمقروءة تلقائيًا — مثل صندوق الوارد.
+  // زر "تحديد الكل كمقروء" يبقى متاحًا كإجراء يدوي فوري.
   useFocusEffect(
     useCallback(() => {
-      // جلب الإشعارات الحديثة عند فتح الشاشة
+      // على الفتح: جلب الإشعارات الحديثة (تبقى غير المقروءة مميّزة أثناء العرض)
       dispatch(fetchNotifications());
+
+      return () => {
+        // على الإغلاق: اعتبر ما شاهده المستخدم مقروءًا
+        if (unreadRef.current > 0) {
+          dispatch(markAllNotificationsRead());
+        }
+      };
     }, [dispatch]),
   );
 
@@ -127,28 +139,53 @@ export default function NotificationsScreen() {
   const renderItem = useCallback(
     ({ item }: { item: Notification }) => {
       const config = getIconConfig(item);
+      const unread = !item.read;
       return (
         <Pressable
-          style={[styles.notifItem, !item.read && styles.unread]}
+          android_ripple={{ color: Colors.primaryXLight }}
+          style={({ pressed }) => [
+            styles.notifItem,
+            unread && styles.unread,
+            pressed && styles.pressed,
+          ]}
           onPress={() => handlePress(item)}
         >
           <View style={[styles.iconWrap, { backgroundColor: config.bg }]}>
             <Ionicons name={config.icon} size={20} color={config.color} />
+            {unread && <View style={styles.iconBadge} />}
           </View>
           <View style={styles.notifContent}>
-            <Text style={styles.notifTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={styles.notifMessage} numberOfLines={2}>
+            <View style={styles.titleRow}>
+              <Text
+                style={[styles.notifTitle, unread && styles.notifTitleUnread]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              {unread && (
+                <View style={styles.newPill}>
+                  <Text style={styles.newPillText}>{t("notifications.new")}</Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={[styles.notifMessage, unread && styles.notifMessageUnread]}
+              numberOfLines={2}
+            >
               {item.message}
             </Text>
             <Text style={styles.notifTime}>{formatTime(item.createdAt)}</Text>
           </View>
-          {!item.read && <View style={styles.unreadDot} />}
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={16}
+            color={Colors.textLight}
+            style={styles.chevron}
+          />
         </Pressable>
       );
     },
-    [handlePress, formatTime],
+    [handlePress, formatTime, isRTL, t],
   );
 
   if (loading && items.length === 0) {
@@ -158,12 +195,24 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       {unreadCount > 0 && (
-        <Pressable style={styles.markAllBar} onPress={handleMarkAllRead}>
-          <Ionicons name="checkmark-done" size={16} color={Colors.primary} />
-          <Text style={styles.markAllText}>
-            {t("notifications.markAllRead")}
-          </Text>
-        </Pressable>
+        <View style={styles.markAllBar}>
+          <View style={styles.unreadSummary}>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+            <Text style={styles.unreadSummaryText}>
+              {t("notifications.unreadSummary")}
+            </Text>
+          </View>
+          <Pressable style={styles.markAllBtn} onPress={handleMarkAllRead}>
+            <Ionicons name="checkmark-done" size={16} color={Colors.primary} />
+            <Text style={styles.markAllText}>
+              {t("notifications.markAllRead")}
+            </Text>
+          </Pressable>
+        </View>
       )}
 
       <FlatList
@@ -201,15 +250,51 @@ const styles = StyleSheet.create({
   markAllBar: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
     ...Shadows.sm,
   },
-  markAllText: {
+  unreadSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flexShrink: 1,
+  },
+  countBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  countBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: "#ffffff",
+  },
+  unreadSummaryText: {
     fontSize: FontSize.sm,
     fontWeight: "600",
+    color: Colors.text,
+    flexShrink: 1,
+  },
+  markAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryXLight,
+  },
+  markAllText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
     color: Colors.primary,
   },
   listContent: {
@@ -226,10 +311,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
+    borderStartWidth: 4,
+    borderStartColor: "transparent",
     ...Shadows.sm,
   },
   unread: {
-    backgroundColor: Colors.primaryXLight,
+    backgroundColor: "#eef4ff",
+    borderStartColor: Colors.primary,
+    ...Shadows.md,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   iconWrap: {
     width: 40,
@@ -238,30 +330,61 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  iconBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.secondary,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+  },
   notifContent: {
     flex: 1,
   },
-  notifTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.text,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
     marginBottom: 2,
+  },
+  notifTitle: {
+    flexShrink: 1,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  notifTitleUnread: {
+    fontWeight: "800",
+    color: Colors.text,
+  },
+  newPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+  },
+  newPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   notifMessage: {
     fontSize: FontSize.xs,
-    color: Colors.textSecondary,
+    color: Colors.textLight,
     lineHeight: 18,
     marginBottom: Spacing.xs,
+  },
+  notifMessageUnread: {
+    color: Colors.textSecondary,
   },
   notifTime: {
     fontSize: FontSize.xs,
     color: Colors.textLight,
   },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-    marginTop: Spacing.xs,
+  chevron: {
+    alignSelf: "center",
   },
 });

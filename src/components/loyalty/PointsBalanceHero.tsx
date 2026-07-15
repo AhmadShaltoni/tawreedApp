@@ -2,7 +2,8 @@
  * PointsBalanceHero Component
  * Large hero card displaying loyalty points balance with gradient
  *
- * VISUAL: Premium gradient card, animated counter, floating particles effect
+ * VISUAL: Premium gold gradient, centered balance, decorative glow circles,
+ * and three separated stat pills (earned / redeemed / remaining).
  */
 
 import {
@@ -31,6 +32,28 @@ interface PointsBalanceHeroProps {
   onPress?: () => void;
 }
 
+interface StatPillProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: number | undefined;
+  label: string;
+}
+
+function StatPill({ icon, value, label }: StatPillProps) {
+  return (
+    <View style={styles.statPill}>
+      <View style={styles.statIconWrap}>
+        <Ionicons name={icon} size={16} color={Colors.white} />
+      </View>
+      <Text style={styles.statValue}>
+        {value != null ? value.toLocaleString() : "0"}
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={2}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 export default function PointsBalanceHero({
   currentBalance,
   totalEarned,
@@ -50,13 +73,19 @@ export default function PointsBalanceHero({
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        {/* Header */}
+        {/* Decorative glow circles */}
+        <View style={styles.decorCircleTop} pointerEvents="none" />
+        <View style={styles.decorCircleBottom} pointerEvents="none" />
+
+        {/* Header — trophy badge + label */}
         <View style={styles.header}>
-          <Ionicons name="trophy" size={32} color={Colors.white} />
+          <View style={styles.trophyBadge}>
+            <Ionicons name="trophy" size={20} color={Colors.white} />
+          </View>
           <Text style={styles.label}>{t("loyalty.currentBalance")}</Text>
         </View>
 
-        {/* Main Balance */}
+        {/* Main Balance — centered */}
         <View style={styles.balanceContainer}>
           <AnimatedCounter
             value={currentBalance ?? 0}
@@ -65,28 +94,23 @@ export default function PointsBalanceHero({
           <Text style={styles.pointsLabel}>{t("loyalty.points")}</Text>
         </View>
 
-        {/* Stats Row */}
+        {/* Stats — three separated pills */}
         <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {totalEarned != null ? totalEarned.toLocaleString() : "0"}
-            </Text>
-            <Text style={styles.statLabel}>{t("loyalty.totalEarned")}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {totalRedeemed != null ? totalRedeemed.toLocaleString() : "0"}
-            </Text>
-            <Text style={styles.statLabel}>{t("loyalty.totalRedeemed")}</Text>
-          </View>
-        </View>
-
-        {/* Floating particles effect placeholder */}
-        <View style={styles.particlesContainer} pointerEvents="none">
-          {/* TODO: Add subtle Lottie particle animation */}
+          <StatPill
+            icon="trending-up"
+            value={totalEarned}
+            label={t("loyalty.totalEarned")}
+          />
+          <StatPill
+            icon="gift-outline"
+            value={totalRedeemed}
+            label={t("loyalty.totalRedeemed")}
+          />
+          <StatPill
+            icon="wallet-outline"
+            value={currentBalance}
+            label={t("loyalty.remainingPoints")}
+          />
         </View>
       </LinearGradient>
     </Pressable>
@@ -105,67 +129,103 @@ const styles = StyleSheet.create({
   },
   gradient: {
     padding: LoyaltySpacing.hero,
-    minHeight: 200,
+    overflow: "hidden",
   },
+
+  // Decorative background circles
+  decorCircleTop: {
+    position: "absolute",
+    top: -60,
+    insetInlineEnd: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+  },
+  decorCircleBottom: {
+    position: "absolute",
+    bottom: -70,
+    insetInlineStart: -50,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+  },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  trophyBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.20)",
   },
   label: {
     fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.9)",
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.95)",
+    letterSpacing: 0.5,
   },
+
+  // Balance
   balanceContainer: {
     flexDirection: "row",
     alignItems: "baseline",
+    justifyContent: "center",
     marginBottom: Spacing.xxl,
   },
   balanceText: {
     ...LoyaltyTypography.balanceHero,
     color: Colors.white,
-    marginRight: Spacing.sm,
+    marginHorizontal: Spacing.sm,
   },
   pointsLabel: {
     fontSize: FontSize.lg,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.85)",
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.9)",
   },
+
+  // Stats
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    gap: Spacing.sm,
   },
-  stat: {
+  statPill: {
     flex: 1,
     alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.18)",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+  },
+  statIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    marginBottom: Spacing.sm,
   },
   statValue: {
-    fontSize: FontSize.xl,
-    fontWeight: "700",
+    fontSize: FontSize.lg,
+    fontWeight: "800",
     color: Colors.white,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.xxs,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.75)",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    marginHorizontal: Spacing.md,
-  },
-  particlesContainer: {
-    ...StyleSheet.absoluteFillObject,
   },
 });
