@@ -1,5 +1,6 @@
 import { orderService } from "@/src/services/order.service";
 import type {
+    CreateOrderEditRequestPayload,
     CreateOrderPayload,
     EditOrderPayload,
     Order,
@@ -113,6 +114,32 @@ export const updateOrder = createAsyncThunk(
   ) => {
     try {
       return await orderService.updateOrder(id, payload);
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const submitOrderEditRequest = createAsyncThunk(
+  "orders/submitEditRequest",
+  async (
+    { id, payload }: { id: string; payload: CreateOrderEditRequestPayload },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await orderService.submitEditRequest(id, payload);
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const cancelOrderEditRequest = createAsyncThunk(
+  "orders/cancelEditRequest",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await orderService.cancelEditRequest(id);
+      return id;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -239,6 +266,42 @@ const ordersSlice = createSlice({
         }
       })
       .addCase(updateOrder.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      });
+
+    // Submit edit request
+    builder
+      .addCase(submitOrderEditRequest.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(submitOrderEditRequest.fulfilled, (state, action) => {
+        state.updating = false;
+        // Reflect the new pending request on the currently-open order so the
+        // detail screen shows the "awaiting review" banner immediately.
+        if (state.selectedOrder) {
+          state.selectedOrder.pendingEditRequest = action.payload;
+        }
+      })
+      .addCase(submitOrderEditRequest.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      });
+
+    // Cancel edit request
+    builder
+      .addCase(cancelOrderEditRequest.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(cancelOrderEditRequest.fulfilled, (state) => {
+        state.updating = false;
+        if (state.selectedOrder) {
+          state.selectedOrder.pendingEditRequest = null;
+        }
+      })
+      .addCase(cancelOrderEditRequest.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload as string;
       });

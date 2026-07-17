@@ -1,10 +1,12 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/src/constants/api";
 import type {
     CartValidationResponse,
+    CreateOrderEditRequestPayload,
     CreateOrderPayload,
     EditOrderPayload,
     Order,
     OrderDetail,
+    OrderEditRequest,
     OrderItem,
 } from "@/src/types";
 import apiClient from "./api";
@@ -66,6 +68,9 @@ function mapItem(raw: any): OrderItem {
     optionNameEn: raw.optionNameEn ?? raw.variantOption?.nameEn,
     note: raw.note ?? raw.itemNote,
     isReward: raw.isReward === true,
+    variantId: raw.variantId ?? null,
+    variantOptionId: raw.variantOptionId ?? null,
+    productUnitId: raw.productUnitId ?? null,
   };
 }
 
@@ -110,6 +115,18 @@ function mapOrderDetail(raw: any): OrderDetail {
           couponCode: raw.redeemedReward.couponCode,
           productName: raw.redeemedReward.productName,
           productNameEn: raw.redeemedReward.productNameEn,
+        }
+      : null,
+    pendingEditRequest: raw.pendingEditRequest
+      ? {
+          id: raw.pendingEditRequest.id,
+          status: raw.pendingEditRequest.status,
+          diff: raw.pendingEditRequest.diff ?? null,
+          estimatedTotal: raw.pendingEditRequest.estimatedTotal ?? null,
+          estimatedDeliveryFee:
+            raw.pendingEditRequest.estimatedDeliveryFee ?? null,
+          buyerMessage: raw.pendingEditRequest.buyerMessage ?? null,
+          createdAt: raw.pendingEditRequest.createdAt,
         }
       : null,
   };
@@ -165,6 +182,23 @@ export const orderService = {
       payload,
     );
     return mapOrderDetail(data);
+  },
+
+  /** Submit a buyer edit request for a PENDING order (awaits admin approval). */
+  submitEditRequest: async (
+    id: string,
+    payload: CreateOrderEditRequestPayload,
+  ): Promise<OrderEditRequest> => {
+    const { data } = await apiClient.post<{ editRequest: OrderEditRequest }>(
+      API_ENDPOINTS.ORDERS.EDIT_REQUEST(id),
+      payload,
+    );
+    return data.editRequest;
+  },
+
+  /** Withdraw the buyer's pending edit request for an order. */
+  cancelEditRequest: async (id: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.ORDERS.EDIT_REQUEST(id));
   },
 
   getLastDeliveryAddress: async (): Promise<{

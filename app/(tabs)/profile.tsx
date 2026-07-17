@@ -11,6 +11,7 @@ import { notificationService } from "@/src/services/notification.service";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { deleteAccount, logout } from "@/src/store/slices/auth.slice";
 import { fetchBalance } from "@/src/store/slices/loyalty.slice";
+import { isAdminRole } from "@/src/utils/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -151,6 +152,21 @@ export default function ProfileScreen() {
           </>
         )}
       </View>
+
+      {/* Admin Section — orders management, staff roles only */}
+      {isAuthenticated && isAdminRole(user?.role) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {t("adminOrders.sectionTitle")}
+          </Text>
+          {renderRow(
+            "briefcase-outline",
+            t("adminOrders.title"),
+            undefined,
+            () => router.push("/admin/orders"),
+          )}
+        </View>
+      )}
 
       {/* Personal Info Section */}
       {isAuthenticated && (

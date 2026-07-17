@@ -20,7 +20,7 @@ export interface NotificationNavigation {
   data?: Record<string, string | object>;
 }
 
-const AUTH_REQUIRED_TARGET_TYPES = new Set(["ORDER"]);
+const AUTH_REQUIRED_TARGET_TYPES = new Set(["ORDER", "ADMIN_ORDER"]);
 
 type TargetType =
   | "PRODUCT"
@@ -28,6 +28,7 @@ type TargetType =
   | "BRAND"
   | "COLLECTION"
   | "ORDER"
+  | "ADMIN_ORDER"
   | "URL"
   | "NONE";
 
@@ -163,6 +164,15 @@ export class NotificationNavigationService {
             return;
           }
           break;
+        case "ADMIN_ORDER":
+          // Admin order screen (new order / edit request pushes to staff).
+          // The /admin layout redirects non-admin users home.
+          if (targetId) {
+            console.log("[Navigation] → Admin Order Detail:", targetId);
+            this.router.push(`/admin/order/${targetId}`);
+            return;
+          }
+          break;
         case "URL":
           if (linkUrl) {
             console.log("[Navigation] → External URL:", linkUrl);
@@ -184,7 +194,13 @@ export class NotificationNavigationService {
     }
 
     // Legacy fallback: parse the free-text linkUrl
-    if (linkUrl.startsWith("/orders/")) {
+    if (linkUrl.startsWith("/admin/orders/")) {
+      // Admin order deep link (staff notifications stored before the
+      // structured ADMIN_ORDER target existed)
+      const orderId = linkUrl.replace("/admin/orders/", "");
+      console.log("[Navigation] → Admin Order Detail:", orderId);
+      this.router.push(`/admin/order/${orderId}`);
+    } else if (linkUrl.startsWith("/orders/")) {
       // Order Detail: /orders/123 → /order/123
       const orderId = linkUrl.replace("/orders/", "");
       console.log("[Navigation] → Order Detail:", orderId);

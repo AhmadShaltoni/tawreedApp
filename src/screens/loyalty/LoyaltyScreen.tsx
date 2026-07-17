@@ -306,6 +306,24 @@ export default function LoyaltyScreen() {
               totalEarned={balance.totalEarned}
               totalRedeemed={balance.totalRedeemed}
             />
+            {/* Points on the way — from placed orders not yet delivered.
+                Disappears automatically once points hit the balance. */}
+            {(balance.pendingPoints ?? 0) > 0 && (
+              <View style={styles.pendingPointsNote}>
+                <View style={styles.pendingPointsIcon}>
+                  <Ionicons
+                    name="time-outline"
+                    size={18}
+                    color={Colors.secondary}
+                  />
+                </View>
+                <Text style={styles.pendingPointsText}>
+                  {t("loyalty.pendingPointsNote", {
+                    points: balance.pendingPoints,
+                  })}
+                </Text>
+              </View>
+            )}
           </Animated.View>
         ) : balanceLoading ? (
           <View style={styles.balanceSkeleton}>
@@ -1197,6 +1215,36 @@ const styles = StyleSheet.create({
   sectionLoading: {
     paddingVertical: Spacing.xxxl * 2,
     alignItems: "center",
+  },
+
+  // Pending points note (points on the way from placed orders)
+  pendingPointsNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.secondary + "33",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  pendingPointsIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingPointsText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.secondaryDark,
+    fontWeight: "600",
+    lineHeight: 20,
+    textAlign: "left",
   },
 
   // Rewards grid

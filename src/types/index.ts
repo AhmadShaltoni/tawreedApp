@@ -242,6 +242,11 @@ export interface OrderItem {
   piecesPerUnit?: number;
   note?: string;
   isReward?: boolean;
+  // Live selection references (present on direct orders) — needed to preload
+  // the item into the edit editor and re-price it. Null on legacy/reward lines.
+  variantId?: string | null;
+  variantOptionId?: string | null;
+  productUnitId?: string | null;
 }
 
 export interface OrderDetail extends Order {
@@ -258,6 +263,67 @@ export interface OrderDetail extends Order {
   couponCode?: string;
   /** Loyalty reward redeemed/applied on this order (if any) */
   redeemedReward?: OrderRedeemedReward | null;
+  /** Buyer's edit request currently awaiting admin review (if any) */
+  pendingEditRequest?: OrderEditRequest | null;
+}
+
+export interface OrderEditDiffLine {
+  productName: string;
+  productNameEn?: string | null;
+  variantSize?: string | null;
+  variantSizeEn?: string | null;
+  variantOptionName?: string | null;
+  variantOptionNameEn?: string | null;
+  unitLabel?: string | null;
+  unitLabelEn?: string | null;
+  quantity: number;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface OrderEditDiff {
+  added: OrderEditDiffLine[];
+  removed: OrderEditDiffLine[];
+  changed: {
+    before: OrderEditDiffLine;
+    after: OrderEditDiffLine;
+    quantityDelta: number;
+  }[];
+  unchanged: OrderEditDiffLine[];
+  delivery: Record<string, { before: string | null; after: string | null }>;
+  totals: {
+    before: { productsTotal: number; deliveryFee: number; grandTotal: number };
+    after: { productsTotal: number; deliveryFee: number; grandTotal: number };
+  };
+}
+
+export interface OrderEditRequest {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  diff: OrderEditDiff | null;
+  estimatedTotal: number | null;
+  estimatedDeliveryFee: number | null;
+  buyerMessage?: string | null;
+  createdAt: string;
+}
+
+export interface OrderEditRequestItemPayload {
+  variantId: string;
+  variantOptionId?: string | null;
+  productUnitId?: string | null;
+  quantity: number;
+  note?: string | null;
+}
+
+export interface CreateOrderEditRequestPayload {
+  items: OrderEditRequestItemPayload[];
+  deliveryAddress?: string;
+  deliveryAddressDetails?: string;
+  deliveryCity?: string;
+  deliveryCityId?: string;
+  deliveryAreaId?: string;
+  buyerNotes?: string;
+  buyerMessage?: string;
 }
 
 export interface OrderRedeemedReward {

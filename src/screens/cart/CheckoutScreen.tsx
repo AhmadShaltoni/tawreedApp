@@ -4,7 +4,9 @@ import ScreenWrapper from "@/src/components/ui/ScreenWrapper";
 import {
     BorderRadius,
     Colors,
+    Fonts,
     FontSize,
+    LineHeight,
     Shadows,
     Spacing,
 } from "@/src/constants/theme";
@@ -97,6 +99,9 @@ export default function CheckoutScreen() {
   const [appliedCoupon, setAppliedCoupon] =
     useState<CouponValidateSuccess | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // Points this order will earn — captured before the cart is cleared so the
+  // success modal can still show the number.
+  const [earnedPointsForecast, setEarnedPointsForecast] = useState(0);
 
   // Loyalty reward coupon state
   const { coupons: loyaltyCoupons } = useAppSelector((state) => state.loyalty);
@@ -563,6 +568,9 @@ export default function CheckoutScreen() {
             }
           : null,
       });
+
+      // Capture the points forecast before clearing the cart empties it
+      setEarnedPointsForecast(pointsForecast);
 
       console.log("🗑️ Clearing cart...");
       dispatch(clearCart());
@@ -1224,22 +1232,34 @@ export default function CheckoutScreen() {
         onRequestClose={() => {}}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalIconContainer}>
-              <Ionicons
-                name="checkmark-circle"
-                size={64}
-                color={Colors.success}
-              />
+          <View style={styles.successCard}>
+            {/* Success badge with soft ring */}
+            <View style={styles.successBadgeRing}>
+              <View style={styles.successBadge}>
+                <Ionicons name="checkmark-sharp" size={40} color={Colors.white} />
+              </View>
             </View>
-            <Text style={styles.modalTitle}>{t("checkout.successTitle")}</Text>
-            <Text style={styles.modalMessage}>
+
+            <Text style={styles.successTitle}>
+              {t("checkout.successTitle")}
+            </Text>
+            <Text style={styles.successMessage}>
               {t("checkout.successMessage")}
             </Text>
-            <Text style={styles.loyaltyHint}>
-              {t("loyalty.orderSuccess.loyaltyHint")}
-            </Text>
-            <View style={styles.modalButtons}>
+
+            {/* Loyalty points note — added on delivery */}
+            <View style={styles.loyaltyNoteCard}>
+              <Ionicons name="star" size={16} color={Colors.warning} />
+              <Text style={styles.loyaltyNoteText}>
+                {earnedPointsForecast > 0
+                  ? t("loyalty.orderSuccess.loyaltyHintPoints", {
+                      points: earnedPointsForecast,
+                    })
+                  : t("loyalty.orderSuccess.loyaltyHint")}
+              </Text>
+            </View>
+
+            <View style={styles.successActions}>
               <Button
                 title={t("checkout.goToOrders")}
                 onPress={() => {
@@ -1247,7 +1267,30 @@ export default function CheckoutScreen() {
                   router.replace("/(tabs)/orders");
                 }}
                 variant="primary"
-                style={styles.modalButton}
+                icon={
+                  <Ionicons
+                    name="receipt-outline"
+                    size={18}
+                    color={Colors.white}
+                  />
+                }
+                style={styles.successButton}
+              />
+              <Button
+                title={t("checkout.goToRewards")}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.replace("/loyalty");
+                }}
+                variant="outline"
+                icon={
+                  <Ionicons
+                    name="gift-outline"
+                    size={18}
+                    color={Colors.primary}
+                  />
+                }
+                style={styles.successButton}
               />
               <Button
                 title={t("checkout.goToHome")}
@@ -1255,8 +1298,8 @@ export default function CheckoutScreen() {
                   setShowSuccessModal(false);
                   router.replace("/(tabs)");
                 }}
-                variant="outline"
-                style={styles.modalButton}
+                variant="ghost"
+                style={styles.successButton}
               />
             </View>
           </View>
@@ -1711,18 +1754,82 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     lineHeight: 22,
   },
-  loyaltyHint: {
-    fontSize: FontSize.xs,
-    color: Colors.warning,
-    textAlign: "center",
-    marginBottom: Spacing.xl,
-    fontWeight: "600",
-  },
   modalButtons: {
     width: "100%",
     gap: Spacing.sm,
   },
   modalButton: {
+    width: "100%",
+  },
+  // ===== Redesigned success modal =====
+  successCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
+    width: "100%",
+    maxWidth: 420,
+    alignItems: "center",
+    ...Shadows.lg,
+  },
+  successBadgeRing: {
+    width: 92,
+    height: 92,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.successSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.lg,
+  },
+  successBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.success,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Shadows.md,
+  },
+  successTitle: {
+    fontSize: FontSize.xl,
+    fontFamily: Fonts.bold,
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: Spacing.xs,
+  },
+  successMessage: {
+    fontSize: FontSize.sm,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: FontSize.sm * LineHeight.relaxed,
+    marginBottom: Spacing.lg,
+  },
+  loyaltyNoteCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    width: "100%",
+    marginBottom: Spacing.xl,
+  },
+  loyaltyNoteText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontFamily: Fonts.medium,
+    color: Colors.secondaryDark,
+    textAlign: "left",
+    lineHeight: FontSize.xs * LineHeight.base,
+  },
+  successActions: {
+    width: "100%",
+    gap: Spacing.sm,
+  },
+  successButton: {
     width: "100%",
   },
   // Stock validation styles

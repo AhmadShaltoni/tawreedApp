@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
     CREATE: "/api/v1/orders",
     UPDATE: (id: string) => `/api/v1/orders/${id}`,
     RECENT: "/api/v1/orders?limit=5&sort=recent",
+    EDIT_REQUEST: (id: string) => `/api/v1/orders/${id}/edit-request`,
   },
   NOTIFICATIONS: {
     LIST: "/api/v1/notifications",
@@ -85,6 +86,12 @@ export const API_ENDPOINTS = {
   },
   APP_VERSION: {
     CHECK: "/api/v1/app-version",
+  },
+  ADMIN: {
+    ORDERS: "/api/v1/admin/orders",
+    ORDER_DETAIL: (id: string) => `/api/v1/admin/orders/${id}`,
+    ORDER_STATUS: (id: string) => `/api/v1/admin/orders/${id}`,
+    EDIT_REQUEST_RESOLVE: (id: string) => `/api/v1/admin/edit-requests/${id}`,
   },
   REGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",
   UNREGISTER_DEVICE_TOKEN: "/api/v1/notifications/device-token",

@@ -17,27 +17,24 @@ import {
 } from "@/src/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
+    cancelOrderEditRequest,
     clearOrderDetail,
     fetchOrderDetail,
-    updateOrder,
 } from "@/src/store/slices/orders.slice";
-import type { EditOrderPayload, StatusHistoryEntry } from "@/src/types";
+import type { StatusHistoryEntry } from "@/src/types";
+import { openWhatsApp } from "@/src/utils/whatsapp";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -63,11 +60,6 @@ export default function OrderDetailScreen() {
     error: orderError,
   } = useAppSelector((state) => state.orders);
 
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editAddress, setEditAddress] = useState("");
-  const [editCity, setEditCity] = useState("");
-  const [editNotes, setEditNotes] = useState("");
-
   // Fetch order detail when entering/focusing on this screen
   useFocusEffect(
     useCallback(() => {
@@ -80,7 +72,12 @@ export default function OrderDetailScreen() {
     }, [dispatch, id]),
   );
 
-  const openEditModal = useCallback(() => {
+  const hasPendingEdit = !!order?.pendingEditRequest;
+
+  // Open the full editor (add/remove items, change quantities, delivery) for a
+  // PENDING order. Confirmed orders can no longer be self-edited — offer to
+  // reach out on WhatsApp instead.
+  const handleEditPress = useCallback(() => {
     if (!order) return;
     if (order.status !== "PENDING") {
       Alert.alert(
@@ -88,34 +85,48 @@ export default function OrderDetailScreen() {
         t("orders.cannotEditMessage", {
           status: t(STATUS_TRANSLATION_KEY[order.status]),
         }),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("orders.contactSupport"),
+            onPress: () =>
+              openWhatsApp(
+                t("orders.whatsappEditMessage", {
+                  orderNumber: order.orderNumber,
+                }),
+              ),
+          },
+        ],
       );
       return;
     }
-    setEditAddress(order.shippingAddress ?? "");
-    setEditCity(order.city ?? "");
-    setEditNotes(order.notes ?? "");
-    setEditModalVisible(true);
-  }, [order, t]);
-
-  const handleEditSubmit = useCallback(async () => {
-    if (!order) return;
-    const payload: EditOrderPayload = {};
-    if (editAddress !== (order.shippingAddress ?? ""))
-      payload.deliveryAddress = editAddress;
-    if (editCity !== (order.city ?? "")) payload.deliveryCity = editCity;
-    if (editNotes !== (order.notes ?? "")) payload.buyerNotes = editNotes;
-
-    if (Object.keys(payload).length === 0) {
-      setEditModalVisible(false);
+    if (hasPendingEdit) {
+      Alert.alert(t("orders.editPendingTitle"), t("orders.editPendingMessage"));
       return;
     }
+    router.push(`/order/edit/${order.id}`);
+  }, [order, hasPendingEdit, router, t]);
 
-    const result = await dispatch(updateOrder({ id: order.id, payload }));
-    if (updateOrder.fulfilled.match(result)) {
-      setEditModalVisible(false);
-      dispatch(fetchOrderDetail(order.id));
-    }
-  }, [order, editAddress, editCity, editNotes, dispatch]);
+  const handleCancelEditRequest = useCallback(() => {
+    if (!order) return;
+    Alert.alert(
+      t("orders.cancelEditTitle"),
+      t("orders.cancelEditMessage"),
+      [
+        { text: t("common.no"), style: "cancel" },
+        {
+          text: t("common.yes"),
+          style: "destructive",
+          onPress: async () => {
+            const result = await dispatch(cancelOrderEditRequest(order.id));
+            if (cancelOrderEditRequest.fulfilled.match(result)) {
+              dispatch(fetchOrderDetail(order.id));
+            }
+          },
+        },
+      ],
+    );
+  }, [order, dispatch, t]);
 
   if (loadingDetail || !order) {
     if (orderError && !loadingDetail) {
@@ -132,7 +143,6 @@ export default function OrderDetailScreen() {
     return <Loader />;
   }
 
-  const config = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.PENDING;
   const isPending = order.status === "PENDING";
 
   // Loyalty reward applied on this order (for the "reward used" banner)
@@ -208,8 +218,8 @@ export default function OrderDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{t("orders.orderDetail")}</Text>
-        {isPending ? (
-          <Pressable onPress={openEditModal} hitSlop={8}>
+        {isPending && !hasPendingEdit ? (
+          <Pressable onPress={handleEditPress} hitSlop={8}>
             <Ionicons name="create-outline" size={22} color={Colors.primary} />
           </Pressable>
         ) : (
@@ -251,6 +261,43 @@ export default function OrderDetailScreen() {
               </Text>
               <Text style={styles.rewardBannerName}>{rewardName}</Text>
             </View>
+          </View>
+        ) : null}
+
+        {/* Pending edit request banner */}
+        {hasPendingEdit ? (
+          <View style={styles.pendingEditBanner}>
+            <View style={styles.pendingEditRow}>
+              <Ionicons
+                name="hourglass-outline"
+                size={20}
+                color={Colors.secondary}
+              />
+              <View style={styles.pendingEditTextWrap}>
+                <Text style={styles.pendingEditTitle}>
+                  {t("orders.editPendingTitle")}
+                </Text>
+                <Text style={styles.pendingEditMessage}>
+                  {t("orders.editPendingMessage")}
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.pendingEditCancel,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleCancelEditRequest}
+              disabled={updating}
+            >
+              {updating ? (
+                <ActivityIndicator color={Colors.error} size="small" />
+              ) : (
+                <Text style={styles.pendingEditCancelText}>
+                  {t("orders.cancelEditRequest")}
+                </Text>
+              )}
+            </Pressable>
           </View>
         ) : null}
 
@@ -304,15 +351,15 @@ export default function OrderDetailScreen() {
           </View>
         ) : null}
 
-        {/* Edit Button — only for PENDING */}
-        {isPending ? (
+        {/* Edit Button — only for PENDING with no request awaiting review */}
+        {isPending && !hasPendingEdit ? (
           <View style={styles.section}>
             <Pressable
               style={({ pressed }) => [
                 styles.editButton,
                 pressed && styles.editButtonPressed,
               ]}
-              onPress={openEditModal}
+              onPress={handleEditPress}
             >
               <Ionicons name="create-outline" size={20} color={Colors.white} />
               <Text style={styles.editButtonText}>{t("orders.editOrder")}</Text>
@@ -320,86 +367,30 @@ export default function OrderDetailScreen() {
           </View>
         ) : null}
 
+        {/* Contact support on WhatsApp — always available */}
+        <View style={styles.section}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.whatsappButton,
+              pressed && { opacity: 0.85 },
+            ]}
+            onPress={() =>
+              openWhatsApp(
+                t("orders.whatsappEditMessage", {
+                  orderNumber: order.orderNumber,
+                }),
+              )
+            }
+          >
+            <Ionicons name="logo-whatsapp" size={20} color={Colors.white} />
+            <Text style={styles.whatsappButtonText}>
+              {t("orders.contactSupport")}
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
-
-      {/* Edit Order Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("orders.editOrder")}</Text>
-              <Pressable onPress={() => setEditModalVisible(false)} hitSlop={8}>
-                <Ionicons name="close" size={24} color={Colors.text} />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              style={styles.modalBody}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.fieldLabel}>
-                {t("checkout.shippingAddress")}
-              </Text>
-              <TextInput
-                style={[styles.fieldInput, isAr && styles.fieldInputRTL]}
-                value={editAddress}
-                onChangeText={setEditAddress}
-                placeholder={t("checkout.addressPlaceholder")}
-                placeholderTextColor={Colors.textLight}
-                multiline
-              />
-
-              <Text style={styles.fieldLabel}>{t("checkout.city")}</Text>
-              <TextInput
-                style={[styles.fieldInput, isAr && styles.fieldInputRTL]}
-                value={editCity}
-                onChangeText={setEditCity}
-                placeholder={t("checkout.selectCity")}
-                placeholderTextColor={Colors.textLight}
-              />
-
-              <Text style={styles.fieldLabel}>{t("orders.buyerNotes")}</Text>
-              <TextInput
-                style={[
-                  styles.fieldInput,
-                  { minHeight: 80 },
-                  isAr && styles.fieldInputRTL,
-                ]}
-                value={editNotes}
-                onChangeText={setEditNotes}
-                placeholder={t("checkout.notesPlaceholder")}
-                placeholderTextColor={Colors.textLight}
-                multiline
-              />
-            </ScrollView>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.submitButton,
-                pressed && styles.submitButtonPressed,
-                updating && styles.submitButtonDisabled,
-              ]}
-              onPress={handleEditSubmit}
-              disabled={updating}
-            >
-              {updating ? (
-                <ActivityIndicator color={Colors.white} size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>{t("common.save")}</Text>
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -578,6 +569,60 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSize.md,
     fontWeight: "700",
+  },
+  // WhatsApp contact button
+  whatsappButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.whatsapp,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    ...Shadows.sm,
+  },
+  whatsappButtonText: {
+    color: Colors.white,
+    fontSize: FontSize.md,
+    fontWeight: "700",
+  },
+  // Pending edit request banner
+  pendingEditBanner: {
+    marginHorizontal: Spacing.xxl,
+    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+    gap: Spacing.md,
+  },
+  pendingEditRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.md,
+  },
+  pendingEditTextWrap: {
+    flex: 1,
+  },
+  pendingEditTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.secondary,
+  },
+  pendingEditMessage: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  pendingEditCancel: {
+    alignSelf: "flex-start",
+    paddingVertical: Spacing.xs,
+  },
+  pendingEditCancelText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.error,
   },
   // Modal
   modalOverlay: {

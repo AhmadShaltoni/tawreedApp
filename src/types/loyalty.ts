@@ -64,6 +64,8 @@ export interface LoyaltyBalance {
   currentBalance: number;
   totalEarned: number;
   totalRedeemed: number;
+  /** Points from placed orders not yet awarded (added on delivery) */
+  pendingPoints?: number;
   recentTransactions: LoyaltyTransaction[];
   /** Public earn settings — lets the app forecast points before checkout */
   earnConfig?: LoyaltyEarnConfig;
@@ -205,7 +207,9 @@ export interface LoyaltyBalanceResponse {
   currentBalance: number;
   totalEarned: number;
   totalRedeemed: number;
+  pendingPoints?: number;
   recentTransactions: LoyaltyTransaction[];
+  earnConfig?: LoyaltyEarnConfig;
 }
 
 export interface TransactionsResponse {
